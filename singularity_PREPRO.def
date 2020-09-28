@@ -14,6 +14,7 @@ From: alpine:3.11
     cd /PREPRO2019/source
     make
     make install PREFIX=/PREPRO2019
+    make clean
     cp -s /PREPRO2019/bin/* /usr/local/bin
 
 %runscript
