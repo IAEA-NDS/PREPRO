@@ -1,0 +1,15 @@
+          0          0 1.000Ee-30          0
+ENDFB.OUT
+LINEAR.OUT
+     0 0  0  999999999
+                        (BLANK CARD TERMINATES MAT REQUEST RANGES)
+ 0.0000E-00 1.0000E-03
+                        (BLANK CARD TERMINATES FILE 3 ERROR LAW)
+ 0.0000E-00 1.0000E-05
+ 1.0000E+00 1.0000E-05
+ 2.0000E+00 1.0000E-04
+ 2.0000E+07 1.0000E-04
+                        (BLANK CARD TERMINATES FILE 3 ERROR LAW)
+====(this line and below is not read)===================================
+za092235
+LINEAR.OUT

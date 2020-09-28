@@ -1,0 +1,19 @@
+          0        -11         2           0 1.0000E-03           0
+PREPRO19.OUT
+GROUPIE.OUT
+          0          0         0           0          1
+Groupie Test Run
+     1 1  1  999999999
+                        (blank line terminate request list)
+ 
+ 
+===(this line and below is not read)==================================
+          0        -11         5           0 1.0000E-03           0
+tape.135.FIXUP
+tape.135.GROUPIE
+          0          0         1           0          0
+Groupie Test Run
+     1 1  1  999999999
+                        (blank line terminate request list)
+ 
+ 

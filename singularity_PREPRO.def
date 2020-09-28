@@ -1,0 +1,53 @@
+Bootstrap: docker
+From: alpine:3.11
+
+
+%files
+    . /PREPRO2019
+
+%post
+    apk add libx11-dev
+    apk add make
+    apk add g++
+    apk add gfortran
+
+    cd /PREPRO2019/source
+    make
+    make install PREFIX=/PREPRO2019
+    cp -s /PREPRO2019/bin/* /usr/local/bin
+
+%runscript
+
+    numArgs=$#
+    if [ "$numArgs" -eq 0 ];
+    then
+        echo "Run PREPRO codes in the following way:"
+        echo
+        echo "   singularity run <container-file> <PREPRO-code>"
+        echo
+        echo "   <PREPRO-code> could be, e.g., endf2c"
+        echo
+        echo "You can also perform a test run with all the PREPRO codes:"
+        echo
+        echo "   singularity run <container-file> test"
+        echo
+        echo "   Please note that this command will create a directory"
+        echo "   named 'test' in your current working directory."
+        echo
+        exit
+    fi
+
+    if [ "$1" = "test" ];
+    then
+        if [ ! -d "test" ]; then
+            cp -r /PREPRO2019/test .
+            cd test
+            exec ./verify.sh
+        else
+            echo test directory already exists, therefore not running test!
+        fi
+    else
+        prepro_cmd="$1"
+        shift
+        exec /PREPRO2019/bin/$prepro_cmd $@
+    fi
