@@ -1,14 +1,14 @@
 ## PREPRO 2019
 
-The ENDF/B Pre-processing codes (PREPRO) are a collection of 18 computer codes,
+The ENDF/B preprocessing codes (PREPRO) are a collection of 18 computer codes,
 which are designed to convert ENDF/B formatted neutron and/or photon data from
 the originally distributed form to a form in which the data can be used in
 applications.
 
 Features of the codes:
-- Data can be plotted on-screen or plots saved as PostScript files to disk.
-- The codes run on Microsoft, Linux and MacOS.
-- PREPRO 2019 is ENDF/B-VIII.0-tested and completely Fortran, C and C++ compatible
+- Data can be plotted on-screen or plots can be saved as PostScript files to disk.
+- The codes run on Windows, Linux and MacOS.
+- PREPRO 2019 is ENDF/B-VIII.0-tested and completely Fortran, C and C++ compatible.
 
 **Important note for users of earlier versions:**
 
@@ -20,27 +20,27 @@ PREPRO 2019 can handle all existing ENDF/B-VII.0, VII.1 and VIII evaluations.
 **Relation to the PREPRO 2019 code provided on the IAEA-NDS website:**
 
 This repository is complementary to the [PREPRO website][PREPRO2019-website]
-of the Nuclear Data Section of the IAEA
+of the Nuclear Data Section at the IAEA
 and contains the source files of the PREPRO 2019 codes.
 If you do not want to compile the codes yourself or are unsuccessful using the
 instructions provided below, you find executables
 for Windows, Linux and MacOS [here][PREPRO2019-codes]. Additional
-makefiles are also provided there  which may be more pertinent for your
+makefiles are also provided there which may be more pertinent for your
 system.
 
 ### Installation
 
 These installation instructions have been only tested on Linux.
-Assuming that *git*, *GNU make* and *GNU Fortran* 
-or compatible are installed on your system, 
+Assuming that *git*, *GNU make*, *GNU Fortran*, *GNU g++*
+and *Xlib* (libX11-dev) or compatible are installed on your system, 
 run the following commands from your command line:
 ```
-    git clone https://github.com/IAEA-NDS/PREPRO2019.git
-    cd PREPRO2019/source
+    git clone https://github.com/IAEA-NDS/PREPRO.git
+    cd PREPRO/source
     make
     make install
 ```
-If successful, the executables will be available in `PREPRO2019/bin`.
+If successful, the executables will be available in `PREPRO/bin`.
 
 Verify the installation by changing into the directory `test`.
 There run the command
@@ -54,8 +54,34 @@ versions should not exceed 2%, i.e., the plotted ratio should
 be between 0.98 and 1.02.
 
 Finally, after successful verification, move the executables to
-a place of your liking. Under linux '/usr/local/bin' is a good
-place.
+a place of your liking. Under Linux `/usr/local/bin`is usually
+a good place.
+
+#### Installation with Singularity
+
+[Singularity] is a containerisation application similar to Docker.
+If Singularity is installed, you can run the following instructions
+for installation:
+```
+    git clone https://github.com/IAEA-NDS/PREPRO.git
+    cd PREPRO
+    singularity build --fakeroot prepro.sif singularity_PREPRO.def
+    # alternatively:
+    # sudo singularity build prepro.sif singularity_PREPRO.def
+```
+The same verification script as described above in the convential
+installation can be used to verify the proper working:
+```
+    singularity run prepro.sif test
+```
+
+The PREPRO codes can be exetued by
+```
+    singularity run prepro.sif <PREPRO-CODE>
+```
+For instance, `<PREPRO-CODE>` could be `endf2c` or `fixup`.
+
+[Singularity]: https://sylabs.io/
 
 ### Supplementary material
 
@@ -74,7 +100,7 @@ on the IAEA-NDS website. In particular, these resources are provided:
 
 This computer code package should be cited as follows:
 
-*"D.E. Cullen, "PREPRO 2019: 2019: ENDF/B Pre-processing Codes", report  IAEA-NDS-39, Rev. 19, August 20, 2019*
+*D.E. Cullen, "PREPRO 2019: 2019: ENDF/B Pre-processing Codes", report  IAEA-NDS-39, Rev. 19, August 20, 2019*
 
 ### Legal note
 
