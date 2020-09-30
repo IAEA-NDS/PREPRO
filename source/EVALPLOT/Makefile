@@ -36,5 +36,5 @@ install: evalplot evalhard evalhard1
 clean:
 	rm -f evalplot evalhard evalhard1
 	rm -f endfio.o evalplot.o saveps.o saveps1.o \
-		scratchb.o screen.o seconds.o timer.o
+		dash.o scratchb.o screen.o seconds.o timer.o
 
