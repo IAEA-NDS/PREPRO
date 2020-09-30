@@ -18,7 +18,7 @@ OBJ= $(FSUB1:.f=.o) $(CSUBS:.c=.o)
 SRC= $(FSUB1) $(CSUBS)
  
 .PHONY: all
-all: complot comhard
+all: complot comhard comhard1
  
 complot: $(OBJ)
 	$(FC) -o complot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
@@ -27,17 +27,17 @@ comhard: complot.o endfio.o scratchb.o timer.o seconds.o saveps.o
 	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
         seconds.o saveps.o
 
-comhard1: complot.o endfio.o scratchb.o timer.o seconds.o saveps.o
-	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
+comhard1: complot.o endfio.o scratchb.o timer.o seconds.o saveps1.o
+	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
         seconds.o saveps1.o
 
 .PHONY: install
-install: complot comhard
+install: complot comhard comhard1
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp $^ $(DESTDIR)$(PREFIX)/bin 
  
 .PHONY: clean
 clean:
-	rm -f complot comhard
+	rm -f complot comhard comhard1
 	rm -f complot.o dash.o endfio.o saveps.o \
-	    scratchb.o screen.o seconds.o timer.o
+	    saveps1.o scratchb.o screen.o seconds.o timer.o

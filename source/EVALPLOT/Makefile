@@ -14,7 +14,7 @@ OBJ= $(FSUB1:.f=.o) $(CSUBS:.c=.o)
 SRC= $(FSUB1) $(CSUBS)
  
 .PHONY: all
-all: evalplot evalhard
+all: evalplot evalhard evalhard1
  
 evalplot: $(OBJ)
 	$(FC) -o evalplot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
@@ -23,18 +23,18 @@ evalhard: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps.o
 	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
         seconds.o saveps.o
 
-evalhard1: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps.o
-	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
+evalhard1: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps1.o
+	$(FC) -o evalhard1 $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
         seconds.o saveps1.o
 
 .PHONY: install
-install: evalplot evalhard
+install: evalplot evalhard evalhard1
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp $^ $(DESTDIR)$(PREFIX)/bin
 
 .PHONY: clean
 clean:
-	rm -f evalplot evalhard *.o
-	rm -f endfio.o evalplot.o saveps.o \
+	rm -f evalplot evalhard evalhard1
+	rm -f endfio.o evalplot.o saveps.o saveps1.o \
 		scratchb.o screen.o seconds.o timer.o
 
