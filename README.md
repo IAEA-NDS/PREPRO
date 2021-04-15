@@ -10,6 +10,16 @@ Features of the codes:
 - The codes run on Windows, Linux and MacOS.
 - PREPRO 2019 is ENDF/B-VIII.0-tested and completely Fortran, C and C++ compatible.
 
+
+**Citation**
+
+This computer code package should be cited as follows:
+
+```
+D.E. Cullen, "PREPRO 2019: 2019: ENDF/B Pre-processing Codes", report  IAEA-NDS-39, Rev. 19, August 20, 2019
+```
+
+
 **Important note for users of earlier versions:**
 
 Earlier versions of PREPRO (i.e., before version 2019-1) cannot accurately
@@ -96,11 +106,6 @@ on the IAEA-NDS website. In particular, these resources are provided:
 [PREPRO2019-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/ask4best.html
 [PREPRO2019-documentation]: https://www-nds.iaea.org/public/endf/prepro/DOCUMENT/ask4docs.html
 
-### Citation
-
-This computer code package should be cited as follows:
-
-*D.E. Cullen, "PREPRO 2019: 2019: ENDF/B Pre-processing Codes", report  IAEA-NDS-39, Rev. 19, August 20, 2019*
 
 ### Legal note
 
