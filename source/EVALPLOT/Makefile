@@ -1,3 +1,12 @@
+# This file is part of PREPRO.
+#
+#    Author: Dermott (Red) Cullen
+# Copyright: (C) International Atomic Energy Agency
+#
+# PREPRO is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+
+
 FFLAGS = -O2 -std=legacy
 CFLAGS =
 LIBS   = -lX11
@@ -37,4 +46,3 @@ clean:
 	rm -f evalplot evalhard evalhard1
 	rm -f endfio.o evalplot.o saveps.o saveps1.o \
 		dash.o scratchb.o screen.o seconds.o timer.o
-
