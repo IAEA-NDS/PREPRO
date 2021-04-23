@@ -8,8 +8,6 @@
 
 os:=$(shell uname -s)
 
-# $(info $$os is [${os}])
-
 ifeq ($(os),Darwin)
      CFLAGS = -I/opt/X11/include -w
      LIBS   = -lXt -lX11
@@ -54,4 +52,4 @@ clean:
 	rm -f evalplot evalhard evalhard1
 	rm -f evalplot.o endfio.o scratchb.o screen.o \
 	      dash.o saveps.o saveps1.o 
-#
+
