@@ -1,3 +1,12 @@
+C This file is part of PREPRO.
+C
+C    Author: Dermott (Red) Cullen
+C Copyright: (C) International Atomic Energy Agency
+C
+C PREPRO is free software; you can redistribute it and/or modify it
+C under the terms of the MIT License; see LICENSE file for more details.
+
+
       subroutine starplot
 c=======================================================================
 c
@@ -121,7 +130,7 @@ c-----------------------------------------------------------------------
 c-------set up name for our callback routine
       external KeyBoardProc
       !DEC$ ATTRIBUTES ALIAS: '_KeyBoardProc@12' :: KeyBoardProc
- 
+
       myback = 183
 c-------set hook for keyboard events
       hookhandle = SetWindowsHookEX(WH_KEYBOARD,
@@ -879,19 +888,19 @@ c=======================================================================
       save
       character*1 key1,key2
       integer*4 status,keycode,ikey1,ikey2,ikey3
- 
+
       integer*4, parameter :: VK_INSERT_ALIAS = 16#85  !F22
       integer*4, parameter :: VK_DELETE_ALIAS = 16#86  !F23
       integer*4, parameter :: VK_CANCEL_ALIAS = 16#87  !F24
- 
+
       integer*4 hookhandle, primarythreadid
       common/redhooks/ hookhandle, primarythreadid
 c------------------callback initialization
 c--------set up name for our callback routine
       external KeyBoardProc
       !DEC$ ATTRIBUTES ALIAS: '_KeyBoardProc@12' :: KeyBoardProc
- 
- 
+
+
    10 key1 = getcharqq()
       select case (ichar(key1))
 c
@@ -900,7 +909,7 @@ c
       case (VK_INSERT_ALIAS)
             keycode = 1082
             return
- 
+
       case (VK_DELETE_ALIAS)
             keycode = 1083
             return
@@ -947,7 +956,7 @@ c
       keycode = ikey1
       return
       end
- 
+
       integer*4 function KeyBoardProc(nCode, wParam, lParam)
  !DEC$ ATTRIBUTES STDCALL, ALIAS: '_KeyBoardProc@12' :: KeyBoardProc
       use dflib
@@ -955,36 +964,36 @@ c
       integer*4 nCode           ! hook code
       integer*4 wParam          ! virtual-key code
       integer*4 lParam          ! keystroke message information
- 
+
       integer*4 i
- 
+
       integer*4 hookhandle, primarythreadid
       common/redhooks/ hookhandle, primarythreadid
- 
+
       integer*4, parameter :: VK_INSERT_ALIAS = 16#85  !F22
       integer*4, parameter :: VK_DELETE_ALIAS = 16#86  !F23
       integer*4, parameter :: VK_CANCEL_ALIAS = 16#87  !F24
- 
+
       ! check ok to process and key-up from bit31
       if (nCode .ge. 0 .and. iand(lParam,16#80000000) .ne. 0) then
       ! may process this
- 
+
       select case (wParam)
- 
+
       case (VK_INSERT)
       i = SendMessage(GetHWndQQ(0), WM_CHAR, VK_INSERT_ALIAS, lParam )
       KeyBoardProc = 1 ! non zero to stop further processing
       return
- 
+
       case (VK_DELETE)
       i = SendMessage(GetHWndQQ(0), WM_CHAR, VK_DELETE_ALIAS, lParam )
       KeyBoardProc = 1 ! non zero to stop further processing
       return
- 
+
       case (16#00000043) ! do we have a c
- 
+
       if(iand(GetKeyState(VK_CONTROL),16#00008000).ne.0) then
- 
+
         !note: to stop quick win from intercepting this
         !      and killing the program, the "exit" item
         !      must be removed from the file menu.
@@ -992,18 +1001,18 @@ c
       KeyBoardProc = 1 ! non zero to stop further processing
       return
        endif
- 
+
        case DEFAULT
        ! do nothing
       end select ! end switch
       endif
- 
+
       !!KeyboardProc = CallNextHookEx(hookhandle, nCode, wParam, loc(lPa
       KeyboardProc = 0
- 
+
       return
       end function KeyBoardProc
- 
+
       logical*4 function initialsettings()
       use dfwin
       integer*4 hookhandle, primarythreadid

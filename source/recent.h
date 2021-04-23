@@ -1,3 +1,12 @@
+C This file is part of PREPRO.
+C
+C    Author: Dermott (Red) Cullen
+C Copyright: (C) International Atomic Energy Agency
+C
+C PREPRO is free software; you can redistribute it and/or modify it
+C under the terms of the MIT License; see LICENSE file for more details.
+
+
 C=======================================================================
 C
 C     RECENT COMMON
@@ -89,6 +98,6 @@ C
 C     NOTE THAT ETAB2 AND SIG2 ARE DIMENSIONED MAXPTX+1, WHILE ETAB2X
 C     AND SIG2X ARE DIMENSIONED MAXPTX - TO ALLOW PAGES TO BE WRITTEN
 C     OR READ WHILE STILL KEEPING 1 ENERGY POINT IN MEMORY.
- 
+
       DIMENSION ETAB2X(MAXPTX),SIG2X(MAXNREACT,MAXPTX)
       EQUIVALENCE (ETAB2(1) ,ETAB2X(1)),(SIG2(1,1),SIG2X(1,1))

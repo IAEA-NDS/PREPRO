@@ -1,3 +1,12 @@
+C This file is part of PREPRO.
+C
+C    Author: Dermott (Red) Cullen
+C Copyright: (C) International Atomic Energy Agency
+C
+C PREPRO is free software; you can redistribute it and/or modify it
+C under the terms of the MIT License; see LICENSE file for more details.
+
+
 C=======================================================================
 C
 C     COMPLOT COMMON
@@ -34,7 +43,7 @@ C-----DATA STORAGE
      1       XLOAD(MAXLOAD),YLOAD(MAXLOAD),
      2       IZATAB(MAXIZA),MFTAB(MAXIZA),MTTAB(MAXIZA)
 c----Equivalence arrays = no additional memory.
- 
+
       DIMENSION XPAGE1(MAXPOINT),YPAGE1(MAXPOINT),
      1          XPAGE2(MAXPOINT),YPAGE2(MAXPOINT),
      2          XPAGE3(MAXPOINT),YPAGE3(MAXPOINT)
