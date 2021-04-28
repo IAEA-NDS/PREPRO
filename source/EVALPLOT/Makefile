@@ -4,21 +4,21 @@ LIBS   = -lX11
 LIBDIR = -L/usr/X11/lib
 CC     = gcc -I/usr/X11/include
 FC     = gfortran
- 
+
 FSUB1= evalplot.f endfio.f scratchb.f timer.f seconds.f screen.f
- 
+
 CSUBS= dash.c
- 
+
 OBJ= $(FSUB1:.f=.o) $(CSUBS:.c=.o)
- 
+
 SRC= $(FSUB1) $(CSUBS)
- 
+
 .PHONY: all
 all: evalplot evalhard evalhard1
- 
+
 evalplot: $(OBJ)
 	$(FC) -o evalplot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
- 
+
 evalhard: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps.o
 	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
         seconds.o saveps.o

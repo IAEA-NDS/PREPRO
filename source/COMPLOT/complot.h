@@ -34,7 +34,7 @@ C-----DATA STORAGE
      1       XLOAD(MAXLOAD),YLOAD(MAXLOAD),
      2       IZATAB(MAXIZA),MFTAB(MAXIZA),MTTAB(MAXIZA)
 c----Equivalence arrays = no additional memory.
- 
+
       DIMENSION XPAGE1(MAXPOINT),YPAGE1(MAXPOINT),
      1          XPAGE2(MAXPOINT),YPAGE2(MAXPOINT),
      2          XPAGE3(MAXPOINT),YPAGE3(MAXPOINT)
