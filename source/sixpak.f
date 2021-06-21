@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SIXPAK
@@ -115,6 +106,10 @@ C                                  it ends with zero cross section,e.g.,
 C                                  (E,Y) only defines upper energy of
 C                                  the last group - Y has no meaning,
 C                                  by ENDF convention it should be Y = 0
+C     VERS. 2020-1 (Mar.  2020)   *Added ENDFB.MF3 for MF/MT=3/5 parta
+C                                  based on MF=6/5.
+C                                 *Added Target Isomer State
+C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -344,7 +339,7 @@ C     OF ALL OTHER SECTIONS.
 C
 C     CONTENTS OF OUTPUT
 C     ==================================================================
-C     5 ENDF/B FORMATTED OUTPUT FILES ARE PRODUCED FOR NEUTRON INCIDENT
+C     6 ENDF/B FORMATTED OUTPUT FILES ARE PRODUCED FOR NEUTRON INCIDENT
 C     DATA,
 C
 C     1) ENDFB.MF4 - ANGULAR DISTRIBUTIONS AND LEGENDRE COEFFICIENTS
@@ -354,6 +349,7 @@ C     3) ENDFB.M12 - PHOTON EMISSION MULTIPLICITY
 C     4) ENDFB.M14 - PHOTON EMISSION ANGULAR DISTRIBUTIONS (ALWAYS
 C                    ISOTROPIC)
 C     5) ENDFB.M15 - TABULATED PHOTON EMISSION SPECTRA
+C     6) ENDFB.MF3 - TABULATED Charged Particle Cross Section for MT=5
 C
 C     EMITTED PARTICLE YIELD
 C     ==================================================================
@@ -972,6 +968,8 @@ C      12   ENDFB.MF5
 C      14   ENDFB.M15
 C      17   ENDFB.M12
 C      18   ENDFB.M14
+C      19   ENDFB.MT9
+C      20   ENDFB.MT3
 C      15   PLOTTAB.INP
 C      16   PLOTTAB.CUR
 C
@@ -1032,11 +1030,13 @@ C=======================================================================
 C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*8 CODENAME
       COMMON/NAMECODE/CODENAME
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       CHARACTER*4 LABEL
       CHARACTER*66 LABOUT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/DUMHEAD/ZERO1,ZERO2,L10,L20,N10,N20
       COMMON/TYPLAW/LAWIN(8,13),LAWOUT(8,13),NOUT(4,13),NYIELD(8,2),
@@ -1044,11 +1044,12 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/COPC/LABEL(17)
       COMMON/COPI/ILABEL(3)
       COMMON/PARTIO/AWRET,IVERSE,IZAI,IZAT,IZAP,NZAT
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       COMMON/HIGHE45/N2X4,N2X5,I2X4,I2X5
+      COMMON/LEADMT5/C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1MT5 ,N2MT5
       DATA LSTMAT/-9999/
-      DATA LABOUT/' Program SIXPAK (2019-1) Output'/
+      DATA LABOUT/' Program SIXPAK (2021-1) Output'/
 C-----08/08/2012 DEFINE CODE NAME
       CODENAME = 'SIXPAK  '
 C-----INITIALIZE TIMER
@@ -1064,8 +1065,8 @@ C
 C     IDENTIFY PROGRAM
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,170)
-      WRITE(*   ,170)
+      WRITE(OUTP,180)
+      WRITE(*   ,180)
 c-----------------------------------------------------------------------
 C
 C     DEFINE DUMMY (= 0) PARAMETERS FOR OUTPUT
@@ -1099,18 +1100,22 @@ C     DEFINE OUTPUT FILE NUMBER AND WRITE TAPE LABELS FOR ENDF/B
 C     OUTPUT FILES.
 C
 c-----------------------------------------------------------------------
-      MF4=4
-      MF5=5
+      MF3 = 3
+      MF4 = 4
+      MF5 = 5
+      MF9 = 9
       MF12=12
       MF14=14
       MF15=15
-      MF9 = 9
       CALL OUTLAB(OTAPE4,LABOUT,4000)
       CALL OUTLAB(OTAPE5,LABOUT,4000)
       CALL OUTLAB(OTAPE12,LABOUT,4000)
       CALL OUTLAB(OTAPE14,LABOUT,4000)
       CALL OUTLAB(OTAPE15,LABOUT,4000)
       CALL OUTLAB(OTAPE9 ,LABOUT,4000)
+c-----2020/2/119 - Added MF=3
+      CALL OUTLAB(OTAPE3 ,LABOUT,4000)
+      NOSQ3 =1
       NOSQ4 =1
       NOSQ5 =1
       NOSQ9 =1
@@ -1129,14 +1134,18 @@ c-----------------------------------------------------------------------
       NYIELD(J,2)=0
       DO 10 I=1,3
       NANGLE(J,I)=0
-   10 NDIST(J,I)=0
+      NDIST(J,I)=0
+   10 CONTINUE
       DO 20 I=1,13
       LAWIN(J,I)=0
-   20 LAWOUT(J,I)=0
+      LAWOUT(J,I)=0
+   20 CONTINUE
    30 CONTINUE
-      DO 40 J=1,4
+      DO 50 J=1,4
       DO 40 I=1,13
-   40 NOUT(J,I)=0
+      NOUT(J,I)=0
+   40 CONTINUE
+   50 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     START.
@@ -1145,12 +1154,12 @@ c-----------------------------------------------------------------------
 C-----LIST TAPE LABEL
       OTAPE=0
       CALL COPYL
-      WRITE(OUTP,180) LABEL,ILABEL(1)
-      WRITE(*   ,180) LABEL,ILABEL(1)
+      WRITE(OUTP,190) LABEL,ILABEL(1)
+      WRITE(*   ,190) LABEL,ILABEL(1)
 C-----FIND SECTIONS OF MF=6
-   50 CALL CONTI
+   60 CALL CONTI
 C-----NEXT TAPE AT END OF DATA.
-      IF(MTH.gt.0) go to 60
+      IF(MTH.gt.0) go to 70
       IF(MATH.lt.0) then
 c-----------------------------------------------------------------------
 C
@@ -1161,107 +1170,116 @@ c-----Print MT summary if any preceeding MAT
       if(LSTMAT.gt.0) then
       CALL MAXIE3(1)
       endif
-      go to 150
+      go to 160
       endif
-      go to 50
+      go to 60
 c-----------------------------------------------------------------------
 C
 c     Next MT
 c
 c-----------------------------------------------------------------------
 C-----INITIALIZE ENDF/B FORMAT VERSION FOR EACH NEW MAT
-   60 IF(MATH.EQ.LSTMAT) GO TO 70
+   70 IF(MATH.EQ.LSTMAT) GO TO 80
 c-----Print MT summary if any preceeding MAT
       if(LSTMAT.gt.0) then
       CALL MAXIE3(1)
       endif
       LSTMAT=MATH
       IVERSE=0
+      N2MT5 = 0 ! 2020/1/20 - added MF/MT=3/5 energy count.
 c-----Initialize MT list
       CALL MAXIE0
 C-----HAS THIS MAT BEEN REQUESTED.
-   70 MYWAY=IWANT(MATH,MTH)
-      IF(MYWAY.lt.0) go to 150
-      IF(MYWAY.eq.0) go to 140
+   80 MYWAY=IWANT(MATH,MTH)
+      IF(MYWAY.lt.0) go to 160
+      IF(MYWAY.eq.0) go to 150
 C-----DEFINE ENDF/B FORMAT VERSION AND INCIDENT PARTICLE IF MF=1, MT=451
-      IF(MFH.EQ.1.AND.MTH.EQ.451) GO TO 80
+      IF(MFH.EQ.1.AND.MTH.EQ.451) GO TO 90
+C-----2020/2/19 - SAVE MF/MT=5/3 For Charged Particle MF=3 Output.
+      IF(MFH.EQ.3) then
+      IF(MTH.EQ.5) then
+      CALL FILE3  ! Save MF/MT=3/5 Cross Section
+      ENDIF
+      go to 130   ! Skip to end section
+      ENDIF
 C-----SKIP IF NOT MF=6
-      IF(MFH.lt.6) go to 130
-      IF(MFH.eq.6) go to 90
-      go to 140
+      IF(MFH.lt.6) go to 140
+      IF(MFH.eq.6) go to 100
+      go to 150
 c-----------------------------------------------------------------------
 C
 C     PROCESS COMMENT SECTION (MF=1, MT=451)
 C
 c-----------------------------------------------------------------------
-   80 CALL FILE1
+   90 CALL FILE1
 C-----SKIP MATERIAL IF NOT ENDF/B-VI (NO MF=6 DATA).
-      IF(IVERSE.ne.6) go to 140
-      go to 130
+      IF(IVERSE.ne.6) go to 150
+      go to 140
 c-----------------------------------------------------------------------
 C
 C     PROCESS ONE SECTION OF MF=6 DATA
 C
 c-----------------------------------------------------------------------
-c-----2019/4/23 - MT=5 is not allowed in MF=43 or 5 = SKIP
+c-----2019/4/23 - MT=5 is not allowed in MF=4 or 5 = SKIP
 c-----2019/6/30 - WARNING - but translate MT=5
-   90 if(MTH.eq.5) then
-      write(outp,100)
-      write(*   ,100)
-  100 FORMAT(1x,78('-')/
-     1 ' WARNING: MT=5 is ALLOWED in MF=6, but NOT in MF=4 or 5.'/
-     2 '          see ENDF-102 - Strictly for diagnostic purposes'/
-     3 '          this code will Translate MF=6 Data - but be'/
-     4 '          WARNED - the results should not be used in ANY',
-     5 '          APPLICATIONS.'/1x,78('-'))
+  100 if(MTH.eq.5) then
+      write(outp,110)
+      write(*   ,110)
+  110 FORMAT(1x,78('-')/
+     1 ' WARNING: MT=5 is ALLOWED in MF=6, but NOT in MF=4 or 5'/
+     2 '          (see ENDF-102). Strictly for diagnostic purposes'/
+     3 '          this code will Translate MF=6 Data to MF=3, 4 and 5'/
+     4 '          data - but be WARNED - the MF=3 or 4 or 5 results'/
+     5 '          MUST NOT be used in any REAL APPLICATIONS.'
+     6 /1x,78('-'))
 c     go to 110
 c-----2019/6/30 - WARNING - but translate MT=5
       endif
 C-----HAS THIS MAT/MT BEEN REQUESTED.
       MYWAY=IWANT(MATH,MTH)
-      IF(MYWAY.NE.2) GO TO 120
+      IF(MYWAY.NE.2) GO TO 130
 C-----IF ENDF/B FORMAT VERSION IS NOT DEFINED (NO MF/MT=1/451) ASSUME
 C-----ENDF/B-VI WITH NEUTRONS INCIDENT.
-      IF(IVERSE.GT.0) GO TO 110
+      IF(IVERSE.GT.0) GO TO 120
       IVERSE=6
       IZAI=1
 C-----PROCESS SECTION OF MF=6 DATA.
-  110 CALL FILE6
-      GO TO 50
+  120 CALL FILE6
+      GO TO 60
 c-----------------------------------------------------------------------
 C
 C     SKIP.
 C
 c-----------------------------------------------------------------------
 C-----SKIP MT.
-  120 CALL SKIPS
-      GO TO 50
+  130 CALL SKIPS
+      GO TO 60
 C-----SKIP MF.
-  130 CALL SKIPF
-      GO TO 50
+  140 CALL SKIPF
+      GO TO 60
 C-----SKIP MAT.
-  140 CALL SKIPM
-      GO TO 50
+  150 CALL SKIPM
+      GO TO 60
 c-----------------------------------------------------------------------
 C
 C     END OF RUN.
 C
 c-----------------------------------------------------------------------
 C-----PRINT SUMMARY OF TABLE SIZES, LAW TYPES AND INTERPOLATION.
-  150 WRITE(OUTP,190) LAWIN
-      WRITE(OUTP,200) LAWOUT
-      WRITE(OUTP,210) NYIELD
-      WRITE(OUTP,220) NANGLE,MAXLEG,MAXMU
-      WRITE(OUTP,230) NDIST
-      WRITE(OUTP,240)
-      WRITE(OUTP,250) NOUT
-      WRITE(*   ,190) LAWIN
-      WRITE(*   ,200) LAWOUT
-      WRITE(*   ,210) NYIELD
-      WRITE(*   ,220) NANGLE,MAXLEG,MAXMU
-      WRITE(*   ,230) NDIST
-      WRITE(*   ,240)
-      WRITE(*   ,250) NOUT
+  160 WRITE(OUTP,200) LAWIN
+      WRITE(OUTP,210) LAWOUT
+      WRITE(OUTP,220) NYIELD
+      WRITE(OUTP,230) NANGLE,MAXLEG,MAXMU
+      WRITE(OUTP,240) NDIST
+      WRITE(OUTP,250)
+      WRITE(OUTP,260) NOUT
+      WRITE(*   ,200) LAWIN
+      WRITE(*   ,210) LAWOUT
+      WRITE(*   ,220) NYIELD
+      WRITE(*   ,230) NANGLE,MAXLEG,MAXMU
+      WRITE(*   ,240) NDIST
+      WRITE(*   ,250)
+      WRITE(*   ,260) NOUT
 C-----END OF ENDF/B OUTPUT.
       MATH=-1
       CALL CONT4(0)
@@ -1270,14 +1288,16 @@ C-----END OF ENDF/B OUTPUT.
       CALL CONT14(0)
       CALL CONT15(0)
       CALL CONT9 (0)
+c-----2020/3/19 - Added MF=3
+      CALL CONT3
 c-----Print final WARNING if data not tabulated to same Maximum Energy
       CALL MAXIE4(1)
 c-----End of run - Normal
-  160 CALL ENDIT
-      GO TO 160   ! cannot get to here
-  170 FORMAT(' Process ENDF/B Double Differential Data - MF=6',
-     1 ' (SIXPAK 2019-1)'/1X,78('='))
-  180 FORMAT(1X,78('=')/' Terminology'/1X,78('-')/
+  170 CALL ENDIT
+      GO TO 170   ! cannot get to here
+  180 FORMAT(' Process ENDF/B Double Differential Data - MF=6',
+     1 ' (SIXPAK 2021-1)'/1X,78('='))
+  190 FORMAT(1X,78('=')/' Terminology'/1X,78('-')/
      1 ' LCT  = Reference System (Lab or Center-of-Mass)'/
      2 ' LIP  = Product Modifier, e.g., for Isomeric States'/
      3 ' LAW  = Representation of Data - see, List at End of Output'/
@@ -1290,7 +1310,7 @@ c-----End of run - Normal
      A '      = 11-15 = Tabulated    (LAW 5)'/
      1 ' LEP  = Secondary Energy Interpolation Type(1 to 5)'/
      2 1X,78('=')/' Tape Label'/1X,78('-')/1X,16A4,A2,I4)
-  190 FORMAT(1X,78('=')/' Laws by Incident Particle'/1X,78('-')/
+  200 FORMAT(1X,78('=')/' Laws by Incident Particle'/1X,78('-')/
      1 ' Law Number and Definition  ',
      2 ' Photon    n     p     d     t  He-3  He-4 Other'/1X,78('-')/
      3 ' (0) Unknown................',8I6/
@@ -1309,7 +1329,7 @@ c-----End of run - Normal
      6 ' (6) n-Body Phase-Space.....',8I6/
      7 ' (7) Laboratory Angle-Energy',8I6/
      8 ' Not 0 to 7 (WARNING if Any)',8I6)
-  200 FORMAT(1X,78('=')/' Laws by Emitted Particle'/1X,78('-')/
+  210 FORMAT(1X,78('=')/' Laws by Emitted Particle'/1X,78('-')/
      1 ' Law Number and Definition  ',
      2 ' Photon    n     p     d     t  He-3  He-4 Other'/1X,78('-')/
      3 ' (0) Unknown................',8I6/
@@ -1328,27 +1348,27 @@ c-----End of run - Normal
      6 ' (6) n-Body Phase-Space.....',8I6/
      7 ' (7) Laboratory Angle-Energy',8I6/
      8 ' Not 0 to 7 (WARNING if Any)',8I6)
-  210 FORMAT(1X,78('-')/' Summary of Emitted Particle Yields'/
+  220 FORMAT(1X,78('-')/' Summary of Emitted Particle Yields'/
      1 1X,78('-')/
      1 ' Energy Independent.........',8I6/
      2 ' Energy Dependent...........',8I6)
-  220 FORMAT(1X,78('-')/' Summary of Angular Distributions'/1X,78('-')/
+  230 FORMAT(1X,78('-')/' Summary of Angular Distributions'/1X,78('-')/
      1 ' Isotropic..................',8I6/
      2 ' Nonisotropic...............',8I6/
      3 ' Mixed......................',8I6/1X,78('-')/
      4 ' Maximum Legendre Order.....',8I6/
      5 ' Maximum Number of Cosines..',8I6)
-  230 FORMAT(1X,78('-')/' Summary of Energy Distributions'/1X,78('-')/
+  240 FORMAT(1X,78('-')/' Summary of Energy Distributions'/1X,78('-')/
      7 ' Continuous.................',8I6/
      8 ' Discrete...................',8I6/
      9 ' Mixed......................',8I6/1X,78('-'))
-  240 FORMAT(1X,78('=')/' Summary of Incident Neutron',
+  250 FORMAT(1X,78('=')/' Summary of Incident Neutron',
      1 ' with Photon or Neutron Emitted Data'/1X,78('-')/
      1 ' Law Number and Definition  ',
      2 ' Output        Not Output '/1X,78('-')/
      3 '                            ',
      4 ' Photon    n   Photon    n'/1X,78('-'))
-  250 FORMAT(
+  260 FORMAT(
      3 ' (0) Unknown................',2I6,2X,2I6/
      4 ' (1) Continuum Energy-Angle'/
      5 '      Legendre..............',2I6,2X,2I6/
@@ -1523,8 +1543,11 @@ C     IMOUT = 0 - NO OUTPUT
 C           = 1 - PHOTON SPECTRA OUTPUT
 C           = 2 - NEUTRON ANGULAR DISTRIBUTIONS
 C           = 3 - NEUTRON ANGULAR DISTRIBUTIONS AND SPECTRA
+C           = 4 - MF/MT=3/5 PARTIAL CROSS SECTIONS
+C                 (Only n', p, d, t, he3, a = All Continuum)
 C
-C     01/30/03 - ADED CHARGED PARTICLE ANGULAR DISTRIBUTION OUTPUT
+C     2003/01/30 - ADDED CHARGED PARTICLE ANGULAR DISTRIBUTION OUTPUT
+C     2020/02/20 - ADDED MF/MT=3/5 Partial Cross Sections
 C
 C=======================================================================
       INCLUDE 'implicit.h'
@@ -1581,7 +1604,8 @@ C=======================================================================
       COMMON/PARMS/NK,NI,NE,IE,ND,NA,NL,LIP,LTP,NMU,NEP,LIDP,
      1 IMU,LANG,LEP,LAW,LCT,LCTIN,IPI,IPO
       COMMON/OUTME/IMOUT
-      COMMON/HOLLY1/ZAHOLI(10),ZAHOLT(10),ZAHOLP(10)
+      COMMON/LISCOM/LISO
+      COMMON/HOLLY1/ZAHOLI(10),ZAHOLT(12),ZAHOLP(10)
       DIMENSION SYS(4),NOYES(4)
       DATA SYS/'Lab ','cm  ','cm  ','ERR '/
       DATA LSTZAI/-9999/
@@ -1600,8 +1624,9 @@ C-----TITLE FOR EACH NEW PROJECTILE/TARGET
       LSTZAT=IZAT
 C-----DEFINE PROJECTILE, TARGET AND EMITTED.
    10 CALL ZAHOL(IZAI,ZAHOLI)
-      CALL ZAHOL(IZAT,ZAHOLT)
       CALL ZAHOL(IZAP,ZAHOLP)
+c-----2020/3/21 - Added Target Isomer
+      CALL ZAHOLM(IZAT,LISO,ZAHOLT)
 C-----DEFINE SYSTEM.
       ILCT=LCTIN
       IF(LCT.LT.1.OR.LCT.GT.3) ILCT=4
@@ -1636,14 +1661,14 @@ C-----PRINT ERROR IF SYSTEM IF NOT DEFINED.
    50 IF(ILCT.EQ.4) WRITE(OUTP,90) LCTIN
       IF(ILCT.EQ.4) WRITE(*   ,90) LCTIN
       RETURN
-   60 FORMAT(1X,10A1,1X,10A1,1X,10A1,I5,I4,1X,A3,I4,I4,12X,A4)
-   70 FORMAT(1X,10A1,1X,10A1,1X,10A1,I5,I4,1X,A3,I4,I4,2I5,2X,A4)
-   80 FORMAT(1X,10A1,1X,10A1,1X,10A1,I5,I4,1X,A3,I4,I4,I5,7X,A4)
+   60 FORMAT(1X,10A1,1X,12A1,1X,10A1,I5,I4,1X,A3,I4,I4,12X,A4)
+   70 FORMAT(1X,10A1,1X,12A1,1X,10A1,I5,I4,1X,A3,I4,I4,2I5,2X,A4)
+   80 FORMAT(1X,10A1,1X,12A1,1X,10A1,I5,I4,1X,A3,I4,I4,I5,7X,A4)
    90 FORMAT(1X,78('-')/
      1 ' ERROR: LCT=',I6,' (MUST be 1=Lab or 2 or 3=cm)'/
      1 1X,78('-'))
-  100 FORMAT(1X,78('=')/' Projectile   Target    Emitted    MAT  MT',
-     1 ' LCT LIP LAW LANG  LEP  ENDF/B'/56X,'LTP       Output'/
+  100 FORMAT(1X,78('=')/' Projectile   Target      Emitted    MAT  MT',
+     1 ' LCT LIP LAW LANG  LEP  ENDF/B'/58X,'LTP       Output'/
      2 1X,78('='))
       END
       INTEGER*4 FUNCTION MYPART(IZAX)
@@ -1771,32 +1796,167 @@ C
 C     READ MF=1, MT-451 TO DEFINE ENDF/B FORMAT VERSION AND INCIDENT
 C     PARTICLE.
 C
+C     First Record has already been read.
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/PARTIO/AWRET,IVERSE,IZAI,IZAT,IZAP,NZAT
+      COMMON/LISCOM/LISO
 C-----INITIALIZE INCIDENT PARTICLE TO NEUTRON.
       IZAI=1
+      LISO = 0
+c
+c     Read Second Line
+c
 C-----HEAD LINE OF SECTION HAS BEEN READ. READ NEXT LINE AND DETERMINE
 C-----IF THIS IS THE ENDF/B-IV, V OR VI FORMAT.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
+      LISOX= L2            ! Save potential target isomer number
 C-----CHECK FOR ENDF/B-IV.
 C     IV N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF/B-IV. READ THIRD LINE.
       N2X=N2
+c
+c     Read Third Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       N1X=N1
       IVERSE=5
 C-----CHECK FOR ENDF/B-V FORMAT.
       IF(N2X.LE.0) GO TO 10
 C-----ENDF/B-VI FORMAT. READ FOURTH LINE.
+c
+c     Read Third Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
+      LISO   = LISOX
 C-----DEFINE INCIDENT PARTICLE.
       IZAI=N1X/10
    10 RETURN
+      END
+      SUBROUTINE FILE3
+C=======================================================================
+C
+C     Save & Output MF/MT=3/5 Cross Section.
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      INCLUDE 'sixpak.h'
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+c-----Note: HEADER & LEADER records saved here
+      COMMON/HEADMT5/C1HMT5,C2HMT5,L1HMT5,L2HMT5,N1HMT5,N2HMT5
+      COMMON/LEADMT5/C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1MT5 ,N2MT5
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
+c-----MF=6 Yield Data
+      DIMENSION XY(*),YY(*),NBTX(1),INTX(1)
+      DATA INTX  /2/
+      DATA N1OUT /1/
+C-----HEAD LINE OF SECTION HAS BEEN READ - READ NEXT LINE.
+      C1HMT5 = C1H
+      C2HMT5 = C2H
+      L1HMT5 = L1H
+      L2HMT5 = L2H
+      N1HMT5 = N1H
+      N2HMT5 = N2H
+      CALL CARDI(C1MT5,C2MT5,L1MT5,L2MT5,N1MT5,N2MT5)
+C-----Interpolation Law
+      CALL TERPI(NBTMT5(1),INTMT5(1),N1MT5)
+c-----Only allow lin-lin data
+      if(N1MT5.ne.1.or.NBTMT5(1).eq.2) then
+      write(3,10)
+   10 format(8('WARNING..')/
+     1 ' MF/MT=3/5 Cross Sections MUST be LINEARIZED to'/
+     2 ' Allow MF=6 Decomposition into MT=3 Cross Sections.'/
+     3 ' suggest you first run LINEAR and then re-run SIXPAK.'/
+     4 ' =========== MF=6 Decomposition SKIPPED =============')
+      N2MT5 = 0
+      return
+      endif
+c-----MT=5 data, if it fits in Memory
+      if(N2MT5.gt.MAXMT5) THEN
+      write(3,20) MAXMT5
+   20 format(8('WARNING..')/
+     1 ' MF/MT=3/5 Cross Sections exceeds',I6,' Energies.'/
+     2 ' =========== MF=6 Decomposition SKIPPED =============')
+      N2MT5 = 0
+      return
+      endif
+c-----------------------------------------------------------------------
+c
+c     Read & Output MF/MT=3/5
+c
+c-----------------------------------------------------------------------
+      CALL POINTI(EMT5(1),CSMT5(1),N2MT5)
+      OTAPE = OTAPE3
+      NOSEQ = NOSQ3
+      CALL CONT3   ! Note - added for special output
+      CALL CARDO(C1MT5,C2MT5,L1MT5,L2MT5,N1MT5,N2MT5)
+      CALL TERPO(NBTMT5(1),INTMT5(1),N1MT5)
+      CALL POINTO(EMT5(1),CSMT5(1),N2MT5)
+      RETURN
+      ENTRY OUTMT5(XY,YY,NY,MTMT5)
+c-----------------------------------------------------------------------
+c
+c     Output MF/MT=3/5 decomposed to MF=3
+c
+c-----------------------------------------------------------------------
+c-----Only if MF/MT=3/5 cross section is defined
+      if(N2MT5.le.0) return
+c-----skip to start of YIELD
+      do NOUT1=1,N2MT5
+      if(EMT5(NOUT1).ge.XY(1)) go to 30
+      enddo
+      return
+c-----Define product = cross section X yield
+   30 ii = 1
+      xylast = XY(ii)
+      yylast = YY(ii)
+      do NOUT2=NOUT1,N2MT5
+   40 if(EMT5(NOUT2).gt.XY(ii)) then
+c-----greater = move up to next yield interval
+      if(ii.ge.NY) go to 50
+      ii = ii + 1
+      go to 40
+      ELSE
+      if(EMT5(NOUT2).eq.XY(ii)) then
+c-----equal = tabulated values
+      PARTMT5(NOUT2) = CSMT5(NOUT2)*YY(ii)
+      ELSE
+c-----less than = between LAST and II
+c                     X           X1     X2     Y1     Y3     Interp
+      YYTERP = TERPIT(EMT5(NOUT2),xylast,XY(ii),yylast,YY(ii),2)
+      PARTMT5(NOUT2) = CSMT5(NOUT2)*YYTERP
+      ENDIF
+      ENDIF
+      ENDDO
+      NOUT2 = N2MT5      ! Output to end of YIELD
+      go to 60
+   50 NOUT2 = NOUT2 - 1  ! Yield ends before cross section
+c
+c     Output NOUT1 to NOUT2
+c
+   60 OTAPE = OTAPE3
+      NOSEQ = NOSQ3
+      MFH   = 3
+      MTH   = MTMT5
+      N2OUT = (NOUT2 - NOUT1) + 1
+      NBTX(1) = N2OUT
+      CALL CONT3
+      CALL CARDO(C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1OUT ,N2OUT )
+      CALL TERPO(NBTX(1),INTX(1),N1OUT)
+      CALL POINTO(EMT5(NOUT1),PARTMT5(NOUT1),N2OUT)
+      MFH   = 6
+      MTH   = 5
       END
       SUBROUTINE FILE6
 C=======================================================================
@@ -2039,11 +2199,12 @@ C-----LOOP OVER ENERGIES.
 C-----TAB2 RECORD - COSINE INTERPOLATION.
       CALL TAB2I(C1,EI,L1,L2,NR4,NMU,NBT4,INT4)
 C-----LOOP OVER COSINES.
-      DO 140 IMU=1,NMU
+      DO IMU=1,NMU
 C-----TAB1 RECORD.
       CALL TAB1I(C1,XMU,L1,L2,NR3,NP3,X3,Y3,NBT3,INT3)
 C-----TEST DATA.
       CALL TEST7
+      ENDDO
   140 CONTINUE
 C-----TEST MAXIMUM INCIDENT ENERGY.
       IF(EI.LT.E20MEV) WRITE(OUTP,190) EI
@@ -2186,12 +2347,14 @@ C         = 2 - TABULATED
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
 C-----TRANSFORMATION MATRIX IS NEVER PRESENT.
       DATA LVT/0/
       DATA IZER/0/
@@ -2229,12 +2392,14 @@ C     NK = NUMBER OF PARTIAL DISTRIBUTIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       DATA IZER/0/
       DATA LSTMAT/-9999/
 C-----SAVE AND DEFINE PARAMETERS.
@@ -2270,12 +2435,14 @@ C     NC = NUMBER OF PARTIAL DISTRIBUTIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       DATA IZER/0/
       DATA LSTMAT/-9999/
 C-----FLAG FOR MULTIPLICITIES.
@@ -2313,12 +2480,14 @@ C     NC = NUMBER OF PARTIAL DISTRIBUTIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       DATA IZER/0/
       DATA LSTMAT/-9999/
 C-----FLAG FOR ISOTROPIC DATA.
@@ -2356,12 +2525,14 @@ C     NC = NUMBER OF PARTIAL DISTRIBUTIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       DATA IZER/0/
       DATA LSTMAT/-9999/
 C-----SAVE AND DEFINE PARAMETERS.
@@ -2398,12 +2569,14 @@ C     NC = NUMBER OF PARTIAL DISTRIBUTIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       DATA IZER/0/
       DATA LSTMAT/-9999/
 C-----SAVE AND DEFINE PARAMETERS.
@@ -2430,6 +2603,50 @@ C-----RESTORE PARAMETERS.
    40 NOSQ9=NOSEQ
       RETURN
       END
+      SUBROUTINE CONT3
+C---- 2020/2/19 - Added MF=3 output
+C=======================================================================
+C
+C     WRITE CONT RECORD TO MF=3 DATA FILE.
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
+c-----Note: HEADER & LEADER records saved here
+      COMMON/HEADMT5/C1HMT5,C2HMT5,L1HMT5,L2HMT5,N1HMT5,N2HMT5
+      COMMON/LEADMT5/C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1MT5 ,N2MT5
+      DATA LSTMAT/-9999/
+C-----SAVE AND DEFINE PARAMETERS.
+      OTAPE=OTAPE3
+      MFH  =MF3
+      NOSEQ=NOSQ3
+C-----OUTPUT FEND AND MEND RECORDS BEFORE START OF NEW MAT.
+      IF(LSTMAT.LE.0) GO TO 10
+C-----AFTER FIRST SECTION ALWAYS OUTPUT SEND.
+      CALL OUTS(LSTMAT,MF3)
+      IF(MATH.EQ.LSTMAT) GO TO 20
+C-----FEND AND MEND.
+      CALL OUTF(LSTMAT)
+      CALL OUTM
+   10 LSTMAT=MATH
+      NOSQ3=1
+C-----TAPE END RECORD.
+   20 IF(MATH.GT.0) GO TO 30
+      CALL OUTT
+      GO TO 40
+C-----OUTPUT DATA.
+   30 CALL CARDO(C1HMT5,C2HMT5,L1HMT5,L2HMT5,N1HMT5,N2HMT5)
+C-----RESTORE PARAMETERS.
+   40 NOSQ3=NOSEQ
+      RETURN
+      END
       SUBROUTINE OUT1
 C=======================================================================
 C
@@ -2442,13 +2659,15 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'sixpak.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/DUMHEAD/ZERO1,ZERO2,L10,L20,N10,N20
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       COMMON/YIELD/NBT1(100),INT1(100),NP1,NR1
       COMMON/TAB2ER/NBT2(100),INT2(100),NR2
       COMMON/PARMS/NK,NI,NE,IE,ND,NA,NL,LIP,LTP,NMU,NEP,LIDP,
@@ -2846,7 +3065,8 @@ C=======================================================================
       DO 10 K=I1,I2,2
       NP3=NP3+1
       X3(NP3)=XLIST(K)
-   10 Y3(NP3)=XLIST(K+1)
+      Y3(NP3)=XLIST(K+1)
+   10 CONTINUE
       NBT3(1)=NP3
       INT3(1)=INTX
       IF(INT3(1).GT.10) INT3(1)=INT3(1)-10*(INT3(1)/10)
@@ -2887,7 +3107,8 @@ C-----DEFINE CENTER OF MASS ENERGY.
       ECM=EI*RATCM
 C-----UNIFORMLY ADD CENTER OF MASS ENERGY TO EMITTED PARTICLE ENERGY.
       DO 10 I=1,NP5OUT
-   10 X5OUT(I)=X5OUT(I)+ECM
+      X5OUT(I)=X5OUT(I)+ECM
+   10 CONTINUE
 C-----INTEGRATE SPECTRUM.
       XINTEP=XINT2(X5OUT,Y5OUT,NBT5O,INT5O,NR5O)
 C-----RENORMALIZE TO EXACTLY UNITY.
@@ -3206,10 +3427,12 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'sixpak.h'
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/TYPLAW/LAWIN(8,13),LAWOUT(8,13),NOUT(4,13),NYIELD(8,2),
      1 MAXLEG(8),MAXMU(8),NANGLE(8,3),NDIST(8,3)
       COMMON/DUMHEAD/ZERO1,ZERO2,L10,L20,N10,N20
@@ -3224,8 +3447,8 @@ C=======================================================================
       COMMON/SPAC3D/EI,EP,XMU
       COMMON/PARMS/NK,NI,NE,IE,ND,NA,NL,LIP,LTP,NMU,NEP,LIDP,
      1 IMU,LANG,LEP,LAW,LCT,LCTIN,IPI,IPO
-      COMMON/MFOUT/MF4,MF5,MF12,MF14,MF15,MF9,NOSQ4,NOSQ5,NOSQ9,NOSQ12,
-     1 NOSQ14,NOSQ15
+      COMMON/MFOUT/MF3,MF4,MF5,MF9,MF12,MF14,MF15,NOSQ3,NOSQ4,NOSQ5,
+     1 NOSQ9,NOSQ12,NOSQ14,NOSQ15
       COMMON/OUTME/IMOUT
       COMMON/KMPARM/F0,RKM,FKM
       DATA F0UNIT/1.0d0/
@@ -3240,7 +3463,7 @@ C
 c-----------------------------------------------------------------------
       IZERO=0
 C-----CHECK TAB1 RECORD.
-      CALL CHECK1(X1,Y1,NBT1,INT1,NR1,NP1,1)
+      CALL CHECK1(X1(1),Y1(1),NBT1,INT1,NR1,NP1,1)
 C-----CHECK FOR ENERGY DEPENDENT FIELD.
       YMIN=Y1(1)
       YMAX=Y1(1)
@@ -3250,7 +3473,9 @@ C-----CHECK FOR ENERGY DEPENDENT FIELD.
    10 CONTINUE
       IF(DABS(YMAX-YMIN).LE.0.001d0*YMAX) NYIELD(IPO,1)=NYIELD(IPO,1)+1
       IF(DABS(YMAX-YMIN).GT.0.001d0*YMAX) NYIELD(IPO,2)=NYIELD(IPO,2)+1
-c-----11/05 - OUTPUT YIELDS FOR MF=9, ONLY FOR MT=5
+c
+c     11/05 - OUTPUT YIELDS FOR MF=9, ONLY FOR MT=5
+c
       IF(MTH.EQ.5) THEN
       QM9  = 0.0d0
       QMI  = 0.0d0
@@ -3258,6 +3483,19 @@ c-----USE LIP from MF/MT=6/5 to define LFS MF/MT=9/5.
       LFS9 = LIP
       CALL TAB1O(OTAPE9 ,QM9,QMI,IZAP,LFS9,NR1,NP1,X1,Y1,NBT1,INT1,
      1 MF9,NOSQ9)
+c
+c     Output decomposed charged particle to MF=3
+c
+      MTMT5 = 0
+      if(IZAP.eq.   1) MTMT5 =  4 ! n' Continuum
+      if(IZAP.eq.   2) MTMT5 = 16 ! n' Continuum
+      if(IZAP.eq.1001) MTMT5 =103 ! p' Continuum
+      if(IZAP.eq.1002) MTMT5 =104 ! d' Continuum
+      if(IZAP.eq.1003) MTMT5 =105 ! t' Continuum
+      if(IZAP.eq.2003) MTMT5 =106 ! he3' Continuum
+      if(IZAP.eq.2004) MTMT5 =107 ! a' Continuum
+      if(IZAP.eq.   0) MTMT5 =102 ! n,g
+      if(MTMT5.gt.0) CALL OUTMT5(X1(1),Y1(1),NP1,MTMT5)
       ENDIF
       RETURN
 C=======================================================================
@@ -3355,7 +3593,8 @@ C-----FOR LANG=2 (KALBACH-MANN) SET UP FIXED COSINE GRID.
       DO 50 I=1,NP3
       X3(I)=II
       X3(I)=X3(I)/DMU
-   50 II=II+1
+      II=II+1
+   50 CONTINUE
       X3(NP3)=1.0d0
 C-----CHECK DATA.
    60 DO 210 I=1,NW,NAP2
@@ -3458,7 +3697,8 @@ C-----ENERGY.
       DO 130 K=I2,I3
       NP3=NP3+1
       X3(NP3)=NP3
-  130 Y3(NP3)=XLIST(K)
+      Y3(NP3)=XLIST(K)
+  130 CONTINUE
       NBT3(1)=NP3
       INT3(1)=2
       NR3=1
@@ -3486,7 +3726,8 @@ C-----CALCULATE ANGULAR DISTRIBUTION.
       DO 160 K=1,NP3
       XMU=X3(K)
       CALL GOMANN
-  160 Y3(K)=FKM
+      Y3(K)=FKM
+  160 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CHECK INTEGRAL OF ANGULAR DISTRIBUTION.
@@ -3501,7 +3742,8 @@ C-----INTEGRATE ANGULAR DISTRIBUTION AND CHECK.
       IF(DABS(XINTMU-1.0d+0).GT.ERROK) WRITE(OUTP,640) EI,EP,XINTMU
 C-----NORMALIZE TO F0.
       DO 180 K=1,NP3
-  180 Y3(K)=F0*Y3(K)
+      Y3(K)=F0*Y3(K)
+  180 CONTINUE
 C-----SAVE COS = -1 AND +1 FOR PLOTTAB OUTPUT.
       CALL PLOT2A
 c-----------------------------------------------------------------------
@@ -3526,7 +3768,8 @@ c-----------------------------------------------------------------------
       IF(NPT4.GT.1) GO TO 240
       DO 220 I=1,NP3
       X5(I)=X3(I)
-  220 Y5(I)=Y3(I)
+      Y5(I)=Y3(I)
+  220 CONTINUE
 C-----SPIKE CENTERED AT EP AND 0.1 PER-CENT OF EP WIDE.
       NPT4=3
       NR4=1
@@ -4094,7 +4337,8 @@ C-----POSITIVE SPECTRUM FOUND - DO NOT EXPECT ANYMORE ZEROES.
    40 KMPLUS=1
    50 CONTINUE
 C-----DEFINE LOWER POINT INDEX FOR NEXT INTERPOLATION REGION.
-   60 IPT1=IPT2
+      IPT1=IPT2
+   60 CONTINUE
       IF(EMESS.NE.0.0d0) WRITE(OUTP,90)
       RETURN
    70 FORMAT(
@@ -4149,7 +4393,8 @@ C-----ERROR IF LOG Y INTERPOLATION.
       GO TO 20
    20 CONTINUE
 C-----DEFINE LOWER POINT INDEX FOR NEXT INTERPOLATION REGION.
-   30 IPT1=IPT2
+      IPT1=IPT2
+   30 CONTINUE
       RETURN
    40 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' Cos=',1PE12.4,' Distribution =',1PE12.4,
@@ -4171,7 +4416,8 @@ C=======================================================================
       DIMENSION Y(NXY)
       IF(YINT.LE.0.0d0) RETURN
       DO 10 I=1,NXY
-   10 Y(I)=Y(I)/YINT
+      Y(I)=Y(I)/YINT
+   10 CONTINUE
       RETURN
       END
       SUBROUTINE FIXINT(INT,NI)
@@ -4188,7 +4434,8 @@ C=======================================================================
       II=INT(I)
       IF(II.GT.10) II=II-10*(II/10)
       IF(II.LT.1.OR.II.GT.5) II=2
-   10 INT(I)=II
+      INT(I)=II
+   10 CONTINUE
       RETURN
       END
       SUBROUTINE CHECK1(X,Y,NBT,INT,NR,NP,ITYPE)
@@ -4211,7 +4458,7 @@ C=======================================================================
 C-----ALLOWABLE INTERPOLATION LAWS FOR EACH TYPE.
       IGOOF3=0
       IPT1=1
-      DO 100 I=1,NR
+      DO 110 I=1,NR
       IPT2=NBT(I)
       INTX=INT(I)
       INTBAD(I)=INTX
@@ -4235,26 +4482,26 @@ C-----SKIP LEGENDRE COEFFICIENT CHECKS - ALREADY DONE BY CHECKL.
       IF(ITYPE.gt.4) go to 80
 C-----ENERGIES NON-NEGATIVE.
       IF(X(K).GE.0.0d0) GO TO 40
-      IF(ITYPE.EQ.1) WRITE(OUTP,270) X(K)
-      IF(ITYPE.EQ.2) WRITE(OUTP,280) X(K)
-      IF(ITYPE.EQ.3) WRITE(OUTP,290) EI,X(K)
+      IF(ITYPE.EQ.1) WRITE(OUTP,280) X(K)
+      IF(ITYPE.EQ.2) WRITE(OUTP,290) X(K)
+      IF(ITYPE.EQ.3) WRITE(OUTP,300) EI,X(K)
       GO TO 40
 C-----COSINE IN THE RANGE -1 TO +1
-   30 IF(DABS(X(K)).GT.1.0d0) WRITE(OUTP,300) EI,EP,X(K)
+   30 IF(DABS(X(K)).GT.1.0d0) WRITE(OUTP,310) EI,EP,X(K)
       GO TO 40
 C-----DISTRIBUTION NON-NEGATIVE.
    40 IF(Y(K).GE.0.0d0) GO TO 50
-      IF(ITYPE.EQ.1) WRITE(OUTP,310) X(K),Y(K)
-      IF(ITYPE.EQ.2) WRITE(OUTP,320) X(K),Y(K)
-      IF(ITYPE.EQ.3) WRITE(OUTP,330) EI,X(K),Y(K)
-      IF(ITYPE.EQ.4) WRITE(OUTP,340) EI,EP,X(K),Y(K)
+      IF(ITYPE.EQ.1) WRITE(OUTP,320) X(K),Y(K)
+      IF(ITYPE.EQ.2) WRITE(OUTP,330) X(K),Y(K)
+      IF(ITYPE.EQ.3) WRITE(OUTP,340) EI,X(K),Y(K)
+      IF(ITYPE.EQ.4) WRITE(OUTP,350) EI,EP,X(K),Y(K)
 C-----X ALWAYS IN ASCENDING ORDER - EQUALITY O.K.
    50 IF(K.EQ.1) GO TO 60
       IF(X(K).GE.X(K-1)) GO TO 60
-      IF(ITYPE.EQ.1) WRITE(OUTP,350) X(K-1),X(K)
-      IF(ITYPE.EQ.2) WRITE(OUTP,360) X(K-1),X(K)
-      IF(ITYPE.EQ.3) WRITE(OUTP,370) EI,X(K-1),X(K)
-      IF(ITYPE.EQ.4) WRITE(OUTP,380) EI,EP,X(K-1),X(K)
+      IF(ITYPE.EQ.1) WRITE(OUTP,360) X(K-1),X(K)
+      IF(ITYPE.EQ.2) WRITE(OUTP,370) X(K-1),X(K)
+      IF(ITYPE.EQ.3) WRITE(OUTP,380) EI,X(K-1),X(K)
+      IF(ITYPE.EQ.4) WRITE(OUTP,390) EI,EP,X(K-1),X(K)
 C-----CHECK FOR ILLEGAL LOG X
    60 IF(INTX.NE.3.AND.INTX.NE.5) GO TO 70
       IF(X(K).GT.0.0d0) GO TO 70
@@ -4269,95 +4516,96 @@ C-----CHECK FOR ILLEGAL LOG Y
       IGOOF2=1
    80 CONTINUE
       IF(IGOOF1.EQ.0) GO TO 90
-      IF(ITYPE.EQ.1) WRITE(OUTP,170) XA,XB
-      IF(ITYPE.EQ.2) WRITE(OUTP,180) XA,XB
-      IF(ITYPE.EQ.3) WRITE(OUTP,190) XA,XB
-      IF(ITYPE.EQ.4) WRITE(OUTP,200) XA,XB
+      IF(ITYPE.EQ.1) WRITE(OUTP,180) XA,XB
+      IF(ITYPE.EQ.2) WRITE(OUTP,190) XA,XB
+      IF(ITYPE.EQ.3) WRITE(OUTP,200) XA,XB
+      IF(ITYPE.EQ.4) WRITE(OUTP,210) XA,XB
    90 IF(IGOOF2.EQ.0) GO TO 100
-      IF(ITYPE.EQ.1) WRITE(OUTP,210) YA,YB
-      IF(ITYPE.EQ.2) WRITE(OUTP,220) YA,YB
-      IF(ITYPE.EQ.3) WRITE(OUTP,230) YA,YB
-      IF(ITYPE.EQ.4) WRITE(OUTP,240) YA,YB
+      IF(ITYPE.EQ.1) WRITE(OUTP,220) YA,YB
+      IF(ITYPE.EQ.2) WRITE(OUTP,230) YA,YB
+      IF(ITYPE.EQ.3) WRITE(OUTP,240) YA,YB
+      IF(ITYPE.EQ.4) WRITE(OUTP,250) YA,YB
 C-----END OF INTERPOLATION RANGE LOOP.
   100 IPT1=IPT2
+  110 CONTINUE
 C-----LAST INTERPOLATION BOUNDARY MUST EQUAL THE NUMBER OF POINTS.
       IF(NBT(NR).NE.NP) IGOOF3=1
-      IF(IGOOF3.EQ.0) GO TO 110
+      IF(IGOOF3.EQ.0) GO TO 120
 C-----ERROR.
-      IF(ITYPE.EQ.1) WRITE(OUTP,120) NR,NP
-      IF(ITYPE.EQ.2) WRITE(OUTP,130) NR,NP
-      IF(ITYPE.EQ.3) WRITE(OUTP,140) NR,NP
-      IF(ITYPE.EQ.4) WRITE(OUTP,150) NR,NP
-      IF(ITYPE.EQ.5) WRITE(OUTP,160) NR,NP
-      WRITE(OUTP,250) (NBT(I),INTBAD(I),INT(I),I=1,NR)
-      WRITE(OUTP,260)
+      IF(ITYPE.EQ.1) WRITE(OUTP,130) NR,NP
+      IF(ITYPE.EQ.2) WRITE(OUTP,140) NR,NP
+      IF(ITYPE.EQ.3) WRITE(OUTP,150) NR,NP
+      IF(ITYPE.EQ.4) WRITE(OUTP,160) NR,NP
+      IF(ITYPE.EQ.5) WRITE(OUTP,170) NR,NP
+      WRITE(OUTP,260) (NBT(I),INTBAD(I),INT(I),I=1,NR)
+      WRITE(OUTP,270)
 C-----INSURE LAST INTERPOLATION BOUNDARY IS EQUAL TO NUMBER OF POINTS.
       NBT(NR)=NP
-  110 RETURN
-  120 FORMAT(1X,78('-')/' Yield Interpolation Law'/
+  120 RETURN
+  130 FORMAT(1X,78('-')/' Yield Interpolation Law'/
      1 1X,78('-')/' NR/NP=',2I6/'   NBT   INT   INT'/
      2 '        Read   Use')
-  130 FORMAT(1X,78('-')/' Incident Energy Interpolation Law'/
+  140 FORMAT(1X,78('-')/' Incident Energy Interpolation Law'/
      1 1X,78('-')/' NR/NP=',2I6/'   NBT   INT   INT'/
      2 '        Read   Use')
-  140 FORMAT(1X,78('-')/' Secondary Energy Interpolation Law'/
+  150 FORMAT(1X,78('-')/' Secondary Energy Interpolation Law'/
      1 1X,78('-')/' NR/NP=',2I6/'   NBT   INT   INT'/
      2 '        Read   Use')
-  150 FORMAT(1X,78('-')/' Cosine Interpolation Law'/
+  160 FORMAT(1X,78('-')/' Cosine Interpolation Law'/
      1 1X,78('-')/' NR/NP=',2I6/'   NBT   INT   INT'/
      2 '        Read   Use')
-  160 FORMAT(1X,78('-')/' Legendre Interpolation Law'/
+  170 FORMAT(1X,78('-')/' Legendre Interpolation Law'/
      1 1X,78('-')/' NR/NP=',2I6/'   NBT   INT   INT'/
      2 '        Read   Use')
-  170 FORMAT(1X,78('-')/' Yield E=',1PE11.4,' to ',1PE11.4,
+  180 FORMAT(1X,78('-')/' Yield E=',1PE11.4,' to ',1PE11.4,
      1 '(Illegal Log E Interpolation)')
-  180 FORMAT(1X,78('-')/' E=',1PE11.4,' to ',1PE11.4,
+  190 FORMAT(1X,78('-')/' E=',1PE11.4,' to ',1PE11.4,
      1 '(Illegal Log E Interpolation)')
-  190 FORMAT(1X,78('-')/' EP=',1PE11.4,' to ',1PE11.4,
+  200 FORMAT(1X,78('-')/' EP=',1PE11.4,' to ',1PE11.4,
      1 '(Illegal Log EP Interpolation)')
-  200 FORMAT(1X,78('-')/' Cos=',1PE11.4,' to ',1PE11.4,
+  210 FORMAT(1X,78('-')/' Cos=',1PE11.4,' to ',1PE11.4,
      1 '(Illegal Log COS Interpolation)')
-  210 FORMAT(1X,78('-')/' Yield E=',1PE11.4,' to ',1PE11.4,
+  220 FORMAT(1X,78('-')/' Yield E=',1PE11.4,' to ',1PE11.4,
      1 ' (Illegal Log F Interpolation)')
-  220 FORMAT(1X,78('-')/' E=',1PE11.4,' to ',1PE11.4,
+  230 FORMAT(1X,78('-')/' E=',1PE11.4,' to ',1PE11.4,
      1 ' (Illegal Log F Interpolation)')
-  230 FORMAT(1X,78('-')/' EP=',1PE11.4,' to ',1PE11.4,
+  240 FORMAT(1X,78('-')/' EP=',1PE11.4,' to ',1PE11.4,
      1 ' (Illegal Log F Interpolation)')
-  240 FORMAT(1X,78('-')/' Cos=',1PE11.4,' to ',1PE11.4,
+  250 FORMAT(1X,78('-')/' Cos=',1PE11.4,' to ',1PE11.4,
      1 ' (Illegal Log F Interpolation)')
-  250 FORMAT(3I6)
-  260 FORMAT(1X,78('-'))
-  270 FORMAT(1X,78('-')/
-     1 ' Yield E=',1PE11.4,' (Negative E)'/1X,78('-'))
+  260 FORMAT(3I6)
+  270 FORMAT(1X,78('-'))
   280 FORMAT(1X,78('-')/
-     1 ' E=',1PE11.4,' (Negative E)'/1X,78('-'))
+     1 ' Yield E=',1PE11.4,' (Negative E)'/1X,78('-'))
   290 FORMAT(1X,78('-')/
-     1 ' E=',1PE11.4,' EP=',1PE11.4,' (Negative EP)'/1X,78('-'))
+     1 ' E=',1PE11.4,' (Negative E)'/1X,78('-'))
   300 FORMAT(1X,78('-')/
+     1 ' E=',1PE11.4,' EP=',1PE11.4,' (Negative EP)'/1X,78('-'))
+  310 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' EP=',1PE11.4,' Cos=',1PE11.4,
      2 ' (Cos NOT -1 to +1)'/1X,78('-'))
-  310 FORMAT(1X,78('-')/
+  320 FORMAT(1X,78('-')/
      1 ' Yield E=',1PE11.4,' F=',1PE11.4,' (Negative F)'/
      2 1X,78('-'))
-  320 FORMAT(1X,78('-')/
+  330 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' F=',1PE11.4,' (Negative F)'/
      2 1X,78('-'))
-  330 FORMAT(1X,78('-')/
+  340 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' EP=',1PE11.4,' F=',1PE11.4,' (Negative F)'/
      2 1X,78('-'))
-  340 FORMAT(1X,78('-')/
+  350 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' EP=',1PE11.4,' Cos=',1PE11.4,' F=',1PE11.4,
      2 ' (Negative F)'/1X,78('-'))
-  350 FORMAT(1X,78('-')/
+  360 FORMAT(1X,78('-')/
      1 ' YIELD E=',1PE11.4,1PE11.4,
      2 ' (NOT Ascending)'/1X,78('-'))
-  360 FORMAT(1X,78('-')/
+  370 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,1PE11.4,
      2 ' (NOT Ascending)'/1X,78('-'))
-  370 FORMAT(1X,78('-')/
+  380 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' EP=',1PE11.4,1PE11.4,
      2 ' (NOT Ascending)'/1X,78('-'))
-  380 FORMAT(1X,78('-')/
+  390 FORMAT(1X,78('-')/
      1 ' E=',1PE11.4,' EP=',1PE11.4,' Cos=',1PE11.4,1PE11.4,
      2 ' (NOT Ascending)'/1X,78('-'))
       END
@@ -4635,7 +4883,8 @@ C-----COS=-1 - -ODD TERMS
    40 DSUMMU(1)=DSUMMU(1)-PLNOW
    50 CONTINUE
       DO 60 I=1,3
-   60 SUMMU(I)=DSUMMU(I)
+      SUMMU(I)=DSUMMU(I)
+   60 CONTINUE
 C-----SAVE FOR PLOTTAB.
       CALL PLOT4A
 C-----ERROR IF ANY ARE NEGATIVE - DO NOT CHECK COS=-1 FOR B0 - SYMMETRIC
@@ -4757,7 +5006,8 @@ C-----INTEGRATE OVER INTERPOLATION REGION.
       CALL INT2D(X(IPT1),Y(IPT1),KPT,YINT1,ERRTOP,INTX,0)
 C-----INCREMENT INTEGRAL AND POINT INDEX.
       YINT=YINT+YINT1
-   10 IPT1=IPT2
+      IPT1=IPT2
+   10 CONTINUE
 C-----IF POINTS ARE IN DESCENDING ORDER REVERSE SIGN
       IF(X(1).GT.X(IPT2)) YINT = -YINT
 C-----RETURN ANSWER.
@@ -5352,7 +5602,8 @@ C-----INTEGRATE Y.
       XNOW=X(K)
       DX=XNOW-XLAST
       SUM=SUM+DX*Y(K-1)
-   30 XLAST=XNOW
+      XLAST=XNOW
+   30 CONTINUE
       YINT=SUM
       RETURN
 C-----INTEGRATE X*Y.
@@ -5361,7 +5612,8 @@ C-----INTEGRATE X*Y.
       DX=XNOW-XLAST
       AVX=XNOW+XLAST
       SUM=SUM+DX*AVX*Y(K-1)
-   50 XLAST=XNOW
+      XLAST=XNOW
+   50 CONTINUE
       YINT=SUM/TWO
       RETURN
 C-----INTEGRATE X*X*Y
@@ -5373,7 +5625,8 @@ C-----INTEGRATE X*X*Y
       AVX=XNOW+XLAST
       SUM=SUM+DX*AVX*AVX*YLAST
       SUM1=SUM1+DX*DX*DX*YLAST
-   70 XLAST=XNOW
+      XLAST=XNOW
+   70 CONTINUE
       YINT=(SUM+SUM1/THREE)/FOUR
       RETURN
 c-----------------------------------------------------------------------
@@ -5393,7 +5646,8 @@ C-----INTEGRATE Y.
       AVY=YNOW+YLAST
       SUM=SUM+DX*AVY
       XLAST=XNOW
-   90 YLAST=YNOW
+      YLAST=YNOW
+   90 CONTINUE
       YINT=SUM/TWO
       RETURN
 C-----INTEGRATE X*Y.
@@ -5408,7 +5662,8 @@ C-----INTEGRATE X*Y.
       SUM=SUM+DX*AVX*AVY
       SUM1=SUM1+DX*DX*DY
       XLAST=XNOW
-  110 YLAST=YNOW
+      YLAST=YNOW
+  110 CONTINUE
       YINT=(SUM+SUM1/THREE)/FOUR
       RETURN
 C-----INTEGRATE X*X*Y.
@@ -5425,7 +5680,8 @@ C-----INTEGRATE X*X*Y.
       SUM1=SUM1+DX*DX*DX*AVY
       SUM2=SUM2+DX*DX*DY*AVX
       XLAST=XNOW
-  130 YLAST=YNOW
+      YLAST=YNOW
+  130 CONTINUE
       YINT=(SUM+(SUM1+TWO*SUM2)/THREE)/EIGHT
       RETURN
 c-----------------------------------------------------------------------
@@ -5459,7 +5715,8 @@ C-----SKIP INTERVALS WITH NON-POSITIVE Y.
   160 QY1=RATY/DLOG(YNOW/YLAST)
       SUM=SUM+DX*AVY*QY1
   170 XLAST=XNOW
-  180 YLAST=YNOW
+      YLAST=YNOW
+  180 CONTINUE
       YINT=SUM+SUM1/TWO
       RETURN
 C-----INTEGRATE X*Y.
@@ -5488,7 +5745,8 @@ C-----SKIP INTERVALS WITH NON-POSITIVE Y.
       QY3=(HALF-QY1)/YLOG
       SUM=SUM+DX*AVY*(AVX*QY1+TWO*DX*QY3)
   220 XLAST=XNOW
-  230 YLAST=YNOW
+      YLAST=YNOW
+  230 CONTINUE
       YINT=(SUM+SUM1/TWO)/TWO
       RETURN
 C-----INTEGRATE X*X*Y.
@@ -5522,7 +5780,8 @@ C-----SKIP INTERVALS WITH NON-POSITIVE Y.
       SUM=SUM+DX*((AVX*AVX+DX*DX)*AVY*QY1+
      1 FOUR*DX*AVY*(AVX*QY3-TWO*DX*QY4))
   270 XLAST=XNOW
-  280 YLAST=YNOW
+      YLAST=YNOW
+  280 CONTINUE
       YINT=(SUM+SUM1/TWO)/FOUR
       RETURN
 c-----------------------------------------------------------------------
@@ -5560,7 +5819,8 @@ C-----INTEGRAL.
   310 QX2=ONE-TWO*RATX/DLOG(XNOW/XLAST)
       SUM=SUM+DX*AVY+DY*AVX*QX2
   320 XLAST=XNOW
-  330 YLAST=YNOW
+      YLAST=YNOW
+  330 CONTINUE
       YINT=SUM/TWO
       RETURN
 C-----INTEGRATE X*Y.
@@ -5589,7 +5849,8 @@ C-----INTEGRAL.
   360 QX2=ONE-TWO*RATX/DLOG(XNOW/XLAST)
       SUM=SUM+TWO*DX*AVX*AVY+DY*(DX*DX+AVX*AVX*QX2)
   370 XLAST=XNOW
-  380 YLAST=YNOW
+      YLAST=YNOW
+  380 CONTINUE
       YINT=SUM/EIGHT
       RETURN
 C-----INTEGRATE X*X*Y.
@@ -5620,7 +5881,8 @@ C-----INTEGRAL.
       SUM=SUM+DX*AVY*(AVX*AVX+DX*DX/THREE)+
      1 DY*(EIGHT*AVX*DX*DX/NINE+(AVX*AVX/THREE+DX*DX/NINE)*QX2)
   420 XLAST=XNOW
-  430 YLAST=YNOW
+      YLAST=YNOW
+  430 CONTINUE
       YINT=SUM/EIGHT
       RETURN
 c-----------------------------------------------------------------------
@@ -5667,7 +5929,8 @@ C-----SKIP INTERVALS WITH NON-POSITIVE Y.
       SUM=SUM+AVZ*QZ1*DLOG(XNOW/XLAST)
   490 XLAST=XNOW
       YLAST=YNOW
-  500 ZLAST=ZNOW
+      ZLAST=ZNOW
+  500 CONTINUE
       YINT=SUM+SUM1/TWO
       RETURN
       END
@@ -5737,7 +6000,8 @@ c-----------------------------------------------------------------------
    30 DX=X(2)-X(1)
 C-----INTEGRATE Y.
       DO 40 K=1,KMAX
-   40 Y3(K)=Y3(K)+DX*Y1(K)
+      Y3(K)=Y3(K)+DX*Y1(K)
+   40 CONTINUE
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -5747,7 +6011,8 @@ c-----------------------------------------------------------------------
    50 DX=(X(2)-X(1))/TWO
 C-----INTEGRATE Y.
       DO 60 K=1,KMAX
-   60 Y3(K)=Y3(K)+DX*(Y2(K)+Y1(K))
+      Y3(K)=Y3(K)+DX*(Y2(K)+Y1(K))
+   60 CONTINUE
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -5783,7 +6048,8 @@ c-----------------------------------------------------------------------
       RETURN
   130 IF(X(1).GT.ZERO) GO TO 150
       DO 140 K=1,KMAX
-  140 Y3(K)=Y3(K)+X(2)*Y2(K)
+      Y3(K)=Y3(K)+X(2)*Y2(K)
+  140 CONTINUE
       RETURN
 C-----INTEGRATE Y - BY NOW BOTH X(1) AND X(2) MUST BE POSITIVE.
   150 DO 180 K=1,KMAX
@@ -5882,7 +6148,8 @@ c-----------------------------------------------------------------------
       DO 10 I=1,NPT5
       X5(I)=X3(I)
       Y5(I)=0.0d0
-   10 Y3LAST(I)=Y3(I)
+      Y3LAST(I)=Y3(I)
+   10 CONTINUE
       RETURN
 C=======================================================================
 C
@@ -5983,7 +6250,8 @@ C-----INTEGRATE.
       CALL INT3D(X4(NPT4-1),Y3LAST,Y3,Y5,NPT5,INTD3)
 C-----SAVE VALUES FOR NEXT INTERVAL INTEGRATION.
       DO 200 I=1,NPT5
-  200 Y3LAST(I)=Y3(I)
+      Y3LAST(I)=Y3(I)
+  200 CONTINUE
       GO TO 220
 c-----------------------------------------------------------------------
 C
@@ -6014,7 +6282,8 @@ C=======================================================================
       X(II-1)=X(I-1)
       Y(II)=Y(I-1)
       Y(II-1)=Y(I-1)
-   10 II=II-2
+      II=II-2
+   10 CONTINUE
       NPXY=NPNEW
       RETURN
       END
@@ -6190,7 +6459,8 @@ C-----FOR LEGENDRE COEFFICIENTS RENORMALIZE TO F0.
       YNORM=1.0d0
       IF(LANG.EQ.1.AND.F0.GT.0.0d0) YNORM=1.0d0/F0
       DO 10 K=1,NP3
-   10 YY5(K)=YNORM*Y3(K)
+      YY5(K)=YNORM*Y3(K)
+   10 CONTINUE
       IF(EP.GE.EV2MEV) GO TO 30
       IF(EP.GE.EV2KEV) GO TO 20
       WRITE(IPLOT,300) EPHOL,EP
@@ -6303,14 +6573,16 @@ C-----AT FIXED COSINE.
       WRITE(IPLOT,390) TABMU(I)
       DO 100 K=1,NNOUT
       XX5(K)=X4(K)/EV2MEV
-  100 YY5(K)=SPECTA(K,I)*EV2MEV
+      YY5(K)=SPECTA(K,I)*EV2MEV
+  100 CONTINUE
       GO TO 130
 C-----SPECTRUM AVERAGED OVER DIRECTION.
   110 EIMEV=EI/EV2MEV
       WRITE(IPLOT,350) EIMEV
       DO 120 K=1,NNOUT
       XX5(K)=X4(K)/EV2MEV
-  120 YY5(K)=Y4(K)*EV2MEV
+      YY5(K)=Y4(K)*EV2MEV
+  120 CONTINUE
 C-----RENORMALIZE TO EXACTLY UNITY.
   130 XINTEP=XINT2(XX5,YY5,NBT4,INT4,NR4)
       CALL RENORM(YY5,NPT4,XINTEP)
@@ -6320,7 +6592,8 @@ C-----IF NECESSARY CONVERT FROM HISTOGRAM TO LINEAR.
       IF(LEP.EQ.1) CALL HISTOG(XX5,YY5,NNOUT)
 C-----USE MEV AND 1/MEV FOR OUTPUT.
       DO 140 K=1,NNOUT
-  140 WRITE(IPLOT,330) XX5(K),YY5(K)
+      WRITE(IPLOT,330) XX5(K),YY5(K)
+  140 CONTINUE
       WRITE(IPLOT,340)
   150 CONTINUE
 C-----PLOTTAB INPUT PARAMETERS.
@@ -6356,14 +6629,16 @@ C-----THIS COSINE HAS BEEN SELECTED - INCREMENT CURVE COUNT.
 C-----RENORMALIZE FROM PER UNIT COSINE TO AVERAGE OVER COSINE.
       DO 200 K=1,NP3
       SPECTA(K,1)=X3(K)/EV2MEV
-  200 SPECTA(K,2)=Y3(K)*EV2MEV
+      SPECTA(K,2)=Y3(K)*EV2MEV
+  200 CONTINUE
 C-----RENORMALIZE TO EXACTLY UNITY.
       XINTEP=XINT2(SPECTA(1,1),SPECTA(1,2),NBT3,INT3,NR3)
       CALL RENORM(SPECTA(1,2),NP3,XINTEP)
 C-----DEFINE MINIMUM POSITIVE VALUE.
       CALL SIZER(SPECTA(1,2),NP3,YLOW)
       DO 210 K=1,NP3
-  210 WRITE(IPLOT,330) SPECTA(K,1),SPECTA(K,2)
+      WRITE(IPLOT,330) SPECTA(K,1),SPECTA(K,2)
+  210 CONTINUE
       WRITE(IPLOT,340)
       RETURN
 C=======================================================================
@@ -6384,11 +6659,13 @@ C-----PLOTTAB DATA.
       WRITE(IPLOT,350) EIMEV
       DO 220 K=1,NPT5
       SPECTA(K,1)=X5(K)/EV2MEV
-  220 SPECTA(K,2)=Y5(K)*EV2MEV
+      SPECTA(K,2)=Y5(K)*EV2MEV
+  220 CONTINUE
 C-----DEFINE MINIMUM POSITIVE VALUE.
       CALL SIZER(SPECTA(1,2),NPT5,YLOW)
       DO 230 K=1,NPT5
-  230 WRITE(IPLOT,330) SPECTA(K,1),SPECTA(K,2)
+      WRITE(IPLOT,330) SPECTA(K,1),SPECTA(K,2)
+  230 CONTINUE
       WRITE(IPLOT,340)
 C-----PLOTTAB INPUT PARAMETERS.
       CALL PLTINP(IMPLOT+1,ZERO1)
@@ -6436,7 +6713,8 @@ C-----SPECTRUM AVERAGED OVER DIRECTION.
       WRITE(IPLOT,350) EIMEV
       DO 240 K=1,NNOUT
       XX5(K)=X4(K)/EV2MEV
-  240 YY5(K)=Y4(K)*EV2MEV
+      YY5(K)=Y4(K)*EV2MEV
+  240 CONTINUE
       GO TO 270
 C-----SPECTRUM AT FIXED COSINE.
   250 IF(IWAY.EQ.1) WRITE(IPLOT,360)
@@ -6444,7 +6722,8 @@ C-----SPECTRUM AT FIXED COSINE.
       IF(IWAY.EQ.3) WRITE(IPLOT,380)
       DO 260 K=1,NNOUT
       XX5(K)=X4(K)/EV2MEV
-  260 YY5(K)=SPECTA(K,IWAY)*EV2MEV
+      YY5(K)=SPECTA(K,IWAY)*EV2MEV
+  260 CONTINUE
 C-----RENORMALIZE TO EXACTLY UNITY.
   270 XINTEP=XINT2(XX5,YY5,NBT4,INT4,NR4)
       CALL RENORM(YY5,NPT4,XINTEP)
@@ -6453,8 +6732,10 @@ C-----DEFINE MINIMUM POSITIVE VALUE.
 C-----IF NECESSARY CONVERT FROM HISTOGRAM TO LINEAR.
       IF(LAW.EQ.1.AND.LEP.EQ.1) CALL HISTOG(XX5,YY5,NNOUT)
       DO 280 K=1,NNOUT
-  280 WRITE(IPLOT,330) XX5(K),YY5(K)
-  290 WRITE(IPLOT,340)
+      WRITE(IPLOT,330) XX5(K),YY5(K)
+  280 CONTINUE
+      WRITE(IPLOT,340)
+  290 CONTINUE
 C-----PLOTTAB INPUT PARAMETERS.
       CALL PLTINP(4,YLOW)
       RETURN
@@ -6481,7 +6762,7 @@ C=======================================================================
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/PARMS/NK,NI,NE,IE,ND,NA,NL,LIP,LTP,NMU,NEP,LIDP,
      1 IMU,LANG,LEP,LAW,LCT,LCTIN,IPI,IPO
-      COMMON/HOLLY1/ZAHOLI(10),ZAHOLT(10),ZAHOLP(10)
+      COMMON/HOLLY1/ZAHOLI(10),ZAHOLT(12),ZAHOLP(10)
       COMMON/PLOTR/NPLOT,KPLOT,IPLOT
       DIMENSION SYSHOL(3),XYLIM(2,2),NXYPLT(2),IXYLOG(2)
 c-----------------------------------------------------------------------
@@ -6507,7 +6788,7 @@ C
 C     LOOP OVER UP TO 30 CURVES PER PLOT.
 C
 c-----------------------------------------------------------------------
-      DO 20 KCURVE=1,NCURVE,30
+      DO 30 KCURVE=1,NCURVE,30
 C-----DEFINE NUMBER OF CURVES ON NEXT PLOT - UP TO 30
       KK=KCURVE+29
       IF(KK.GT.NCURVE) KK=NCURVE
@@ -6517,7 +6798,7 @@ C
 C     PLOT LAYOUT - SAME FOR ALL.
 C
 c-----------------------------------------------------------------------
-      WRITE(KPLOT,40) XYLIM,NXYPLT,HTMULT
+      WRITE(KPLOT,50) XYLIM,NXYPLT,HTMULT
 c-----------------------------------------------------------------------
 C
 C     X AND Y LABELS BASED ON TYPE OF DATA OUTPUT.
@@ -6525,22 +6806,22 @@ C
 c-----------------------------------------------------------------------
 C-----ANGULAR DISTRIBUTIONS.
       IF(NPLOT.EQ.1)
-     1 WRITE(KPLOT,70)
+     1 WRITE(KPLOT,80)
      2 MCURVE,(IMZERO,I=1,5),MCURVE,SYSHOL(ISYS),
      3 ZAHOLT,MATH,MTH
 C-----SPECTRA.
       IF(NPLOT.EQ.2)
-     1 WRITE(KPLOT,80)
+     1 WRITE(KPLOT,90)
      2 MCURVE,(IMZERO,I=1,5),MCURVE,SYSHOL(ISYS),
      3 ZAHOLT,MATH,MTH
 C-----LEGENDRE COEFFICIENTS.
       IF(NPLOT.EQ.3)
-     1 WRITE(KPLOT,90)
+     1 WRITE(KPLOT,100)
      2 MCURVE,(IMZERO,I=1,5),MCURVE,SYSHOL(ISYS),
      3 ZAHOLT,MATH,MTH
 C-----SPECTRA AT COS=-1, 0, +1, FROM LEGENDRE COEFFICIENTS.
       IF(NPLOT.EQ.4)
-     1 WRITE(KPLOT,100)
+     1 WRITE(KPLOT,110)
      2 MCURVE,(IMZERO,I=1,5),SYSHOL(ISYS),
      3 ZAHOLT,MATH,MTH
 c-----------------------------------------------------------------------
@@ -6552,35 +6833,36 @@ C-----X OPTIONS - SAME FOR ALL - EXCEPT LOG SCALING FOR EVERYTHING
 C-----EXCEPT ANGULAR DISTRIBUTIONS.
       NXYLOG=2
       IF(NPLOT.EQ.1) NXYLOG=1
-      WRITE(KPLOT,50) IMZERO,IXYLOG(NXYLOG),IMZERO,IMZERO
+      WRITE(KPLOT,60) IMZERO,IXYLOG(NXYLOG),IMZERO,IMZERO
 C-----Y OPTIONS - SAME FOR ALL - EITHER WITH OR WITHOUT LOWER LIMIT
       IF(YLOW.LE.0.0d0.OR.YLOW.GE.YLOWOK) GO TO 10
-      WRITE(KPLOT,60) YLOWOK,IMZERO,IXYLOG(2),IMZERO,IMZERO
+      WRITE(KPLOT,70) YLOWOK,IMZERO,IXYLOG(2),IMZERO,IMZERO
       GO TO 20
-   10 WRITE(KPLOT,50) IMZERO,IXYLOG(2),IMZERO,IMZERO
+   10 WRITE(KPLOT,60) IMZERO,IXYLOG(2),IMZERO,IMZERO
 c-----------------------------------------------------------------------
 C
 C     END OF PLOT LOOP.
 C
 c-----------------------------------------------------------------------
 C-----BLANK INPUT BETWEEN PARAMETERS FOR EACH PLOT.
-   20 WRITE(KPLOT,30)
+   20 WRITE(KPLOT,40)
+   30 CONTINUE
       RETURN
-   30 FORMAT('                               ')
-   40 FORMAT(4F11.4,2I11,F4.1)
-   50 FORMAT(22X,4I11)
-   60 FORMAT(1PE11.4,11X,4I11)
-   70 FORMAT(6I11,I4/' Cosine',1X,A4/
-     1 ' Angular Distribution'/10A1,' MAT=',I5,' MT=',I4/
+   40 FORMAT('                               ')
+   50 FORMAT(4F11.4,2I11,F4.1)
+   60 FORMAT(22X,4I11)
+   70 FORMAT(1PE11.4,11X,4I11)
+   80 FORMAT(6I11,I4/' Cosine',1X,A4/
+     1 ' Angular Distribution'/12A1,' MAT=',I5,' MT=',I4/
      2 ' Angular Distribution vs. EP and Averaged Over EP')
-   80 FORMAT(6I11,I4/' Secondary Energy',1X,A4,' (MeV)'/
-     1 ' Spectra (per MeV)'/10A1,' MAT=',I5,' MT=',I4/
+   90 FORMAT(6I11,I4/' Secondary Energy',1X,A4,' (MeV)'/
+     1 ' Spectra (per MeV)'/12A1,' MAT=',I5,' MT=',I4/
      2 ' Spectra at Fixed Cosines and Averaged over Cosine')
-   90 FORMAT(6I11,I4/' Legendre Order',1X,A4/
-     1 ' Legendre Coefficients'/10A1,' MAT=',I5,' MT=',I4/
+  100 FORMAT(6I11,I4/' Legendre Order',1X,A4/
+     1 ' Legendre Coefficients'/12A1,' MAT=',I5,' MT=',I4/
      2 ' Spectra at Fixed Cosines and Averaged over Cosine')
-  100 FORMAT(6I11/' Secondary Energy',1X,A4,' (MeV)'/
-     1 ' Spectra (per MeV)'/10A1,' MAT=',I5,' MT=',I4/
+  110 FORMAT(6I11/' Secondary Energy',1X,A4,' (MeV)'/
+     1 ' Spectra (per MeV)'/12A1,' MAT=',I5,' MT=',I4/
      2 ' Spectra from Legendre Coefficients')
       END
       SUBROUTINE SORTD(X,Y,NP)
@@ -6641,11 +6923,13 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*72 NAMEIN
-      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      INTEGER*4 OUTP,OTAPE,OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9,
+     1 OTAPE3,OTAPE13
       COMMON/NAMEX/NAMEIN
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
-      COMMON/UNITS/OTAPE4,OTAPE5,OTAPE12,OTAPE14,OTAPE15,OTAPE9
+      COMMON/UNITS/OTAPE3,OTAPE4,OTAPE5,OTAPE9,OTAPE12,OTAPE13,OTAPE14,
+     1 OTAPE15
       COMMON/PLOTR/NPLOT,KPLOT,IPLOT
 C=======================================================================
 C
@@ -6674,6 +6958,7 @@ C-----DEFINE ALL UNIT NUMBERS.
       OTAPE12=17
       OTAPE14=18
       OTAPE9 =19
+      OTAPE3 =20
 C-----DEFINE ALL FILE NAMES.
       OPEN(OUTP,FILE='SIXPAK.LST',STATUS='UNKNOWN')
       OPEN(OTAPE4,FILE='ENDFB.MF4',STATUS='UNKNOWN')
@@ -6682,6 +6967,8 @@ C-----DEFINE ALL FILE NAMES.
       OPEN(OTAPE12,FILE='ENDFB.M12',STATUS='UNKNOWN')
       OPEN(OTAPE14,FILE='ENDFB.M14',STATUS='UNKNOWN')
       OPEN(OTAPE9 ,FILE='ENDFB.MF9',STATUS='UNKNOWN')
+c-----Aded MF=3 Output for MT=5 Charged Particles
+      OPEN(OTAPE3 ,FILE='ENDFB.MF3',STATUS='UNKNOWN')
       IF(NPLOT.GT.0)
      1 OPEN(KPLOT,FILE='PLOTTAB.INP',STATUS='UNKNOWN')
       IF(NPLOT.GT.0)

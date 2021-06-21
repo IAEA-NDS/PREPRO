@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     GROUPIE COMMON
@@ -37,6 +28,9 @@ c-----2015/12/22 - Increased to 20,000 from 3,000
 c-----2019/06/20 - Increased to 100,000 for MF=2 output
       PARAMETER (MAXOUT   = 100000)
 c----- 20,000 X 8 bytes X 2 arrays = 320,000 bytes
+c-----2020/8/6 - Max # of TART groups (for URR calculation)
+      PARAMETER (MAXTART = 1000) ! Actually 616, but close enough
+c----- 10 + 1000 + 18,000 + 2000 + 12,000 = 33,100 x 8 bytes
 C-----------------------------------------------------------------------
 C
 C     STORAGE
@@ -55,7 +49,7 @@ C-----------------------------------------------------------------------
       COMMON/REPORT/ERBTAB(6,MAXMAT),ERLIB(25,MAXBAND),NBNTAB(MAXMAT),
      1 IZATAB(MAXMAT),LZA
       COMMON/GROUPR/EGROUP(MAXGROUP+1),TOTAV(MAXGROUP+1),
-     1 EAV(MAXGROUP+1),AVN(MAXGROUP+1),NGR,NGRP1,IGR
+     1 EAV(MAXGROUP+1),AVN(MAXGROUP+1),NGR,NGRP1,NGRP2,IGR
 C-----MULTI-BAND STORAGE
       COMMON/BANDID/WTBAND  (MAXBAND,MAXGROUP),
      1              XCBAND(6,MAXBAND,MAXGROUP)
@@ -67,6 +61,9 @@ C-----MULTI-BAND STORAGE
      1 YLOWP3(5),YHIGHP1(5),YHIGHP2(5),YHIGHP3(5)
       CHARACTER*4 POINT,REACT2,REACT3
       COMMON/ELPASC/POINT(25),REACT2(2,6),REACT3(2,6)
+c-----2020/8/6 - Add for MF=2/152 & 153 output including boundaries
+      COMMON/URRCOM/XCURRLIM(2,5),EAVURR(MAXTART),XCUALL(3,6,MAXTART),
+     1 WTUBAND(MAXBAND,MAXTART),XCUBAND(6,MAXBAND,MAXTART)
 C-----ENDF Formatted Output.
       COMMON/GROUPOUT/XOUT(MAXOUT),YOUT(MAXOUT)
 C-----BLANK COMMON

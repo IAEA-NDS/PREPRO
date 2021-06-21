@@ -10,7 +10,7 @@
 # makefile to create PREPRO code suite
 
 FORT = gfortran
-FLAGS = -O2 -std=legacy
+FLAGS = -O3 -static-libgfortran
 
 PROG = \
 activate \
@@ -39,7 +39,7 @@ endif
 CWD = $(shell pwd)
 PREFIX ?= $(CWD)/../
 
-COMMON_SRC = endfio.f scratchb.f timer.f seconds.f
+COMMON_SRC = endfio.f scratchb.f 
 
 .PHONY: all
 all: $(PROG) $(GRAPH_PROG)

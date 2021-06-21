@@ -1,17 +1,8 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
       SUBROUTINE SCRATCH1(ISCR,FILE12)
 C=======================================================================
 C
-C     Version 2019-1 (June 2019)
-C
+C     Version 2021-1 (Jan. 2021)
+C     ==================================================================
 C     PURPOSE
 C     =======
 C     OPEN SCRATCH FILE EITHER WITH OR WITHOUT FILENAME.

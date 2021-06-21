@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
       subroutine starplot
 c***********************************************************************
 c
@@ -157,7 +148,8 @@ c
       penmap(0)=1
       myback=penmap(0)
       do 10 i=1,255
-   10 penmap(i)=0
+      penmap(i)=0
+   10 continue
       return
    20 call paltab(penmap,ired,igreen,iblue,1)
 c-----set new rgb data
@@ -354,7 +346,8 @@ c     if black and white reverse entire map
 c
       if(mycolor.ne.1) go to 120
       do 110 i=1,255
-  110 penmap(i)=ii
+      penmap(i)=ii
+  110 continue
       penmap(0)=1-ii
       myback=penmap(0)
       call backcolor(penmap(0))
@@ -560,17 +553,21 @@ C
       XSPOT(0)=0.0
       XSPOT(1)=0.5*HTX
       DO 10 I=2,81
-   10 XSPOT(I)=XSPOT(I-1)+HTX
+      XSPOT(I)=XSPOT(I-1)+HTX
+   10 CONTINUE
       YSPOT(0)=10.0-0.8*HTY
       DO 20 I=1,30
-   20 YSPOT(I)=YSPOT(I-1)-HTY
+      YSPOT(I)=YSPOT(I-1)-HTY
+   20 CONTINUE
       TAD=0.1*HTX
       DO 30 I=0,81
       XBSPOT(1,I)=XSPOT(I)-TAD
-   30 XBSPOT(2,I)=XBSPOT(1,I)+HTX+TAD
+      XBSPOT(2,I)=XBSPOT(1,I)+HTX+TAD
+   30 CONTINUE
       DO 40 I=1,30
       YBSPOT(1,I)=YSPOT(I)-TAD
-   40 YBSPOT(2,I)=YSPOT(I)+HTX+TAD
+      YBSPOT(2,I)=YSPOT(I)+HTX+TAD
+   40 CONTINUE
 C-----CURSOR OVER BLANK
       IBLANK=CHAR(2)
 C-----DEFINE WHETHER COLOR OR BLACK AND WHITE
@@ -585,7 +582,8 @@ C
    50 IX=NX
       DO 60 I=1,NMESS
       CALL RTEXTX(1,XSPOT(IX),YSPOT(NY),MESS(I),1)
-   60 IX=IX+1
+      IX=IX+1
+   60 CONTINUE
       CALL FLUSHIT
       RETURN
 C=======================================================================
@@ -691,17 +689,21 @@ C
       XSPOT(0)=0.0
       XSPOT(1)=0.5*HTX
       DO 10 I=2,81
-   10 XSPOT(I)=XSPOT(I-1)+HTX
+      XSPOT(I)=XSPOT(I-1)+HTX
+   10 CONTINUE
       YSPOT(0)=10.0-0.8*HTY
       DO 20 I=1,30
-   20 YSPOT(I)=YSPOT(I-1)-HTY
+      YSPOT(I)=YSPOT(I-1)-HTY
+   20 CONTINUE
       TAD=0.1*HTX
       DO 30 I=0,81
       XBSPOT(1,I)=XSPOT(I)-TAD
-   30 XBSPOT(2,I)=XBSPOT(1,I)+HTX+TAD
+      XBSPOT(2,I)=XBSPOT(1,I)+HTX+TAD
+   30 CONTINUE
       DO 40 I=1,30
       YBSPOT(1,I)=YSPOT(I)-TAD
-   40 YBSPOT(2,I)=YSPOT(I)+HTX+TAD
+      YBSPOT(2,I)=YSPOT(I)+HTX+TAD
+   40 CONTINUE
 C-----CURSOR OVER BLANK
       IBLANK=CHAR(2)
 C-----DEFINE WHETHER COLOR OR BLACK AND WHITE
@@ -716,19 +718,22 @@ C
    50 IX=NX
       DO 60 I=1,NMESS
       CALL RTEXTX(1,XSPOT(IX),YSPOT(NY),MESS(I),1)
-   60 IX=IX+1
+      IX=IX+1
+   60 CONTINUE
       CALL FLUSHIT
       RETURN
       END
       SUBROUTINE PALTAB(PENMAP,RTAB,GTAB,BTAB,NPAL)
 C=======================================================================
 C
+C     Version 2021-1 (Jan. 2021)
+c     ==================================================================
 C     DEFINE PALLETTE OF 256 RGB COLORS
 C     NPAL  = 1 = MAXIMUM CONTRAST PALLETTE
 C          <> 1 = RAINBOW PALLETTE
 C
 C=======================================================================
-      INTEGER*4 R1,G1,B1,R2,G2,B2,PAL1,PAL2,RTAB,GTAB,BTAB,PENMAP
+      INTEGER R1,G1,B1,R2,G2,B2,PAL1,PAL2,RTAB,GTAB,BTAB,PENMAP
       DIMENSION R1(256),G1(256),B1(256),R2(256),G2(256),B2(256),
      1 RTAB(256),GTAB(256),BTAB(256),PAL1(256),PAL2(256),PENMAP(256)
 C-----MAXIMUM CONTRAST PALLETTE
@@ -872,15 +877,47 @@ C-----RAINBOW PALLETTE
       IF(NPAL.NE.1) GO TO 20
 C-----MAXIMUM CONTRAST PALLETTE
       DO 10 I=1,256
-      PENMAP(I)=PAL1(I)
       RTAB(I)=R1(I)
       GTAB(I)=G1(I)
-   10 BTAB(I)=B1(I)
+      BTAB(I)=B1(I)
+      PENMAP(I)=PAL1(I)
+   10 CONTINUE
       RETURN
 C-----RAINBOW PALLETTE
-   20 DO 30 I=1,256
-      PENMAP(I)=PAL2(I)
+   20 IF(NPAL.NE.2) GO TO 40
+      DO 30 I=1,256
       RTAB(I)=R2(I)
       GTAB(I)=G2(I)
-   30 BTAB(I)=B2(I)
+      BTAB(I)=B2(I)
+      PENMAP(I)=PAL2(I)
+   30 CONTINUE
+      RETURN
+C-----SHADING PALLETTE
+   40 IF(NPAL.NE.3) GO TO 90
+C-----BASIC 16 COLORS
+      DO 50 I=1,16
+      K=PAL1(I)+1
+      RTAB(I)=R1(K)
+      GTAB(I)=G1(K)
+      BTAB(I)=B1(K)
+      PENMAP(I)=I-1
+   50 CONTINUE
+      DO 60 I=17,256
+      PENMAP(I)=I-1
+   60 CONTINUE
+      RGBMULT=1.0
+      DRGBMULT=1.0/22.0
+      DO 80 I1=17,256,14
+      I2=I1+13
+      IF(I2.GT.256) I2=256
+      KK=3
+      RGBMULT=RGBMULT-DRGBMULT
+      DO 70 I=I1,I2
+      RTAB(I)=RGBMULT*RTAB(KK)
+      GTAB(I)=RGBMULT*GTAB(KK)
+      BTAB(I)=RGBMULT*BTAB(KK)
+      KK=KK+1
+   70 CONTINUE
+   80 CONTINUE
+   90 RETURN
       END

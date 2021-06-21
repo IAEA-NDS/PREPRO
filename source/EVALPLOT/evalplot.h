@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     EVALPLOT COMMON
@@ -33,10 +24,16 @@ C-----------------------------------------------------------------------
 C-----Requests
       COMMON/FILTAB/QEDTAB(MAXMAT),XYEVAL(2,2,MAXMAT),YLOTAB(MAXMAT),
      1 MTDEX1(MAXMAT),MTDEX2(MAXMAT),MTTAB(MAXMAT),MTSIZE
-      COMMON/LINEUP/IMNEXT(MAXMAT),NEXT(MAXMAT),LPLOT,LPLOT1,LPLOT2
+c***** DEBUG
+c     COMMON/LINEUP/IMNEXT(MAXMAT),NEXT(MAXMAT),LPLOT,LPLOT1,LPLOT2
+c***** DEBUG
+      COMMON/LINEUP/IMNEXT(MAXMAT),IMSAVE(MAXMAT),NEXT(MAXMAT),
+     1 LPLOT,LPLOT1,LPLOT2
+c***** DEBUG
       COMMON/MATZA/EMAX(MAXGET),EMIN(MAXGET),MATMIN(MAXGET),
      1 MFMIN(MAXGET),MTMIN(MAXGET),MATMAX(MAXGET),MFMAX(MAXGET),
      1 MTMAX(MAXGET),NTYPE(MAXGET),MYZOOM(MAXGET),MODGET,NMATZA,IMATZA
+      COMMON/ZOOMIES/EMINNOW,EMAXNOW
       CHARACTER*1 MTBOX
       COMMON/SIDESC/MTBOX(40,MAXMAT)
       COMMON/SIDESI/IMTBOX(MAXMAT)
