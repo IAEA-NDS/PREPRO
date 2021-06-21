@@ -67,6 +67,11 @@ C     VERS. 2015-1 (Jan.  2015)   *Replaced ALL 3 way IF Statements.
 C     VERS. 2017-1 (May   2017)   *Updated based on user feedbck.
 C     VERS. 2018-1 (Jan.  2018)   *Added on-line output for ALL ENDERROR
 C     VERS. 2019-1 (June  2019)   *Identical to 2018-1
+C     VERS. 2020-1 (Feb.  2020)   *Allow EMPTY files = file exists, but
+C                                  0 length = EOF at first read try.
+C     VERS. 2021-1 (Apr.  2021)   *Updated for FORTRAN 2018
+C                                 *Updated SEND/FEND/MEND/TEND Sequence
+C                                  number definition.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -380,8 +385,8 @@ C
 c-----------------------------------------------------------------------
       CALL FILIO1
 C-----IDENTIFY PROGRAM
-      WRITE(OUTP,440)
-      WRITE(*   ,440)
+      WRITE(OUTP,470)
+      WRITE(*   ,470)
 c-----------------------------------------------------------------------
 C
 C     TERMINATE IF ERROR OPENING INPUT FILE
@@ -399,8 +404,8 @@ C     READ AND INTERPRET ALL INPUT PARAMETERS.
 C
 c-----------------------------------------------------------------------
 C-----OUTPUT REPORT TITLE.
-      WRITE(OUTP,450)
-      WRITE(*   ,450)
+      WRITE(OUTP,480)
+      WRITE(*   ,480)
 C-----READ MERGED FILENAME.
       OTAPE=10
       READ(INP,20) FILEOUT
@@ -409,21 +414,21 @@ C-----USE STANDARD FILENAME IF BLANK.
       IF(FILEOUT.NE.BLANK) GO TO 30
       FILEOUT = FILE1
 C-----PRINT FINAL FILENAMES
-   30 WRITE(OUTP,470) FILEOUT
-      WRITE(*   ,470) FILEOUT
+   30 WRITE(OUTP,500) FILEOUT
+      WRITE(*   ,500) FILEOUT
 C-----READ OUTPUT FILE LABEL AND RETRIEVAL CRITERIA (IGETHOW).
       READ(INP,40) (KCARD(I),I=1,17),KTAPE,IGETHOW
    40 FORMAT(2A4,A3,13A4,A3,I4,I2,I3,I5)
       IF(IGETHOW.NE.0) IGETHOW=1
       IGET=IGETHOW+1
 C-----LIST MERGED UNIT NUMBER AND FILE LABEL.
-      WRITE(OUTP,480) (KCARD(I),I=1,17),KTAPE
-      WRITE(OUTP,460) MESSY(IGET)
-      WRITE(*   ,480) (KCARD(I),I=1,17),KTAPE
-      WRITE(*   ,460) MESSY(IGET)
+      WRITE(OUTP,510) (KCARD(I),I=1,17),KTAPE
+      WRITE(OUTP,490) MESSY(IGET)
+      WRITE(*   ,510) (KCARD(I),I=1,17),KTAPE
+      WRITE(*   ,490) MESSY(IGET)
 C-----READ UP TO 99 UNIT NUMBERS (LIST IS TERMINATED BY BLANK CARD)
-      WRITE(OUTP,490)
-      WRITE(*   ,490)
+      WRITE(OUTP,520)
+      WRITE(*   ,520)
       ITAPE=10
       DO 50 NUNIT=1,MAXTAPE
       READ(INP,20) FILEIN(NUNIT)
@@ -434,12 +439,13 @@ C-----TERMINATE ON END OR end
       NTAPE(NUNIT)=ITAPE
 C-----REPLACE BLANK FILENAME BY STANDARD.
       CALL PHILIP(FILEIN(NUNIT))
-      WRITE(OUTP,500) FILEIN(NUNIT)
-      WRITE(*   ,500) FILEIN(NUNIT)
+C-----2020/6/12 - ADDED UNIT # to Output Listing
+      WRITE(OUTP,530) NTAPE(NUNIT),FILEIN(NUNIT)
+      WRITE(*   ,530) NTAPE(NUNIT),FILEIN(NUNIT)
    50 CONTINUE
 C-----MAXTAPE TAPES SPECIFIED SO FAR.
-      WRITE(OUTP,550) MAXTAPE
-      WRITE(*   ,550) MAXTAPE
+      WRITE(OUTP,580) MAXTAPE
+      WRITE(*   ,580) MAXTAPE
       CALL ENDERROR
       NUNIT=100
    60 NUNIT=NUNIT-1
@@ -451,11 +457,11 @@ C-----MERGED (NO RANGES GIVEN).
       IF(NUNIT.lt.1) go to 70
       IF(NUNIT.gt.1) go to 80
       IF(MYWISH.GT.0) GO TO 80
-      WRITE(OUTP,540)
-      WRITE(*   ,540)
+      WRITE(OUTP,570)
+      WRITE(*   ,570)
       CALL ENDERROR
-   70 WRITE(OUTP,520)
-      WRITE(*   ,520)
+   70 WRITE(OUTP,550)
+      WRITE(*   ,550)
       CALL ENDERROR
 c-----------------------------------------------------------------------
 C
@@ -471,8 +477,8 @@ C     POSITION TO FIRST SECTION OF EACH FILE.
 C
 c-----------------------------------------------------------------------
 C-----LIST TITLE FOR OUTPUT REPORT.
-      WRITE(OUTP,510)
-      WRITE(*   ,510)
+      WRITE(OUTP,540)
+      WRITE(*   ,540)
 C-----INITIALIZE OUTPUT CARD COUNT.
       TAPCRD=1
 C-----INITIALIZE LAST MAT AND SEQUENCE NUMBER.
@@ -488,10 +494,15 @@ C
 C     POSITION TO FIRST SECTION OF EACH FILE.
 C
 c-----------------------------------------------------------------------
-      DO 120 IUNIT=1,NUNIT
+c-----2020/6/12 - Initialize count of non-empty files
+      KUNIT = 0
+      DO 140 IUNIT=1,NUNIT
       ITAPE=NTAPE(IUNIT)
-      READ(ITAPE,40) (ICARD(I,IUNIT),I=1,17),NCARD(1,IUNIT)
-      IF(IUNIT.GT.1) GO TO 110
+c-----2020/6/12 - Allow for Empty file = Exists, but EOF at beginning
+      READ(ITAPE,40,END=120,ERR=120)
+     1 (ICARD(I,IUNIT),I=1,17),NCARD(1,IUNIT)
+      KUNIT = KUNIT + 1                        ! File is not empty
+      IF(KUNIT.GT.1) GO TO 110
 c-----------------------------------------------------------------------
 C
 C     OUTPUT FILE LABEL. EITHER AS READ OR IF THIS IS BLANK USE LABEL
@@ -508,13 +519,36 @@ C-----LABEL FROM FIRST FILE READ.
 C-----LABEL AS INPUT.
   100 IF(KTAPE.LE.0) KTAPE=NCARD(1,1)
       WRITE(OTAPE,40) (KCARD(I),I=1,17),KTAPE,ZERO,ZERO,ZERO
+c-----------------------------------------------------------------------
+c
+c     Position to start of first record (MT > 0)
+c
+c-----------------------------------------------------------------------
   110 READ(ITAPE,40) (ICARD(I,IUNIT),I=1,17),
      1 (NCARD(I,IUNIT),I=1,3)
       CALL IN9(ZATAB(IUNIT),ICARD(1,IUNIT))
-      IF(NCARD(3,IUNIT).gt.0) go to 120
-      IF(NCARD(1,IUNIT).ge.0) go to 110
-      NCARD(1,IUNIT)=99999
-  120 IZATAB(IUNIT)=ZATAB(IUNIT)
+      IF(NCARD(3,IUNIT).gt.0) go to 130
+      IF(NCARD(1,IUNIT).ge.0) go to 110       ! MAT < 0 = TEND
+c-----------------------------------------------------------------------
+c
+c     Empty file or TEND Record - set MAT to prevent more reads
+c
+c-----------------------------------------------------------------------
+  120 NCARD(1,IUNIT) = 99999
+      NCARD(2,IUNIT) = 0
+      NCARD(3,IUNIT) = 0
+      ZATAB(IUNIT)   = 999999.0d0
+  130 IZATAB(IUNIT)  = ZATAB(IUNIT)
+  140 CONTINUE
+c-----Added stop if all data files are EMPTY.
+      if(KUNIT.le.0) then
+      WRITE(OUTP,150)
+      WRITE(   *,150)
+  150 FORMAT(1x,72('=')/
+     1 ' ERROR - ALL data files are EMPTY = Check input and files.'/
+     2 '         Execution terminated'/1x,72('='))
+      CALL ENDERROR
+      endif
 c-----------------------------------------------------------------------
 C
 C     HEAD CARD OF THE NEXT SECTION OF EACH FILE HAS ALREADY BEEN READ.
@@ -522,16 +556,16 @@ C     SELECT THE SECTION WITH THE LOWEST MAT/MF/MT.
 C
 c-----------------------------------------------------------------------
 C-----SELECT SMALLEST MAT/MF/MT.
-  130 ISMALL=1
-      IF(NUNIT.LT.2) GO TO 170
-      DO 160 IUNIT=2,NUNIT
-      DO 140 J=1,3
-      IF(NCARD(J,IUNIT).lt.NCARD(J,ISMALL)) go to 150
-      IF(NCARD(J,IUNIT).gt.NCARD(J,ISMALL)) go to 160
-  140 CONTINUE
-      GO TO 160
-  150 ISMALL=IUNIT
-  160 CONTINUE
+  160 ISMALL=1
+      IF(NUNIT.LT.2) GO TO 200
+      DO 190 IUNIT=2,NUNIT
+      DO 170 J=1,3
+      IF(NCARD(J,IUNIT).lt.NCARD(J,ISMALL)) go to 180
+      IF(NCARD(J,IUNIT).gt.NCARD(J,ISMALL)) go to 190
+  170 CONTINUE
+      GO TO 190
+  180 ISMALL=IUNIT
+  190 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     COMPARE SELECTED SECTION TO MAT/MF/MT OR ZA/MF/MT REQUEST RANGES
@@ -539,39 +573,39 @@ C     AND DECIDE TO EITHER SKIP OR COPY THE SELECTED SECTION.
 C
 c-----------------------------------------------------------------------
 C-----DEFINE UNIT TO READ FROM.
-  170 ITAPE=NTAPE(ISMALL)
+  200 ITAPE=NTAPE(ISMALL)
 C-----COMPARE MAT/MF/MT OR ZA/MF/MT OF SELECTED SECTION TO RETRIEVAL
 C-----CRITERIA.
-      IF(MYWISH.LE.0) GO TO 220
+      IF(MYWISH.LE.0) GO TO 250
 C-----USE IMOK TO CHECK FOR END OF DATA (FOR MAT REQUESTS WHEN CURRENT
 C-----MAT EXCEEDS ALL REQUESTED RANGES. FOR ZA REQUESTS MUST SEARCH
 C-----ENTIRE FILE).
       IMOK=IGETHOW
-      DO 210 KWISH=1,MYWISH
-      IF(IGETHOW.EQ.0) GO TO 180
+      DO 240 KWISH=1,MYWISH
+      IF(IGETHOW.EQ.0) GO TO 210
 C-----ZA REQUEST. COMPARE CURRENT ZA TO EACH ZA RANGE.
       IF(IZATAB(ISMALL).LT.IWISH(1,1,KWISH).OR.
-     1 IZATAB(ISMALL).GT.IWISH(1,2,KWISH)) GO TO 210
-      GO TO 190
+     1 IZATAB(ISMALL).GT.IWISH(1,2,KWISH)) GO TO 240
+      GO TO 220
 C-----MAT REQUEST. FIRST COMPARE TO UPPER MAT LIMIT OF REQUEST. IF
 C-----CURRENT MAT IS NOT BEYOND RANGE OF REQUEST SET FLAG TO INDICATE
 C-----THAT FILE MUST BE SEARCHED FURTHER. THEN COMPARE TO LOWER MAT
 C-----LIMIT.
-  180 IF(NCARD(1,ISMALL).GT.IWISH(1,2,KWISH)) GO TO 210
+  210 IF(NCARD(1,ISMALL).GT.IWISH(1,2,KWISH)) GO TO 240
       IMOK=1
-      IF(NCARD(1,ISMALL).LT.IWISH(1,1,KWISH)) GO TO 210
-  190 DO 200 J=2,3
+      IF(NCARD(1,ISMALL).LT.IWISH(1,1,KWISH)) GO TO 240
+  220 DO 230 J=2,3
       IF(NCARD(J,ISMALL).LT.IWISH(J,1,KWISH).OR.
-     1 NCARD(J,ISMALL).GT.IWISH(J,2,KWISH)) GO TO 210
-  200 CONTINUE
+     1 NCARD(J,ISMALL).GT.IWISH(J,2,KWISH)) GO TO 240
+  230 CONTINUE
 C-----THIS SECTION WAS EXPLICITLY REQUESTED.
-      GO TO 220
-  210 CONTINUE
+      GO TO 250
+  240 CONTINUE
 C-----THIS SECTION WAS NOT REQUESTED. SKIP IT IF FILE STILL CONTAINS
 C-----DATA IN RANGE OF REQUESTS. OTHERWISE SET MAT OF THIS FILE TO
 C-----PREVENT ANY FURTHER READS.
-      IF(IMOK.le.0) go to 370
-      go to 280
+      IF(IMOK.le.0) go to 400
+      go to 310
 c-----------------------------------------------------------------------
 C
 C     CURRENT SECTION WAS REQUESTED. SAVE CURRENT MAT/MF/MT. IF THIS IS
@@ -584,19 +618,18 @@ C     IF MAT/MF/MT IS ACCEPTABLE COPY SECTION.
 C
 c-----------------------------------------------------------------------
 C-----SECTION REQUESTED. SAVE MAT/MF/MT OF SECTION THAT WILL BE COPIED.
-  220 MAT=NCARD(1,ISMALL)
+  250 MAT=NCARD(1,ISMALL)
       MF=NCARD(2,ISMALL)
       MT=NCARD(3,ISMALL)
 C-----COMPARE MAT/MF/MT OF CURRENT SECTION TO MAT/MF/MT OF LAST
 C-----SECTION THAT WAS OUTPUT TO MERGED FILE.
-      IF(MATLAS.LE.0) GO TO 290
-      IF(MAT.lt.MATLAS) go to 250
-      IF(MAT.eq.MATLAS) go to 230
+      IF(MATLAS.LE.0) GO TO 320
+      IF(MAT.lt.MATLAS) go to 280
+      IF(MAT.eq.MATLAS) go to 260
 C-----NEW MAT. OUTPUT FEND AND MEND CARDS.
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) MATLAS,ZERO,ZERO,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) ZERO,ZERO,ZERO,NOSEQ
+      NOSEQ=0
+      WRITE(OTAPE,460) MATLAS,ZERO,ZERO,NOSEQ
+      WRITE(OTAPE,460) ZERO,ZERO,ZERO,NOSEQ
 C-----DEFINE NEW MAT AND FILE CARD TOTALS.
       MATCRD=MATCRD+2
       TAPCRD=TAPCRD+MATCRD
@@ -604,40 +637,40 @@ C-----INITIALIZE SEQUENCE NUMBER FOR NEXT MAT.
       NOSEQ=0
 C-----INCREMENT MATERIAL COUNT.
       MATOUT=MATOUT+1
-      WRITE(OUTP,530) MATCRD
-      WRITE(*   ,530) MATCRD
-      GO TO 290
-  230 IF(MF.lt.MFLAST) go to 250
-      IF(MF.eq.MFLAST) go to 240
+      WRITE(OUTP,560) MATCRD
+      WRITE(*   ,560) MATCRD
+      GO TO 320
+  260 IF(MF.lt.MFLAST) go to 280
+      IF(MF.eq.MFLAST) go to 270
 C-----NEW FILE. OUTPUT FEND CARD.
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) MATLAS,ZERO,ZERO,NOSEQ
+      NOSEQ=0
+      WRITE(OTAPE,460) MATLAS,ZERO,ZERO,NOSEQ
       MATCRD=MATCRD+1
-      GO TO 300
-  240 IF(MT.eq.MTLAST) go to 260
-      IF(MT.gt.MTLAST) go to 300
+      GO TO 330
+  270 IF(MT.eq.MTLAST) go to 290
+      IF(MT.gt.MTLAST) go to 330
 C-----FILE TO BE MERGED IS NOT SORTED.
-  250 WRITE(OUTP,590) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
-      WRITE(*   ,590) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
+  280 WRITE(OUTP,620) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
+      WRITE(*   ,620) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
       MTSORT=MTSORT+1
-      GO TO 280
+      GO TO 310
 C-----DUPLICATE SECTION. IF ON SAME FILE AS LAST SECTION PRINT ERROR
 C-----MESSAGE AND COPY. IF ON DIFFERENT FILE PRINT ERROR MESSAGE AND
 C-----SKIP SECTION.
-  260 IF(ITAPE.ne.LSTAPE) go to 270
+  290 IF(ITAPE.ne.LSTAPE) go to 300
 C-----SET FLAG TO INDICATE CURRENT SECTION HAS SAME MAT/MF/MT AS LAST
 C-----SECTION.
       IMADUP=1
-      GO TO 310
-  270 WRITE(OUTP,570) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
-      WRITE(*   ,570) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
+      GO TO 340
+  300 WRITE(OUTP,600) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
+      WRITE(*   ,600) IZATAB(ISMALL),MAT,MF,MT,ITAPE,NOWISH(KWISH)
       MTDUP=MTDUP+1
 C-----SKIP SECTION.
-  280 READ(ITAPE,430) (NCARD(J,ISMALL),J=1,3)
-      IF(NCARD(3,ISMALL).le.0) go to 340
-      go to 280
+  310 READ(ITAPE,460) (NCARD(J,ISMALL),J=1,3)
+      IF(NCARD(3,ISMALL).le.0) go to 370
+      go to 310
 C-----NEW MAT. INITIALIZE MAT CARD COUNT.
-  290 MATCRD=0
+  320 MATCRD=0
 c-----------------------------------------------------------------------
 C
 C     REQUESTED SECTION FOUND. COPY SECTION TO OUTPUT FILE.
@@ -645,38 +678,43 @@ C
 c-----------------------------------------------------------------------
 C-----SET FLAG TO INDICATE CURRENT SECTION DOES NOT HAVE SAME MAT/MF/MT
 C-----AS LAST SECTION.
-  300 IMADUP=0
+  330 IMADUP=0
 C-----CONVERT ZA TO STANDARD FORM FOR OUTPUT AND OUTPUT FIRST
 C-----CARD OF SECTION. INITIALIZE CARD COUNT FOR SECTION.
-  310 NOSEQ=NXTSEQ(NOSEQ)
+  340 NOSEQ=NXTSEQ(NOSEQ)
       WRITE(OTAPE,40)
      1 (ICARD(J,ISMALL),J=1,17),(NCARD(J,ISMALL),J=1,3),NOSEQ
       MTCARD=1
-  320 READ(ITAPE,40) (ICARD(J,ISMALL),J=1,17),
+  350 READ(ITAPE,40) (ICARD(J,ISMALL),J=1,17),
      1 (NCARD(J,ISMALL),J=1,3)
 C-----INCREMENT CARD SEQUENCE NUMBER AND OUTPUT CARD. USE STANDARD
 C-----FORMAT FOR SEND CARDS.
       NOSEQ=NXTSEQ(NOSEQ)
-      IF(NCARD(3,ISMALL).LE.0) GO TO 330
+      IF(NCARD(3,ISMALL).LE.0) GO TO 360
       WRITE(OTAPE,40) (ICARD(J,ISMALL),J=1,17),
      1 (NCARD(J,ISMALL),J=1,3),NOSEQ
       MTCARD=MTCARD+1
-      GO TO 320
+      GO TO 350
 C-----END OF SECTION FOUND. OUTPUT SEND CARD IN STANDARD FORMAT.
-  330 WRITE(OTAPE,430) (NCARD(J,ISMALL),J=1,3),NOSEQ
+  360 if(NCARD(2,ISMALL).ne.0) then
+      NOSEQ = 99999                   ! 99999 on SEND
+      else                            !     0 on FEND/MEND/TEND
+      NOSEQ = 0
+      endif
+      WRITE(OTAPE,460) (NCARD(J,ISMALL),J=1,3),NOSEQ
 C-----INCREMENT COUNTS OF SECTIONS, CARDS IN SECTION AND CARDS
 C-----IN MAT.
       MTOUT=MTOUT+1
       MTCARD=MTCARD+1
       MATCRD=MATCRD+MTCARD
 C-----PRINT RECORD OF SECTION THAT WAS JUST OUTPUT.
-      IF(IMADUP.EQ.0) WRITE(OUTP,560) IZATAB(ISMALL),MAT,MF,MT,
+      IF(IMADUP.EQ.0) WRITE(OUTP,590) IZATAB(ISMALL),MAT,MF,MT,
      1 MTCARD,ITAPE,NOWISH(KWISH)
-      IF(IMADUP.EQ.1) WRITE(OUTP,580) IZATAB(ISMALL),MAT,MF,MT,
+      IF(IMADUP.EQ.1) WRITE(OUTP,610) IZATAB(ISMALL),MAT,MF,MT,
      1 MTCARD,ITAPE,NOWISH(KWISH)
-      IF(IMADUP.EQ.0) WRITE(*   ,560) IZATAB(ISMALL),MAT,MF,MT,
+      IF(IMADUP.EQ.0) WRITE(*   ,590) IZATAB(ISMALL),MAT,MF,MT,
      1 MTCARD,ITAPE,NOWISH(KWISH)
-      IF(IMADUP.EQ.1) WRITE(*   ,580) IZATAB(ISMALL),MAT,MF,MT,
+      IF(IMADUP.EQ.1) WRITE(*   ,610) IZATAB(ISMALL),MAT,MF,MT,
      1 MTCARD,ITAPE,NOWISH(KWISH)
 C-----INCREMENT SECTION COUNT AND MATERIAL COUNT (IF THIS IS A NEW
 C-----MAT) FOR REQUEST.
@@ -685,7 +723,7 @@ C-----MAT) FOR REQUEST.
       IF(MATNOW(KWISH).NE.MAT) MATGOT(KWISH)=MATGOT(KWISH)+1
       MATNOW(KWISH)=MAT
 C-----SAVE (MAT,MF,MT,FILE) OF THIS SECTION.
-  340 MATLAS=MAT
+  370 MATLAS=MAT
       MFLAST=MF
       MTLAST=MT
       LSTAPE=ITAPE
@@ -696,22 +734,26 @@ C     SECTION OR INDICATE END OF FILE. IF END OF FILE IS REACHED
 C     CHECK TO SEE IF ANY OTHER SECTIONS REMAIN TO BE MERGED.
 C
 c-----------------------------------------------------------------------
-  350 READ(ITAPE,40) (ICARD(J,ISMALL),J=1,17),
+  380 READ(ITAPE,40) (ICARD(J,ISMALL),J=1,17),
      1 (NCARD(J,ISMALL),J=1,3)
       CALL IN9(ZATAB(ISMALL),ICARD(1,ISMALL))
-      IF(NCARD(3,ISMALL).gt.0) go to 360
-      IF(NCARD(1,ISMALL).lt.0) go to 370
-      go to 350
+      IF(NCARD(3,ISMALL).gt.0) go to 390
+      IF(NCARD(1,ISMALL).lt.0) go to 400
+      go to 380
 C-----DEFINE NEW ZA FOR THIS SECTION.
-  360 IZATAB(ISMALL)=ZATAB(ISMALL)
-      GO TO 130
+  390 IZATAB(ISMALL)=ZATAB(ISMALL)
+      GO TO 160
 C-----END OF FILE (TEND) CARD READ. DEFINE MAT TO PREVENT ANY
 C-----MORE READS FROM THIS UNIT.
-  370 NCARD(1,ISMALL)=99999
+  400 NCARD(1,ISMALL)=99999
+      NCARD(2,ISMALL)=    0
+      NCARD(3,ISMALL)=    0
+      ZATAB(ISMALL)  =999999.0
+      IZATAB(ISMALL) = ZATAB(ISMALL)
 C-----SEE IF THERE ARE ANY ACTIVE UNITS LEFT.
-      DO 380 IUNIT=1,NUNIT
-      IF(NCARD(1,IUNIT).LT.10000) GO TO 130
-  380 CONTINUE
+      DO 410 IUNIT=1,NUNIT
+      IF(NCARD(1,IUNIT).LT.10000) GO TO 160
+  410 CONTINUE
 C=======================================================================
 C
 C     END OF RUN
@@ -721,104 +763,104 @@ C     LAST MAT. OUTPUT FINAL REPORTS AND THEN TERMINATE.
 C
 C=======================================================================
 C-----ALL MATERIALS MERGED. HAVE ANY DATA BEEN RETRIEVED.
-      IF(MATLAS.GT.0) GO TO 390
+      IF(MATLAS.GT.0) GO TO 420
 C-----NO MAT/MF/MT SATIFY RETRIEVAL CRITERIA.
-      WRITE(OUTP,670)
-      WRITE(*   ,670)
+      WRITE(OUTP,700)
+      WRITE(*   ,700)
 c-----04/12/04 - ADD TEND LINE
-      WRITE(OTAPE,420)
+      WRITE(OTAPE,450)
       CALL ENDERROR
 C-----OUTPUT FEND, MEND AND TEND CARDS.
-  390 NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) MATLAS,ZERO,ZERO,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) ZERO,ZERO,ZERO,NOSEQ
+  420 NOSEQ = 0
+      WRITE(OTAPE,460) MATLAS,ZERO,ZERO,NOSEQ
+      WRITE(OTAPE,460) ZERO,ZERO,ZERO,NOSEQ
       MATCRD=MATCRD+2
-      WRITE(OTAPE,420)
+      WRITE(OTAPE,450)
       TAPCRD=TAPCRD+MATCRD+1
 C-----END ENDF/B FORMATTED OUTPUT FILE.
 C-----LIST MATERIAL AND SECTION COUNTS.
       MATOUT=MATOUT+1
-      WRITE(OUTP,600) MATCRD,TAPCRD,MATOUT,MTOUT,TAPCRD
-      IF(MTDUP.GT.0) WRITE(OUTP,610) MTDUP
-      IF(MTSORT.GT.0) WRITE(OUTP,620) MTSORT
-      WRITE(*   ,600) MATCRD,TAPCRD,MATOUT,MTOUT,TAPCRD
-      IF(MTDUP.GT.0) WRITE(*   ,610) MTDUP
-      IF(MTSORT.GT.0) WRITE(*   ,620) MTSORT
+      WRITE(OUTP,630) MATCRD,TAPCRD,MATOUT,MTOUT,TAPCRD
+      IF(MTDUP.GT.0) WRITE(OUTP,640) MTDUP
+      IF(MTSORT.GT.0) WRITE(OUTP,650) MTSORT
+      WRITE(*   ,630) MATCRD,TAPCRD,MATOUT,MTOUT,TAPCRD
+      IF(MTDUP.GT.0) WRITE(*   ,640) MTDUP
+      IF(MTSORT.GT.0) WRITE(*   ,650) MTSORT
 C-----LIST DATA RETRIEVED FOR EACH REQUEST.
-      IF(MYWISH.LE.0) GO TO 410
-      IF(IGETHOW.EQ.0) WRITE(OUTP,630)
-      IF(IGETHOW.NE.0) WRITE(OUTP,640)
-      IF(IGETHOW.EQ.0) WRITE(*   ,630)
-      IF(IGETHOW.NE.0) WRITE(*   ,640)
-      DO 400 K=1,MYWISH
-      WRITE(OUTP,650) NOWISH(K),((IWISH(I,J,K),I=1,3),J=1,2),MATGOT(K),
+      IF(MYWISH.LE.0) GO TO 440
+      IF(IGETHOW.EQ.0) WRITE(OUTP,660)
+      IF(IGETHOW.NE.0) WRITE(OUTP,670)
+      IF(IGETHOW.EQ.0) WRITE(*   ,660)
+      IF(IGETHOW.NE.0) WRITE(*   ,670)
+      DO 430 K=1,MYWISH
+      WRITE(OUTP,680) NOWISH(K),((IWISH(I,J,K),I=1,3),J=1,2),MATGOT(K),
      1 MTGOT(K),ICARDGOT(K)
-  400 WRITE(*   ,650) NOWISH(K),((IWISH(I,J,K),I=1,3),J=1,2),MATGOT(K),
+      WRITE(*   ,680) NOWISH(K),((IWISH(I,J,K),I=1,3),J=1,2),MATGOT(K),
      1 MTGOT(K),ICARDGOT(K)
-      WRITE(OUTP,660) MATOUT,MTOUT,TAPCRD
-      WRITE(*   ,660) MATOUT,MTOUT,TAPCRD
-  410 CALL ENDIT
-      GO TO 390 ! CANNOT GET TO HERE.
-  420 FORMAT(68X,'-1 0  0    0')
-  430 FORMAT(66X,I4,I2,I3,I5)
-  440 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2019-1)'/
+  430 CONTINUE
+      WRITE(OUTP,690) MATOUT,MTOUT,TAPCRD
+      WRITE(*   ,690) MATOUT,MTOUT,TAPCRD
+  440 CALL ENDIT
+      GO TO 420 ! CANNOT GET TO HERE.
+  450 FORMAT(68X,'-1 0  0    0')
+  460 FORMAT(66X,I4,I2,I3,I5)
+  470 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2021-1)'/
      1 1X,72('*'))
-  450 FORMAT(' Interpretation of Input Parameters'/1X,72('*'))
-  460 FORMAT(' Retrieval Criteria-----------',7X,A4)
-  470 FORMAT(' Output Filename'/1X,72('-')/
+  480 FORMAT(' Interpretation of Input Parameters'/1X,72('*'))
+  490 FORMAT(' Retrieval Criteria-----------',7X,A4)
+  500 FORMAT(' Output Filename'/1X,72('-')/
      1 1X,A72/1X,72('-'))
-  480 FORMAT(
+  510 FORMAT(
      1 18H Merged File Label/1X,72('-')/1X,2A4,A3,13A4,A3,I4/
      2 1X,72('-'))
-  490 FORMAT(1X,72('-')/' Input Filenames'/1X,72('-'))
-  500 FORMAT(1X,A72)
-  510 FORMAT(1X,72('-')/1X,72('*')/' Retrieved Data'/
+  520 FORMAT(1X,72('-')/' Unit Input Filenames'/1X,72('-'))
+  530 FORMAT(I5,1X,A72)
+  540 FORMAT(1X,72('-')/1X,72('*')/' Retrieved Data'/
      1 1X,72('*')/'     ZA  MAT MF  MT  Lines  Unit Request Message'/
      2 32X,'  Number'/1X,72('-'))
-  520 FORMAT(1X,72('-')/
+  550 FORMAT(1X,72('-')/
      1 ' Two or More Units Required for Merge'/
      2 ' Execution Terminated')
-  530 FORMAT(1X,72('-')/10X,'MAT Lines',I7/1X,72('-'))
-  540 FORMAT(1X,72('-')/
+  560 FORMAT(1X,72('-')/10X,'MAT Lines',I7/1X,72('-'))
+  570 FORMAT(1X,72('-')/
      1 ' No Units Specified for Merge'/
      2 ' Execution Terminated')
-  550 FORMAT(1X,72('-')/
+  580 FORMAT(1X,72('-')/
      1 ' ERROR - Over',I5,' Units Specified for Merge'/
      2 ' Execution Terminated')
-  560 FORMAT(I7,I5,I3,I4,I7,I6,I8)
-  570 FORMAT(I7,I5,I3,I4,7X,I6,I8,' Duplicate MAT/MF/MT (Skipped)')
-  580 FORMAT(I7,I5,I3,I4,I7,I6,I8,' WARNING - Duplicate MAT/MF/MT',
+  590 FORMAT(I7,I5,I3,I4,I7,I6,I8)
+  600 FORMAT(I7,I5,I3,I4,7X,I6,I8,' Duplicate MAT/MF/MT (Skipped)')
+  610 FORMAT(I7,I5,I3,I4,I7,I6,I8,' WARNING - Duplicate MAT/MF/MT',
      1 ' On Same File (Copied)')
-  590 FORMAT(I7,I5,I3,I4,7X,I6,I8,
+  620 FORMAT(I7,I5,I3,I4,7X,I6,I8,
      1 ' Section is NOT in MAT/MF/MT Order (Skipped)')
-  600 FORMAT(1X,72('-')/10X,'MAT Lines',I7/1X,72('-')/
+  630 FORMAT(1X,72('-')/10X,'MAT Lines',I7/1X,72('-')/
      1 9X,'Tape Lines',I7/1X,72('-')/
      2 1X,72('*')/' Retrieval Statistics'/1X,72('*')/
      3 ' Merged Materials---',I11/
      4 ' Merged Sections----',I11/
      5 ' Merged Lines-------',I11)
-  610 FORMAT(' Duplicate Sections-',I11,' (Skipped)')
-  620 FORMAT(' Unsorted Sections--',I11,
+  640 FORMAT(' Duplicate Sections-',I11,' (Skipped)')
+  650 FORMAT(' Unsorted Sections--',I11,
      1 ' (ENDF/B Tapes were NOT in MAT/MF/MT Order)')
-  630 FORMAT(1X,72('-')/' Retrieved Data for Each Request'/
+  660 FORMAT(1X,72('-')/' Retrieved Data for Each Request'/
      1 1X,72('-')/
      2 ' Request *   Lower Limit *   Upper Limit *',11X,' Retrieved'/
      3 '  Number *    MAT MF  MT *    MAT MF  MT *',2X,
      4 ' Materials    Sections  Lines'/1X,72('-'))
-  640 FORMAT(1X,72('-')/' Retrieved Data for Each Request'/
+  670 FORMAT(1X,72('-')/' Retrieved Data for Each Request'/
      1 1X,72('-')/
      2 ' Request *   Lower Limit *   Upper Limit *',11X,' Retrieved'/
      3 '  Number *     ZA MF  MT *     ZA MF  MT *',2X,
      4 ' Materials    Sections  Lines'/1X,72('-'))
-  650 FORMAT(I8,' *',I7,I3,I4,' *',I7,I3,I4,' *',2I12,I7)
-  660 FORMAT(1X,72('-')/'  Totals',34X,2I12,I7/1X,72('-')/
+  680 FORMAT(I8,' *',I7,I3,I4,' *',I7,I3,I4,' *',2I12,I7)
+  690 FORMAT(1X,72('-')/'  Totals',34X,2I12,I7/1X,72('-')/
      1 ' Note..The Line Count of Retrieved Data for Each Request Does'/
      2 '       NOT Include FEND, MEND AND TEND Lines. Therefore the  '/
      3 '       Total Number of Lines Actually Retrieved and Written  '/
      4 '       on the Merged File Will be More than the Sum of the   '/
      5 '       Number of Lines for All Requests.                     ')
-  670 FORMAT(' WARNING - No MAT/MF/MT Combination Satisfies Retrieval',
+  700 FORMAT(' WARNING - No MAT/MF/MT Combination Satisfies Retrieval',
      1 ' Criteria'/1X,72('-'))
       END
       SUBROUTINE ASK4IT
@@ -862,8 +904,9 @@ C-----READ NEXT RANGE REQUEST AND CHECK FOR END OF REQUEST LIST.
      1 ((IWISH(K,J,MYWISH),K=1,3),J=1,2),NOWISH(MYWISH)
    10 FORMAT(I6,I2,I3,I6,I2,I3,I11)
       DO 20 J=1,2
-      DO 20 K=1,3
+      DO K=1,3
       IF(IWISH(K,J,MYWISH).GT.0) GO TO 30
+      ENDDO
    20 CONTINUE
 C-----END OF REQUEST LIST.
       GO TO 100
@@ -885,8 +928,9 @@ C-----INDEX.
       IF(NOWISH(MYWISH).LE.0) NOWISH(MYWISH)=MYWISH
       WRITE(OUTP,130) NOWISH(MYWISH),
      1 ((IWISH(K,J,MYWISH),K=1,3),J=1,2)
-   60 WRITE(*   ,130) NOWISH(MYWISH),
+      WRITE(*   ,130) NOWISH(MYWISH),
      1 ((IWISH(K,J,MYWISH),K=1,3),J=1,2)
+   60 CONTINUE
 C-----100 REQUEST RANGES SPECIFIED. IF NEXT CARD IS NOT BLANK ABORT.
       READ(INP,10,END=80,ERR=80) MDUMB
       DO 70 J=1,6
@@ -994,6 +1038,7 @@ C-----RESET LAST DIGIT AND INCREMENT NEXT TO LAST DIGIT 1, 2, .....
       FILEB(8)=FILLX(IX2)
 C-----DEFINE STANDARD FILENAME.
    20 DO 30 I=1,9
-   30 FILEX(I)=FILEB(I)
+      FILEX(I)=FILEB(I)
+   30 CONTINUE
    40 RETURN
       END

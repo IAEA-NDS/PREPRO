@@ -6,15 +6,25 @@
 # PREPRO is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
+os:=$(shell uname -s)
 
-FFLAGS = -O2 -std=legacy
-CFLAGS =
-LIBS   = -lX11
-LIBDIR = -L/usr/X11/lib
-CC     = gcc -I/usr/X11/include
+# $(info $$os is [${os}])
+
+ifeq ($(os),Darwin)
+     CFLAGS = -I/opt/X11/include -w
+     LIBS   = -lXt -lX11
+     LIBDIR = -L/opt/X11/lib
+else
+     CFLAGS = -I/usr/X11/include -w
+     LIBS   = -lX11
+     LIBDIR = -L/usr/X11/lib
+endif
+
+FFLAGS = -O0 -w -static-libgfortran
+CC     = gcc
 FC     = gfortran
 
-FSUB1= evalplot.f endfio.f scratchb.f timer.f seconds.f screen.f
+FSUB1= evalplot.f endfio.f scratchb.f screen.f
 
 CSUBS= dash.c
 
@@ -28,13 +38,11 @@ all: evalplot evalhard evalhard1
 evalplot: $(OBJ)
 	$(FC) -o evalplot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
 
-evalhard: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps.o
-	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps.o
+evalhard: evalplot.o endfio.o scratchb.o saveps.o
+	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o saveps.o
 
-evalhard1: evalplot.o endfio.o scratchb.o timer.o seconds.o saveps1.o
-	$(FC) -o evalhard1 $(FFLAGS) evalplot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps1.o
+evalhard1: evalplot.o endfio.o scratchb.o saveps1.o
+	$(FC) -o evalhard1 $(FFLAGS) evalplot.o endfio.o scratchb.o saveps1.o
 
 .PHONY: install
 install: evalplot evalhard evalhard1
@@ -44,5 +52,6 @@ install: evalplot evalhard evalhard1
 .PHONY: clean
 clean:
 	rm -f evalplot evalhard evalhard1
-	rm -f endfio.o evalplot.o saveps.o saveps1.o \
-		dash.o scratchb.o screen.o seconds.o timer.o
+	rm -f evalplot.o endfio.o scratchb.o screen.o \
+	      dash.o saveps.o saveps1.o 
+#

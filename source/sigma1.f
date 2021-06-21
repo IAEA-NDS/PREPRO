@@ -40,7 +40,7 @@ C                                 ENERGY GRID FOR HOT CROSS SECTION AS
 C                                 COLD CROSS SECTIONS WAS FOUND TO BE
 C                                 INACCURATE).
 C                                *NEW FASTER HIGH ENERGY BROADENING.
-C                                *UPDATED FOR ENDF/B-VI FORMATS.
+C                                *UPDATED FOR ENDF/B-6  FORMATS.
 C                                *SPECIAL I/O ROUTINES TO GUARANTEE
 C                                 ACCURACY OF ENERGY.
 C                                *DOUBLE PRECISION TREATMENT OF ENERGY
@@ -127,7 +127,7 @@ C     VERSION 99-2 (JUNE 1999)    *EXTENDED RANGE OF INTEGRALS FROM 4
 C                                  TO 5 UNITS ON EACH SIDE OF ENERGY
 C                                  POINT TO ALLOW FOR LARGER VARIATION
 C                                  IN THE LOCAL CROSS SECTION
-C                                 *ASSUME ENDF/B-VI, NOT V, IF MISSING
+C                                 *ASSUME ENDF/B-6, NOT 5, IF MISSING
 C                                  MF=1, MT-451.
 C     VERSION 99-3 (OCTOBER 1999))*IMPROVED ERFC FUNCTION DEFINITION.
 C                                  I THANK BOB MACFARLANE (LANL) FOR
@@ -153,7 +153,7 @@ C                                  FOLLOWING UNRESOLVED PARAMETERS
 C     VERS. 2005-1 (JUNE 2005)    *CORRECTED ERROR IN EHOT3 EQUIVALENCE
 C                                  TO EHOT - THIS ONLY EFFECTS VERY BIG
 C                                  OUTPUT FILES.
-C     VERS. 2007-1 (JAN. 2007)    *CHECKED AGAINST ALL ENDF/B-VII.
+C     VERS. 2007-1 (JAN. 2007)    *CHECKED AGAINST ALL ENDF/B-6.
 C                                 *INCREASED PAGE SIZE FROM 60,000
 C                                  TO 360,000 ENERGY POINTS.
 C     VERS. 2008-1 (APRIL 2008)   *1/2 INITIAL ENERGY POINT SPACING
@@ -222,7 +222,15 @@ C                                 *Check consistency of Maximum
 C                                  Tabulated cross sections for ALL MT
 C                                  processed - print WQARNING if NOT
 C                                  the same for ALL MTs.
-C
+C     VERS. 2020-1 (Dec. 2020)    *Complete Re-write of convergence
+C                                 *Replaced INCORE9 by INCORE10.
+C                                 *Updated minimum/maximum convergence
+C                                  procedure.
+C                                 *Added Target Isomer State
+C                                 *Check Atomic Weight > 0
+C     VERS. 2021-1 (Mar. 2021)    *Updated for FORTRAN 2018
+C                                 *Minimum Cross Section is no longer
+C                                  an input option - set to 1.0d-30.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -291,7 +299,7 @@ C     ENDF/B FORMAT
 C     -------------
 C     THIS PROGRAM ONLY USES THE ENDF/B BCD OR CARD IMAGE FORMAT (AS
 C     OPPOSED TO THE BINARY FORMAT) AND CAN HANDLE DATA IN ANY VERSION
-C     OF THE ENDF/B FORMAT (I.E., ENDF/B-I, II, III, IV OR V FORMAT).
+C     OF THE ENDF/B FORMAT (I.E., ENDF/B-1, 2, 3, 4, 5, 6 FORMAT).
 C
 C     IT IS ASSUMED THAT THE DATA IS CORRECTLY CODED IN THE ENDF/B
 C     FORMAT AND NO ERROR CHECKING IS PERFORMED. IN PARTICULAR IT IS
@@ -359,7 +367,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF THREE COMMENTS CARDS AT THE END OF EACH
 C     HOLLERITH SECTION IN THE FORM
 C
-C     ***************** PROGRAM SIGMA1 (2019-1) ***************
+C     ***************** PROGRAM SIGMA1 (2021-1) ***************
 C     DATA DOPPLER BROADENED TO 300.0   KELVIN AND
 C     DATA THINNED TO WITHIN AN ACCURACY OF  0.1 PER-CENT
 C
@@ -369,7 +377,7 @@ C     THE DATA.
 C
 C     THESE COMMENT CARDS ARE ONLY ADDED TO EXISTING HOLLERITH SECTIONS,
 C     I.E., THIS PROGRAM WILL NOT CREATE A HOLLERITH SECTION. THE FORMAT
-C     OF THE HOLLERITH SECTION IN ENDF/B-V DIFFERS FROM THE THAT OF
+C     OF THE HOLLERITH SECTION IN ENDF/B-5 DIFFERS FROM THE THAT OF
 C     EARLIER VERSIONS OF ENDF/B. BY READING AN EXISTING MF=1, MT=451
 C     IT IS POSSIBLE FOR THIS PROGRAM TO DETERMINE WHICH VERSION OF
 C     THE ENDF/B FORMAT THE DATA IS IN. WITHOUT HAVING A SECTION OF
@@ -630,7 +638,8 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/RESOLV/EULOW,EUHIGH,UREVAL,UREACT,UNRES1,UNRES2,IL,IH
       COMMON/MAXTEMP/DEMAXC,DEMAXH,DEMAXLOW,DEMAXHI
       COMMON/PARTIN/ATWTP,INPART
-      COMMON/OKERRT/ERXC3T,KERR3T,MAXERT,ENER3T(21),ER3T(21)
+      COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
+      COMMON/ERRCOT/ERXC3T
       COMMON/FIELDC/FIELD6(11,6)
 C-----08/20/2013 - added high energy cutoff
       COMMON/HIGHESTE/EHIGHEST,EMILLION
@@ -836,17 +845,17 @@ C-----END ENDF/B FORMAT OUTPUT FILE.
       CALL ENDIT
       GO TO 140  ! CANNOT GET TO HERE.
   150 FORMAT(1X,79('-')/' Unresolved ',11A1,' to',11A1,
-     1 ' eV',4X,'MAT Totals',2I9/1X,79('-'))
-  160 FORMAT(1X,79('-')/' No Unresolved Region',23X,'MAT Totals',2I9/
+     1 ' eV',6X,'MAT Totals',2I9/1X,79('-'))
+  160 FORMAT(1X,79('-')/' No Unresolved Region',25X,'MAT Totals',2I9/
      1 1X,79('-'))
-  170 FORMAT(1X,79('-')/43X,'Tape Totals',2I9/1X,79('-'))
-  180 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2019-1)'/
+  170 FORMAT(1X,79('-')/45X,'Tape Totals',2I9/1X,79('-'))
+  180 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2021-1)'/
      1 1X,79('-'))
   190 FORMAT(1X,79('-')/' ENDF/B Tape Label'/1X,79('-')/1X,16A4,A2,I4/
      1 1X,79('-')/
-     2 ' Projectile',4X,'  MAT  MT ENDF/B',5X,'Kelvin',5X,
+     2 ' Projectile',4X,'    MAT  MT ENDF/B',5X,'Kelvin',5X,
      3 'Q-Value   Points   Points'/
-     3 '       Material',9X,' Format',9X,'In',10X,'eV','       In',
+     3 '       Material',11X,' Format',9X,'In',10X,'eV','       In',
      3 '      Out'/1X,79('-'))
   200 FORMAT(///' Extension'/1X,9('-')/
      1 ' Cross Section Extension Can be Avoided by'/
@@ -895,7 +904,7 @@ C-----3/22/2012 - NOT FOUND = ERROR STOP
      1 ' CANNOT be Doppler Broadened.'/
      2          '         Correct DATA and RE-TRY.'///)
       CALL ENDERROR
-C-----FOUND. DEFINE MASS RELATIVE TO NEUTRON.
+C-----FOUND. DEFINE MASS RELATIVE TO NEUTRON (ENDF Definition)
    30 ATWTP=ATWTN(I)/ATWTN(1)
       PROHOL=PROTAB(I)
       RETURN
@@ -907,12 +916,14 @@ C     ADD COMMENTS AT THE END OF FILE1, SECTION 451 TO INDICATE
 C     THAT THIS MATERIAL HAS BEEN PROCESSED BY PROGRAM SIGMA1 AND
 C     TO SPECIFY THE TEMPERATURE AND MAXIMUM ALLOWABLE ERROR.
 C
-C     DEFINE FORMAT TO BE ENDF/B-IV, V OR VI.
+C     DEFINE FORMAT TO BE ENDF/B-4, 5 or 6.
 C
 C     THE ENDF/B FORMAT CAN BE DETERMINED FROM THE SECOND CARD.
-C     ENDF/B-IV = N1 > 0, N2 = 0, CARD COUNT (POSITIVE)
-C     ENDF/B-V  = N1 = N2 = 0
-C     ENDF/B-IV =      N2 = NUMBER NUMBER (6 OR MORE)
+C     ENDF/B-4  = N1 > 0, N2 = 0, CARD COUNT (POSITIVE)
+C     ENDF/B-5  = N1 = N2 = 0
+C     ENDF/B-6  =      N2 = NUMBER NUMBER (6 OR MORE)
+C
+C     First line has already been read.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
@@ -920,16 +931,18 @@ C=======================================================================
       CHARACTER*4 FMTTAB,FMTHOL,PROHOL
       CHARACTER*66 PROGDOC
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
-      COMMON/OKERRT/ERXC3T,KERR3T,MAXERT,ENER3T(21),ER3T(21)
+      COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
+      COMMON/ERRCOT/ERXC3T
       COMMON/HOTS/ALPHA,HOTSY1,HOTSY2,TEMPK,TEMPEF,N2TAPI,N2TAPO
       COMMON/HOLFMT/FMTHOL,PROHOL
       COMMON/TEMPO/TEMP3,IVERSE
       COMMON/PARTIN/ATWTP,INPART
-      COMMON/PARAMS/XCMIN
+      COMMON/ERRCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/FIELDC/FIELD6(11,6)
+      COMMON/LISOCOM/LISO
       DIMENSION FMTTAB(3),PROGDOC(9),PROGDOC1(66,9)
       EQUIVALENCE (PROGDOC(1),PROGDOC1(1,1))
-      DATA FMTTAB/'IV  ','V   ','VI  '/
+      DATA FMTTAB/'4   ','5   ','6   '/
 c-----------------------------------------------------------------------
 c
 C     DOCUMENTATION TO ADD TO ENDF/B OUTPUT - EACH LINE IS 66
@@ -941,7 +954,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program SIGMA1 (VERSION 2019-1) ***********',
+     1 ' ***************** Program SIGMA1 (VERSION 2021-1) ***********',
      2 ' Data Doppler Broadened to12345678901 Kelvin                  ',
      3 ' for All Data Greater than12345678901 barns in Absolute Value ',
      4 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
@@ -955,25 +968,36 @@ C-----FILL IN REMAINDER OF FIRST LINE.
       PROGDOC1(64,1) = '*'
       PROGDOC1(65,1) = '*'
       PROGDOC1(66,1) = '*'
+c
+c     Read Second line
+c
 C-----HEAD CARD OF SECTION HAS BEEN READ AND WRITTEN. READ NEXT CARD
-C-----AND DETERMINE IF THIS IS THE ENDF/B-IV, V OR VI FORMAT.
+C-----AND DETERMINE IF THIS IS THE ENDF/B-4, 5 or 6 FORMAT.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
-C-----CHECK FOR ENDF/B-IV.
-C-----IV N1 > 0, N2 = 0
+      LISOX= L2           ! Save potental target isomer number
+C-----CHECK FOR ENDF/B-4
+C-----4: N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 20
-C-----NOT ENDF/B-IV. READ THIRD CARD.
+C-----NOT ENDF/B-4. READ THIRD CARD.
       N2X=N2
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Third line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=5
-C-----CHECK FOR ENDF/B-V FORMAT.
+C-----CHECK FOR ENDF/B-5 FORMAT.
       IF(N2X.LE.0) GO TO 20
       N1X=N1
-C-----ENDF/B-VI FORMAT. READ FOURTH CARD.
+C-----ENDF/B-6 FORMAT. READ FOURTH CARD.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Fourth line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
+      LISO   = LISOX
 C-----DEFINE INCIDENT PARTICLE AND MASS RELATIVE TO NEUTRON.
       INPART=N1X/10
 c---- 3/22/2012 = 0 = WRONG - that mean photon - use = 1 = neutron
@@ -1011,7 +1035,8 @@ C-----INCREASE COMMENT CARD COUNT AND COPY TO END OF HOLLERITH.
       IF(MAXERT.GT.1) N1OUT=N1+7+MAXERT
       CALL CARDO(C1,C2,L1,L2,N1OUT,N2)
       DO 30 N=1,N1
-   30 CALL COPY1
+      CALL COPY1
+   30 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     ADD COMMENTS TO DOCUMENT WHAT WAS DONE TO DATA
@@ -1023,7 +1048,7 @@ C-----OUTPUT FINAL TEMPERATURE IN KELVIN
       CALL OUT9(TEMPK,PROGDOC1(27,2))
       CALL HOLLYO(PROGDOC1(1,2))
 C-----OUTPUT MINIMUM CROSS SECTION
-      CALL OUT9(XCMIN,PROGDOC1(27,3))
+      CALL OUT9(XCLOW,PROGDOC1(27,3))
       CALL HOLLYO(PROGDOC1(1,3))
       IF(MAXERT.GT.1) GO TO 40
 C-----ENERGY INDEPENDENT UNCERTAINTY
@@ -1040,7 +1065,8 @@ C-----ADD FOUR COMMENT CARDS PLUS ENERGY DEPENDENT UNCERTAINTY
       PERCNT=100.0d0*ER3T(I)
       CALL OUT9(ENER3T(I),PROGDOC1( 2,9))
       CALL OUT9(PERCNT   ,PROGDOC1(14,9))
-   50 CALL HOLLYO(PROGDOC1(1,9))
+      CALL HOLLYO(PROGDOC1(1,9))
+   50 CONTINUE
       RETURN
       END
       SUBROUTINE FILE2
@@ -1090,10 +1116,10 @@ C-----INITIALIZE ERROR FLAG OFF.
 C-----HEAD RECORD ALREADY READ. DEFINE NUMBER OF ISOTOPES.
       NIS=N1H
 C-----DO LOOP OVER ALL ISOTOPES
-      DO 240 IS=1,NIS
+      DO 270 IS=1,NIS
       CALL CARDIO(C1H,C2H,L1H,LFW,NER,N2H)
 C-----DO LOOP OVER ALL ENERGY RANGES
-      DO 230 JER=1,NER
+      DO 260 JER=1,NER
       CALL CARDIO(EL,EH,LRU,LRF,N1H,N2H)
 C-----------------------------------------------------------------------
 C
@@ -1127,7 +1153,7 @@ C
 C-----------------------------------------------------------------------
 C-----COPY SECTION WITH NO RESONANCE PARAMETERS.
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,N2H)
-      GO TO 230
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     UNRESONANCE
@@ -1187,15 +1213,15 @@ C-----------------------------------------------------------------------
       IF(LRF.EQ.1.OR.          ! Single Level Breit-Wigner
      1   LRF.EQ.2.OR.          ! Multi-Level  Breit-Wigner
      2   LRF.EQ.3) GO TO 80    ! Reich=Moore
-      IF(LRF.EQ.4) GO TO 100   ! Adler-Adler
-      IF(LRF.EQ.7) GO TO 130   ! New Reich-Moore
+      IF(LRF.EQ.4) GO TO 110   ! Adler-Adler
+      IF(LRF.EQ.7) GO TO 160   ! New Reich-Moore
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 250
-   70 IF(LRU.NE.2) GO TO 250   ! Unresolved?
-      IF(LRF.EQ.1) GO TO 150   ! Energy Independent Widths
-      IF(LRF.EQ.2) GO TO 210   ! Energy   Dependent Widths
+      GO TO 280
+   70 IF(LRU.NE.2) GO TO 280   ! Unresolved?
+      IF(LRF.EQ.1) GO TO 180   ! Energy Independent Widths
+      IF(LRF.EQ.2) GO TO 240   ! Energy   Dependent Widths
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 250
+      GO TO 280
 C-----------------------------------------------------------------------
 C
 C     BREIT-WIGNER (SINGLE OR MULTI-LEVEL) OR REICH-MOORE FORMALISM
@@ -1204,43 +1230,49 @@ C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
    80 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----LOOP OVER ALL L STATES
-      DO 90 ILS=1,NLS
+      DO 100 ILS=1,NLS
 C-----READ NEXT CARD.
       CALL CARDIO(C1H,C2H,L1H,L2H,NRS6,NRS)
 C-----COPY RESONANCE PARAMETERS.
       DO 90 IRS=1,NRS
-   90 CALL COPY1
-      GO TO 230
+      CALL COPY1
+   90 CONTINUE
+  100 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     ADLER-ADLER FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
-  100 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
+  110 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----READ BACKGROUND CORRECTIONS.
       CALL CARDIO(C1H,C2H,L1H,L2H,NX6,N2H)
 C-----COPY BACKGROUND CORRECTION CONSTANTS.
-      DO 110 I=1,NX6,6
-  110 CALL COPY1
+      DO 120 I=1,NX6,6
+      CALL COPY1
+  120 CONTINUE
 C-----LOOP OVER L STATES
-      DO 120 I=1,NLS
+      DO 150 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
 C-----LOOP OVER J STATES
-      DO 120 J=1,NJS
+      DO 140 J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,NLJ)
 C-----COPY ALL RESONANCE DATA
-      DO 120 K=1,NLJ
+      DO 130 K=1,NLJ
       CALL COPY1
-  120 CALL COPY1
-      GO TO 230
+      CALL COPY1
+  130 CONTINUE
+  140 CONTINUE
+  150 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     NEW REICH-MOORE FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----DEFINE NUMBER OF J STATES
-  130 CALL CARDIO(C1,C2,L1,L2,NJS,N2)
+  160 CALL CARDIO(C1,C2,L1,L2,NJS,N2)
 C-----DEFINE NUMBER OF PARTICLE-PAIRS
       CALL CARDIO(C1,C2,L1,L2,NPP12,N2)
 C-----COPY PARTICLE-PAIR DATA
@@ -1248,7 +1280,7 @@ C-----COPY PARTICLE-PAIR DATA
       CALL COPY1
       ENDDO
 C-----LOOP OVER J STATES
-      DO 140 IJ=1,NJS
+      DO 170 IJ=1,NJS
 C-----J, PARITY, AND NUMBER OF CHANNELS
       CALL CARDIO(C1,C2,L1,L2,NCH6,N2)
 C-----COPY CHANNEL DATA
@@ -1261,78 +1293,86 @@ C-----COPY RESONANCE PARAMETERS
       DO N=1,NRS
       CALL COPY1
       ENDDO
-  140 CONTINUE
-      GO TO 250
+  170 CONTINUE
+      GO TO 280
 C-----------------------------------------------------------------------
 C
 C     UNRESOLVED WITH ENERGY INDEPENDENT WIDTHS.
 C
 C-----------------------------------------------------------------------
 C-----TEST IF FISSION WIDTHS GIVEN
-  150 IF(LFW.gt.0) go to 170
+  180 IF(LFW.gt.0) go to 200
 C-----FISSION WIDTHS NOT GIVEN
       CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----LOOP OVER ALL L-STATES
-      DO 160 ILS=1,NLS
+      DO 190 ILS=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,NJS)
-      DO 160 N=1,NJS
-  160 CALL COPY1
-      GO TO 230
+      DO N=1,NJS
+      CALL COPY1
+      ENDDO
+  190 CONTINUE
+      GO TO 260
 C-----FISSION WIDTHS GIVEN (LFW=1)
-  170 CALL CARDIO(C1H,C2H,L1H,L2H,NE,NLS)
+  200 CALL CARDIO(C1H,C2H,L1H,L2H,NE,NLS)
 C-----COPY FISSION WIDTH ENERGY POINTS
-      DO 180 I=1,NE,6
-  180 CALL COPY1
+      DO 210 I=1,NE,6
+      CALL COPY1
+  210 CONTINUE
 C-----LOOP OVER L-STATES
-      DO 200 I=1,NLS
+      DO 230 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
 C-----LOOP OVER J STATES
-      DO 200 J=1,NJS
+      DO 220 J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,NEP6,N2H)
-      DO 190 K=1,NEP6,6
-  190 CALL COPY1
-  200 CONTINUE
-      GO TO 230
+      DO K=1,NEP6,6
+      CALL COPY1
+      ENDDO
+  220 CONTINUE
+  230 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     UNRESOLVED WITH ENERGY DEPENDENT WIDTHS.
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
-  210 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
+  240 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----DO LOOP OVER L-STATES
-      DO 220 I=1,NLS
+      DO 250 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
-      DO 220 J=1,NJS
+      DO J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,NE6P6,N2H)
 C-----COPY NUMBER OF DEGREES OF FREEDOM AND PARAMETERS.
-      DO 220 K=1,NE6P6,6
-  220 CALL COPY1
-  230 CONTINUE
-  240 CONTINUE
+      DO K=1,NE6P6,6
+      CALL COPY1
+      ENDDO
+      ENDDO
+  250 CONTINUE
+  260 CONTINUE
+  270 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     END OF RESONANCE REGION (FILE 2) DATA.
 C
 C-----------------------------------------------------------------------
 C-----PRINT WARNING IF UNRESOLVED RESONANCE REGION IS NOT UNIQUE.
-  250 IF(UREVAL.LE.0) GO TO 270
-      IF(EULOW.LT.EUHIGH) GO TO 260
+  280 IF(UREVAL.LE.0) GO TO 300
+      IF(EULOW.LT.EUHIGH) GO TO 290
       UREVAL=0
-      WRITE(OUTP,290) IZA,MATH,MTH,FMTHOL
-      WRITE(*   ,290) IZA,MATH,MTH,FMTHOL
-      GO TO 270
-  260 IF(IBAD.GT.0) WRITE(OUTP,280) IZA,MATH,MTH,FMTHOL
-      IF(IBAD.GT.0) WRITE(*   ,280) IZA,MATH,MTH,FMTHOL
-  270 RETURN
-  280 FORMAT(1X,I6,2I5,2X,A2,
+      WRITE(OUTP,320) IZA,MATH,MTH,FMTHOL
+      WRITE(*   ,320) IZA,MATH,MTH,FMTHOL
+      GO TO 300
+  290 IF(IBAD.GT.0) WRITE(OUTP,310) IZA,MATH,MTH,FMTHOL
+      IF(IBAD.GT.0) WRITE(*   ,310) IZA,MATH,MTH,FMTHOL
+  300 RETURN
+  310 FORMAT(1X,I6,2I5,2X,A2,
      1 ' WARNING - Unresolved Resonance Energy Range NOT the Same'/
      2 29X,' for ALL Isotopes and Spin States. This Violates ENDF/B'/
      3 29X,' Conventions. The Unresolved Resonance Energy Range'/
      4 29X,' will be Considered to Extend from the Maximum Lower'/
      5 29X,' Energy Limit up to the Mimimum Upper Energy Limit'/
      6 29X,' of ALL the Unresolved Ranges Defined for this MAT.')
-  290 FORMAT(1X,I6,2I5,2X,A2,
+  320 FORMAT(1X,I6,2I5,2X,A2,
      1 ' WARNING - Unresolved Resonance Energy Range NOT the Same'/
      2 29X,' for ALL Isotopes and Spin States. This Violates ENDF/B'/
      3 29X,' Conventions. Cannot Locate ANY Energy Range that'/
@@ -1378,7 +1418,8 @@ C=======================================================================
       COMMON/FIELDC/FIELD6(11,6)
 c----- 2012 - number of points read in any MT
       COMMON/READN2/N2READ
-      DIMENSION ZABCD(10)
+      COMMON/LISOCOM/LISO
+      DIMENSION ZABCD(12)
       INCLUDE 'sigma1.h'
 C-----DEFINE BOLTZMANN CONSTANT IN EV/DEGREE KELVIN
 C-----(ASSUMING ENERGY WILL BE EXPRESSED IN EV AND THE ATOMIC
@@ -1422,20 +1463,20 @@ c----- 2012 - number of points read in any MT
       IF(MTH.GE.251.AND.MTH.LE.253) TOOHI=1
 C-----------------------------------------------------------------------
 C
-C     DEFINE ORIGINAL TEMPERATURE. FOR ENDF/B-V AND EARLIER VERSIONS
+C     DEFINE ORIGINAL TEMPERATURE. FOR ENDF/B-5 AND EARLIER VERSIONS
 C     C1 OF THE TAB1 LEAD CARD IS EITHER THE TEMPERATURE (L2=0) OR THE
 C     Q-VALUE CORRESPONDING TO THE REACTION WITH MT=N2. IN THE LATTER
-C     CASE ASSUME THE SAME TEMPERATURE AS FOR THE TOTAL. FOR ENDF/B-VI
+C     CASE ASSUME THE SAME TEMPERATURE AS FOR THE TOTAL. FOR ENDF/B-6
 C     THE INITIAL TEMPERATURE HAS ALREADY BEEN READ FROM FILE 1 (TEMP3).
 C
 C-----------------------------------------------------------------------
-C-----CHECK FOR ENDF/B-VI FORMAT.
+C-----CHECK FOR ENDF/B-6 FORMAT.
       IF(IVERSE.NE.6) GO TO 10
-C-----ENDF/B-VI FORMAT. INITIAL TEMPERATURE HAS ALREADY BEEN DEFINED
+C-----ENDF/B-6 FORMAT. INITIAL TEMPERATURE HAS ALREADY BEEN DEFINED
 C-----FROM FILE 1 (TEMP3).
       TEMPEF=TEMPK-TEMP3
       GO TO 30
-C-----ENDF/B-V OR EARLIER. USE EITHER C1 FIELD OR TEMPERATURE FROM
+C-----ENDF/B-5 OR EARLIER. USE EITHER C1 FIELD OR TEMPERATURE FROM
 C-----TOTAL.
    10 IF(L2.LE.0) GO TO 20
       TEMP3=TEMP1
@@ -1444,7 +1485,7 @@ C-----TOTAL.
    20 TEMP3=C1
       IF(MTH.EQ.1) TEMP1=TEMP3
       TEMPEF=TEMPK-TEMP3
-C-----IN ENDF/B-V OR EARLIER DEFINE TEMPERATURE IN C1 FIELD.
+C-----IN ENDF/B-5 OR EARLIER DEFINE TEMPERATURE IN C1 FIELD.
       IF(TEMPEF.GT.0.0d0.AND.TOOHI.LT.0) C1=TEMPK
 c-----------------------------------------------------------------------
 C
@@ -1452,14 +1493,15 @@ C     ERROR if Input temperature exceeds output temperature
 C
 c-----------------------------------------------------------------------
    30 if(TEMPK.lt.TEMP3) then
-      CALL ZAHOL(IZA,ZABCD)
+c-----Added Target Isomer State
+      CALL ZAHOLM(IZA,LISO,ZABCD)
       CALL OUT9(TEMP3,FIELD6(1,1)) ! Input ERROR
       CALL OUT9(TEMPK,FIELD6(1,2))
       WRITE(3,40) PROHOL,ZABCD,MATH,MTH,FMTHOL,(FIELD6(K9,1),K9=1,11),
      1 ((FIELD6(K9,K8),K9=1,11),K8=1,2)
       WRITE(*,40) PROHOL,ZABCD,MATH,MTH,FMTHOL,(FIELD6(K9,1),K9=1,11),
      1 ((FIELD6(K9,K8),K9=1,11),K8=1,2)
-   40 FORMAT(1X,A4,10A1,I5,I4,2x,A2,3X,11A1/
+   40 FORMAT(1X,A4,12A1,I5,I4,2x,A2,3X,11A1/
      1 1x,9('ERROR==='),'ERROR=='/
      2 ' Input temperature.......................',11A1,' Kelvin'/
      3 ' Exceeds Requested Output Temperarure....',11A1,' Kelvin'/
@@ -1475,12 +1517,21 @@ c-----------------------------------------------------------------------
       IF(TEMPEF.gt.0.0d0) go to 50
 C-----NO.
       TOOHI=1
-      GO TO 60
+      GO TO 70
 C-----YES.
-   50 ALPHA=(AWR/ATWTP)/(BOLTZM*TEMPEF)
+c-----2020/12/11 - Check Atomic Weight
+   50 if(AWR.le.0.0d0) then
+      write(outp,60) MATH,MFH,MTH,AWR
+      write(*   ,60) MATH,MFH,MTH,AWR
+   60 format(1x,79('=')/
+     1 ' MAT/MF/MT=',i5,i3,i4,' AWR=',1pd11.4,' (Must be Positive.'/
+     2 ' Execution Terminated'/1x,79('='))
+      CALL ENDERROR
+      endif
+      ALPHA=(AWR/ATWTP)/(BOLTZM*TEMPEF)   ! AWR = C2H in HEADER
 C-----DEFINE CUTOFF ENERGY FOR LOW ENERGY LOG-LOG ASSUMPTION.
       IF(MTH.LE.2) THEN
-      ELOGLOG = 0.0d0             ! total an elastic
+      ELOGLOG = 0.0d0             ! total and elastic
       ELSE
 c-----------------------------------------------------------------------
 c
@@ -1493,7 +1544,7 @@ c-----------------------------------------------------------------------
       ELOGLOG = 1.0d0*(ATWTP/AWR) ! capture, fission, etc.
       ENDIF
 C-----INITIALIZE FLAG TO INDICATE BEGINNING OF SECTION.
-   60 ISTART=1
+   70 ISTART=1
 C-----INITIALIZE TOTAL NUMBER OF POINTS IN SECTION AND NUMBER OF POINTS
 C-----LEFT TO READ.
       N2IN=N2
@@ -1523,7 +1574,7 @@ C-----TOTAL, ELASTIC, FISSION OR CAPTURE INITIAL INDICES.
       UNRES2=10000000
       IL=0
       IH=0
-      IF(UREACT.LE.0) GO TO 70
+      IF(UREACT.LE.0) GO TO 80
       IF(MTH.NE.1.AND.MTH.NE.2.AND.MTH.NE.18.AND.MTH.NE.19.AND.
      1 MTH.NE.102) UREACT=0
 C-----------------------------------------------------------------------
@@ -1532,15 +1583,15 @@ C     LOAD DATA.
 C
 C-----------------------------------------------------------------------
 C-----LOAD NEXT PAGE OF DATA AT ORIGINAL TEMPERATURE.
-   70 CALL FILLUP
+   80 CALL FILLUP
 C-----SHOULD DATA BE DOPPLER BROADENED....
-      IF(TOOHI.LE.0) GO TO 80
+      IF(TOOHI.LE.0) GO TO 90
 C-----NO. IF END OF SECTION BRANCH FOR FINAL THIN AND OUTPUT.
-      IF(MTEND.ne.0) go to 100
+      IF(MTEND.ne.0) go to 110
 C-----OTHERWISE THIN DATA AND LOAD NEXT PAGES.
       CALL THINIT
       HOT1=NP1P1
-      GO TO 70
+      GO TO 80
 C-----------------------------------------------------------------------
 C
 C     BROADEN AND THIN DATA.
@@ -1549,7 +1600,7 @@ C-----------------------------------------------------------------------
 C-----YES. INITIALIZE INDICES TO FIRST AND LAST POINTS TO USE IN DOPPLER
 C-----BROADENING INTEGRAL TO POINT TO FIRST AND LAST POINTS THAT ARE
 C-----LOADED IN CORE.
-   80 COLD1P=COLD1
+   90 COLD1P=COLD1
       COLD2P=COLD2
 C-----IF UNRESOLVED RESONANCE REGION DATA IS IN CORE TRUNCATE RANGE
 C-----OF INTEGRATION AT UNRESOLVED RESONANCE REGION ENERGY BOUNDARY.
@@ -1562,7 +1613,7 @@ C-----TO UPPER ENERGY LIMIT OF UNRESOLVED REGION.
 C-----BROADEN DATA.
       CALL BROADN
 C-----HAS THE LAST POINT BEEN BROADENED....
-      IF(MTEND.ne.0) go to 100
+      IF(MTEND.ne.0) go to 110
 C-----------------------------------------------------------------------
 C
 C     MORE POINTS TO BROADEN. SET UP DATA AND INDICES FOR NEXT PAGE
@@ -1571,28 +1622,29 @@ C
 C-----------------------------------------------------------------------
 C-----SHIFT PAGES TWO AND THREE OF COLD DATA FORWARD ONE PAGE IN CORE.
       KK=0
-      DO 90 K=NP1P1,COLD2
+      DO 100 K=NP1P1,COLD2
       KK=KK+1
       ECOLD(KK)=ECOLD(K)
       YCOLD(KK)=YCOLD(K)
       XCCOLD(KK)=XCCOLD(K)
-   90 DCOLD(KK)=DCOLD(K)
+      DCOLD(KK)=DCOLD(K)
+  100 CONTINUE
 C-----SET INDEX TO FIRST POINT TO DOPPLER BROADEN TO BEGINNING OF
 C-----SECOND PAGE.
       HOT1=NP1P1
 C-----IF ANY POINTS ARE WITHIN THE UNRESOLVED RESONANCE REGION SHIFT
 C-----INDICES TO UNRESOLVED RESONANCE REGION FORWARD ONE PAGE.
-      IF(UREACT.LE.0) GO TO 70
+      IF(UREACT.LE.0) GO TO 80
       UNRES1=UNRES1-NPAGE
       UNRES2=UNRES2-NPAGE
-      GO TO 70
+      GO TO 80
 C-----------------------------------------------------------------------
 C
 C     END OF SECTION. THIN REMAINDER OF SECTION AND OUTPUT SECTION
 C     (FROM CORE OR SCRATCH).
 C
 C-----------------------------------------------------------------------
-  100 MTEND=1
+  110 MTEND=1
       CALL THINIT
       CALL COPOUT
       RETURN
@@ -2030,6 +2082,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,
      1 HEATER,HIHEAT,UREVAL,UREACT,UNRES1,UNRES2,HEATM1,HEATM2,HOTEND
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/INDEX/COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,N2IN,
      1 N2TOT,N2SCR
       COMMON/PAGER/NPAGE,NPT2,NPT3,NP1P1,NP2P1
@@ -2039,9 +2092,9 @@ C=======================================================================
       COMMON/EXTEND/DTMAX,MESS
       COMMON/MAXTEMP/DEMAXC,DEMAXH,DEMAXLOW,DEMAXHI
       COMMON/RESOLV/EULOW,EUHIGH,UREVAL,UREACT,UNRES1,UNRES2,IL,IH
-      COMMON/OKERRC/ERXC3C,ERXC30,KERR3C,MAXERC,ENER3C(21),ER3C(21)
+      COMMON/OKERR3/ENER3C(21),ER3C(21),KERR3C,MAXERC
+      COMMON/ERRCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
-      COMMON/PARAMS/XCMIN
 C-----08/20/2013 - added high energy cutoff
       COMMON/HIGHESTE/EHIGHEST,EMILLION
       INCLUDE 'sigma1.h'
@@ -2095,7 +2148,7 @@ C-----INITIALIZE INDICES TO INTERIOR COLD POINTS IN ENERGY RANGE TO
 C-----USE FOR INTEGRATION.
       LOHEAT=COLD1P+1
       HIHEAT=COLD2P-1
-      DO 340 IHEAT=HOT1,HOT2
+      DO 300 IHEAT=HOT1,HOT2
       IHEATM=IHEAT-1
 C-----DEFINE COLD ENERGY AND CROSS SECTION IN SCALAR FORM.
       EIH=ECOLD(IHEAT)
@@ -2120,7 +2173,7 @@ C-----COPY POINTS WITHIN UNRESOLVED REGION.
       XCHOT(HOT3)=XCIH
 C-----IF OVER 2 PAGES OF BROADENED DATA THIN IT.
       IF(HOT3.GT.NPT2) CALL THINIT
-      GO TO 320
+      GO TO 280
 C-----UPPER LIMIT OF UNRESOLVED REGION REACHED. DEFINE RANGE OF
 C-----OF INTEGRATION FROM UPPER LIMIT OF UNRESOLVED RANGE UP TO LAST
 C-----POINT IN CORE.
@@ -2158,7 +2211,7 @@ C-----------------------------------------------------------------------
       IF(DSIGNT*DCOLD(IHEATM).GE.0.0d0) GO TO 70
       DSIGNT=-DSIGNT
 C-----ONLY USE POINT IF SAME ENERGY HAS NOT YET BEEN USED.
-      IF(EIHM1.le.EHOT(HOT3)) go to 330
+      IF(EIHM1.le.EHOT(HOT3)) go to 290
       go to 90
 C-----------------------------------------------------------------------
 C
@@ -2166,7 +2219,7 @@ C     ONLY USE POINT IF SAME ENERGY HAS NOT YET BEEN USED (BROADENING
 C     ELIMINATES ALL DISCONTINUITIES).
 C
 C-----------------------------------------------------------------------
-   70 IF(EHOT(HOT3).GE.EIH) GO TO 330
+   70 IF(EHOT(HOT3).GE.EIH) GO TO 290
 C
 C     USE ALL POINTS ABOVE 1 MEV.
 C
@@ -2206,7 +2259,7 @@ C
 C     DO NOT USE POINT AS NODE.
 C
 c-----------------------------------------------------------------------
-      GO TO 330
+      GO TO 290
 C-----------------------------------------------------------------------
 C
 C     DEFINE PARAMETERS AT ENERGY POINT TO BROADEN.
@@ -2263,9 +2316,11 @@ C-----SELECT DOPPLER BROADENING METHOD.
   150 CONTINUE
 C-----CHECK FOR BEGINNING OF ENERGY RANGE (ONLY BROADEN ONE POINT AND
 C-----THEN GO TO END OF LOOP TO SET UP FOR FIRST ENERGY INTERVAL).
-      IF(HOTEND.GT.0) GO TO 320
-C-----DO NOT INTERPOLATE ZERO LENGTH INTERVALS.
-  160 IF(EHOT(HOT3).LE.EHOT(HOT3M1)) GO TO 300
+      IF(HOTEND.GT.0) GO TO 280
+c
+C     DO NOT INTERPOLATE ZERO LENGTH INTERVALS.
+c
+  160 IF(EHOT(HOT3).LE.EHOT(HOT3M1)) GO TO 260
 C-----------------------------------------------------------------------
 C
 C     CHECK FOR CONVERGENCE.
@@ -2273,8 +2328,8 @@ C
 C-----------------------------------------------------------------------
 C-----DO NOT INTERPOLATE IF CROSS SECTIONS AT BOTH ENDS OF INTERVAL
 C-----ARE ABSOLUTELY LESS THAN MINIMUM CROSS SECTION OF INTEREST.
-      IF(DABS(XCHOT(HOT3)).LT.XCMIN.AND.DABS(XCHOT(HOT3M1)).LT.XCMIN)
-     1 GO TO 300
+      IF(DABS(XCHOT(HOT3)).LT.XCLOW.AND.DABS(XCHOT(HOT3M1)).LT.XCLOW)
+     1 GO TO 260
 C-----------------------------------------------------------------------
 C
 C     PERFORM CALCULATION AT MIDPOINT.
@@ -2283,9 +2338,11 @@ C-----------------------------------------------------------------------
 C-----DEFINE MID-POINT ENERGY AND SPEED-LIKE TERM.
       EMID=HALF*(EHOT(HOT3)+EHOT(HOT3M1))
 C-----ROUND.
-      CALL INCORE9(EMID)
-C-----CHECK FOR ZERO LENGTH INTERVALS.
-      IF(EMID.LE.EHOT(HOT3M1).OR.EMID.GE.EHOT(HOT3)) GO TO 300
+      CALL INCORE10(EMID)
+c
+C     DO NOT INTERPOLATE ZERO LENGTH INTERVALS.
+c
+      IF(EMID.LE.EHOT(HOT3M1).OR.EMID.GE.EHOT(HOT3)) GO TO 260
       ARG=ALPHA*EMID
       YMID=DSQRT(ARG)
 C-----DEFINE INDICES TO ENERGY INTERVAL OR POINT.
@@ -2322,11 +2379,20 @@ C-----------------------------------------------------------------------
 C-----DO NOT FURTHER SUB-DIVIDE ENERGY RANGES WITH NEGATIVE CROSS
 C-----SECTIONS (SUCH DATA HAS NO PHYSICAL MEANING AND ADDITIONAL
 C-----TIME SHOULD NOT BE SPEND ON IT).
-  230 IF(XCMID.LT.0.0d0) GO TO 290
+  230 IF(XCMID.LT.0.0d0) GO TO 250
+c-----Do not subdivide below low XC
+      IF(DABS(XCMID).le.XCLOW) GO TO 250
+C-----TO PREVENT INFINITE ITERATION TOWARD ZERO ONLY APPLY CHANGE TEST
+C-----IF CROSS SECTION AT BOTH ENDS OF INTERVAL ARE POSITIVE.
+      if(XCHOT(HOT3).gt.0.0d0.and.XCHOT(HOT3M1).gt.0.0d0) then
 C-----NO CONVERGENCE IF CROSS SECTION CHANGES BY MORE THAN 10 PER-CENT.
-C-----01/16/04 - REDUCED FROM 1.4 TO 1.1
+C-----2001/04/16 - REDUCED FROM 1.4 TO 1.1
       IF(XCHOT(HOT3M1).GT.1.1d0*XCHOT(HOT3).OR.
-     1 XCHOT(HOT3)    .GT.1.1d0*XCHOT(HOT3M1)) GO TO 280
+     1   XCHOT(HOT3)  .GT.1.1d0*XCHOT(HOT3M1)) GO TO 240
+      endif
+c
+c     Define linear approximation at midpoint
+c
 C-----DEFINE CROSS SECTION AT MID-POINT BY LINEAR INTERPOLATION.
       WT1   = (EHOT(HOT3)-EMID)/(EHOT(HOT3)-EHOT(HOT3M1))
       WT2   = 1.0d0 - WT1
@@ -2335,34 +2401,45 @@ C-----IF REQUESTED, DEFINE ENERGY DEPENDENT CONVERGENCE CRITERIA.
       IF(KERR3C.NE.0) CALL ERROKC(EMID)
 C-----------------------------------------------------------------------
 C
-C     USE MORE STRINGENT CONVERGENCE CRITERIA IF ITERATING TOWARD.....
+C     USE MORE STRINGENT CONVERGENCE CRITERIA IF ITERATING
+C     TOWARD MINIMUM OR MAXIMUM CROSS SECTION.
 C
 C-----------------------------------------------------------------------
-      IF(XCMID.eq.XCHOT(HOT3)) go to 250
-      IF(XCMID.gt.XCHOT(HOT3)) go to 240
-C-----MINIMUM.
-      IF(XCMID.lt.XCHOT(HOT3M1)) go to 260
-      go to 250
-C-----MAXIMUM.
-  240 IF(XCMID.gt.XCHOT(HOT3M1)) go to 260
-C-----STANDARD LINEAR INTERPOLATION.
-  250 IF(DABS(XCMID-XCLIN).LE.DABS(ERXC3C*XCMID)) GO TO 290
-      GO TO 270
-C-----MORE STRINGENT LINEAR INTERPOLATION TOWARD MINIMUM/MAXIMUM.
-  260 IF(DABS(XCMID-XCLIN).LE.DABS(ERXC30*XCMID)) GO TO 290
-C-----LOW CROSS SECTION CONVERGENCE TEST.
-  270 IF(DABS(XCMID).LT.XCMIN.AND.DABS(XCHOT(HOT3M1)).LT.XCMIN)
-     1 GO TO 290
-C-----NO CONVERGENCE. SAVE POINT AND HALF INTERVAL.
-  280 IF(ISAVE.LT.MAXSAVE) ISAVE=ISAVE+1
+c
+c     Low XC Test
+c
+      if(DABS(XCMID).le.XCLOW) go to 250
+c
+c     Above XCLOW - Approaching Max or Min
+c
+C-----MINIMUM...XCMID < XCHOT(HOT3) and XCHOT(HOT3M1)
+      IF(XCMID.lt.XCHOT(HOT3).and.XCMID.lt.XCHOT(HOT3M1)) then
+      IF(DABS(XCMID-XCLIN).LE.DABS(ERMINMAX*XCMID)) GO TO 250
+      go to 240
+      endif
+C-----MAXIMUM...XCMID > XCHOT(HOT3) and XCHOT(HOT3M1)
+      IF(XCMID.gt.XCHOT(HOT3).and.XCMID.gt.XCHOT(HOT3M1)) then
+      IF(DABS(XCMID-XCLIN).LE.DABS(ERMINMAX*XCMID)) GO TO 250
+      go to 240
+      endif
+c
+C     STANDARD LINEAR INTERPOLATION.
+c
+      IF(DABS(XCMID-XCLIN).LE.DABS(ERRXC3*XCMID)) GO TO 250
+c
+C     NO CONVERGENCE. SAVE POINT AND HALF INTERVAL.
+c
+  240 IF(ISAVE.LT.MAXSAVE) ISAVE=ISAVE+1
       ESAVE(ISAVE)=EHOT(HOT3)
       XCSAVE(ISAVE)=XCHOT(HOT3)
       EHOT(HOT3)=EMID
       XCHOT(HOT3)=XCMID
       GO TO 160
-C-----CONVERGENCE. IF THINNING WILL BE PERFORMED SAVE MIDPOINT AND
-C-----END POINT. IF NO THINNING ONLY SAVE END POINT.
-  290 IF(NOTHIN.GT.0) GO TO 300
+c
+C     CONVERGENCE. IF THINNING WILL BE PERFORMED SAVE MIDPOINT AND
+c     END POINT. IF NO THINNING ONLY SAVE END POINT.
+c
+  250 IF(NOTHIN.GT.0) GO TO 260
       EHOT(HOT3+1)=EHOT(HOT3)
       XCHOT(HOT3+1)=XCHOT(HOT3)
       EHOT(HOT3)=EMID
@@ -2370,10 +2447,15 @@ C-----END POINT. IF NO THINNING ONLY SAVE END POINT.
       HOT3M1=HOT3
       HOT3=HOT3+1
 C-----CONVERGENCE. IF OVER 2 PAGES OF BROADENED DATA THIN IT.
-  300 IF(HOT3.GT.NPT2) CALL THINIT
+  260 IF(HOT3.GT.NPT2) CALL THINIT
 C-----IF END OF INTERVAL PROCEED TO NEXT INTERVAL. OTHERWISE USE LAST
 C-----POINT GENERATED.
-      IF(ISAVE.LE.0) GO TO 310
+      IF(ISAVE.LE.0) GO TO 270
+c-----2020/12/26 - Only increasing energies
+      if(ESAVE(ISAVE).le.EHOT(HOT3)) then
+      ISAVE=ISAVE-1
+      GO TO 160
+      endif
       HOT3M1=HOT3
       HOT3=HOT3+1
       EHOT(HOT3)=ESAVE(ISAVE)
@@ -2382,7 +2464,7 @@ C-----POINT GENERATED.
       GO TO 160
 C-----END OF INTERVAL. SET UP FOR NEXT INTERVAL BY PLACING END OF LAST
 C-----INTERVAL AT BEGINNING OF NEXT INTERVAL.
-  310 NLOW=HEATM1
+  270 NLOW=HEATM1
       ENEXT=DEMAXH*EHOT(HOT3)
 C-----01/16/04 - DEFINE SPACING FOR TEMPERATURE DEPENDENT TEST.
       ENEXT2 = DSQRT(ALPHA*EHOT(HOT3)) + ATOP
@@ -2401,7 +2483,7 @@ C-----CONTINUE IN LOOP IF PRECEDING (NOT CURRENT) POINT WAS USED OR
 C-----IF STILL ITERATING IN ENERGY RANGE DUE TO ENERGY POINT SPACING.
       IF(NHIGH.NE.IHEAT) GO TO 70
 C-----DEFINE BEGINNING OF NEXT TABULATED ENERGY INTERVAL.
-  320 HOTEND=0
+  280 HOTEND=0
       NLOW=IHEAT
       SIGY=XCIH
       ENEXT=DEMAXH*EHOT(HOT3)
@@ -2416,9 +2498,9 @@ C-----------------------------------------------------------------------
       IF(EHOT(HOT3).LT.ETHERMAL.AND.
      1   ENEXT     .GT.ETHERMAL) ENEXT=ETHERMAL
 C-----SAVE LAST COLD ENERGY AND CROSS SECTION.
-  330 EIHM1=EIH
+  290 EIHM1=EIH
       XCIHM1=XCIH
-  340 CONTINUE
+  300 CONTINUE
       RETURN
       END
       SUBROUTINE BROADL(Y,SIGY,XCY,HEATM1,HEATM2)
@@ -2525,7 +2607,8 @@ C-----TEST FOR END OF RANGE OF INTEGRATION.
       IF(BMY.GE.ATOP) GO TO 70
 C-----SAVE VALUES FROM LAST INTEGRAL.
       F2A=F2B
-   60 SIGA=SIGB
+      SIGA=SIGB
+   60 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     INTEGRATE OVER ALL ENERGY INTERVALS BELOW CURRENT ENERGY POINT.
@@ -2574,7 +2657,8 @@ C-----TEST FOR END OF RANGE OF INTEGRATION.
       IF(YMA.GE.ATOP) GO TO 130
 C-----SAVE VALUES FROM LAST INTEGRAL.
       F2B=F2A
-  110 SIGB=SIGA
+      SIGB=SIGA
+  110 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CROSS SECTION EXTENSION AS 1/V BELOW TABULATED ENERGY RANGE.
@@ -2693,7 +2777,8 @@ C-----SAVE VALUES FROM LAST INTERGAL.
       SIGA=XCCOLD(HEATER+1)
       F2A=F2B
       YYMAA=(Y-A)*(Y+A)
-   20 F4A=(YYA*YYMAA+YYB)*ERFCBM+OVPI*(BPY*(BB1P5+YYMAA)+Y)*EXPBM
+      F4A=(YYA*YYMAA+YYB)*ERFCBM+OVPI*(BPY*(BB1P5+YYMAA)+Y)*EXPBM
+   20 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     INTEGRATE OVER ALL ENERGY INTERVALS BELOW CURRENT ENERGY POINT.
@@ -2736,7 +2821,8 @@ C-----SAVE VALUES FROM LAST INTEGRAL.
       SIGB=XCCOLD(HEATER)
       F2B=F2A
       YYMBB=(Y-B)*(Y+B)
-   50 F4B=(YYA*YYMBB+YYB)*ERFCAM-OVPI*(YPA*(AA1P5+YYMBB)+Y)*EXPAM
+      F4B=(YYA*YYMBB+YYB)*ERFCAM-OVPI*(YPA*(AA1P5+YYMBB)+Y)*EXPAM
+   50 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     EXTEND CROSS SECTION AS 1/V BELOW TABULATED ENERGY RANGE
@@ -2851,7 +2937,8 @@ C-----SAVE VALUES FROM LAST INTERGAL.
       A=B
       SIGA=XCCOLD(HEATER+1)
       ERFCAM=ERFCBM
-   20 F4A=((Y-A)*(Y+A)+TWOP5)*ERFCBM+F2B
+      F4A=((Y-A)*(Y+A)+TWOP5)*ERFCBM+F2B
+   20 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     INTEGRATE OVER ALL ENERGY INTERVALS BELOW CURRENT ENERGY POINT.
@@ -2890,7 +2977,8 @@ C-----SAVE VALUES FROM LAST INTEGRAL.
       B=A
       SIGB=XCCOLD(HEATER)
       ERFCBM=ERFCAM
-   50 F4B=((Y-B)*(Y+B)+TWOP5)*ERFCAM-F2A
+      F4B=((Y-B)*(Y+B)+TWOP5)*ERFCAM-F2A
+   50 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CONTINUE CROSS SECTION AT 1/V BELOW TABULATED ENERGY RANGE.
@@ -2941,7 +3029,8 @@ C=======================================================================
       COMMON/INDEX/COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,N2IN,
      1 N2TOT,N2SCR
       COMMON/PAGER/NPAGE,NPT2,NPT3,NP1P1,NP2P1
-      COMMON/OKERRT/ERXC3T,KERR3T,MAXERT,ENER3T(21),ER3T(21)
+      COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
+      COMMON/ERRCOT/ERXC3T
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
       COMMON/IWATCH/MONITR,MAKEPLUS,MYUNRES
       COMMON/RESOLV/EULOW,EUHIGH,UREVAL,UREACT,UNRES1,UNRES2,IL,IH
@@ -3148,7 +3237,8 @@ C-----MOVE REMAINING POINTS FORWARD IN CORE.
       DO 210 J=NP1P1,ITHIN1
       K=K+1
       EHOT(K)=EHOT(J)
-  210 XCHOT(K)=XCHOT(J)
+      XCHOT(K)=XCHOT(J)
+  210 CONTINUE
 C-----DEFINE INDEX TO LAST THINNED POINT.
       ITHIN1=K
       HOT3=K
@@ -3255,9 +3345,10 @@ C=======================================================================
       COMMON/POINT1/EIN1,EUSE1
       COMMON/FIELDC/FIELD6(11,6)
       COMMON/IWATCH/MONITR,MAKEPLUS,MYUNRES
+      COMMON/LISOCOM/LISO
       INCLUDE 'sigma1.h'
 c----- 2012 - deleted E3UT(3), XC3OUT(3)
-      DIMENSION MESSAG(3,3),NBTO(1),INTO(1),ZABCD(10)
+      DIMENSION MESSAG(3,3),NBTO(1),INTO(1),ZABCD(12)
 C-----DEFINE CROSS SECTION EXTENSION MESSAGE.
       DATA MESSAG/'    ','    ','    ',
      1            'Exte','nsio','n   ',
@@ -3343,7 +3434,8 @@ C     OUTPUT SECTION REPORT AND INCREMENT POINT COUNTS FOR MATERIAL.
 C     PRINT WARNING IF OUTPUT CONTAINS ANY NEGATIVE CROSS SECTIONS.
 C
 C-----------------------------------------------------------------------
-      CALL ZAHOL(IZA,ZABCD)
+c-----Added Target Isomer State
+      CALL ZAHOLM(IZA,LISO,ZABCD)
       CALL OUT9(TEMP3,FIELD6(1,1))
       CALL OUT9(Q    ,FIELD6(1,2))
       WRITE(OUTP,60) PROHOL,ZABCD,MATH,MTH,FMTHOL,
@@ -3369,7 +3461,7 @@ C-----PRINT WARNING IF CROSS SECTION IS NOT POSITIVE AT ANY ENERGY.
       IF(IMPLUS.LE.0) WRITE(OUTP,80)
       IF(IMPLUS.LE.0) WRITE(*   ,80)
       RETURN
-   60 FORMAT(1X,A4,10A1,I5,I4,2X,A2,2X,2(1X,11A1),2I9,1X,2A4,A1)
+   60 FORMAT(1X,A4,12A1,I5,I4,2X,A2,2X,2(1X,11A1),2I9,1X,2A4,A1)
    70 FORMAT(19X,'WARNING - Above Cross Section Negative at',I9,
      1 ' Energies')
    80 FORMAT(19X,'WARNING - Above Cross Section NOT',
@@ -3390,12 +3482,13 @@ C=======================================================================
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MATMAX(101)
-      COMMON/OKERRT/ERXC3T,KERR3T,MAXERT,ENER3T(21),ER3T(21)
-      COMMON/OKERRC/ERXC3C,ERXC30,KERR3C,MAXERC,ENER3C(21),ER3C(21)
+      COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
+      COMMON/OKERR3/ENER3C(21),ER3C(21),KERR3C,MAXERC
+      COMMON/ERRCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
+      COMMON/ERRCOT/ERXC3T
       COMMON/HOTS/ALPHA,HOTSY1,HOTSY2,TEMPK,TEMPEF,N2TAPI,N2TAPO
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
       COMMON/IWATCH/MONITR,MAKEPLUS,MYUNRES
-      COMMON/PARAMS/XCMIN
       COMMON/NAMEX/NAMEIN,NAMEOUT
       COMMON/FIELDC/FIELD6(11,6)
       DIMENSION MESS1(2),MESS2(2)
@@ -3403,7 +3496,8 @@ C=======================================================================
       DATA MESS2/' Off','  On'/
 C-----DEFINE DEFAULT OPTION FOR MINIMUM CROSS SECTION.
 c-----2019/6/30 - Changed to 1.0d-30 from 1.0d-10
-      DATA XCMIN1/1.0d-30/
+c-----2020/12/26 - Changed from 1.0d-30 for RML Charged Particles
+      DATA XCINP/1.0d-30/
 C-----------------------------------------------------------------------
 C
 C     READ AND CHECK FIRST LINE OF INPUT PARAMETERS.
@@ -3415,7 +3509,9 @@ c----- 2017 - Changed all floating point to character
      1 ((FIELD6(j,i),j=1,11),i=1,2),MAKEPLUS,MYUNRES
    10 FORMAT(2I11,22A1,2I11)
       CALL IN9(TEMPK,FIELD6(1,1))
-      CALL IN9(XCMIN,FIELD6(1,2))
+      CALL IN9(XCLOW,FIELD6(1,2))
+c-----2021/3/23 - No longer an input option
+      XCLOW = XCINP
 c----- 2017 - Changed all floating point to character
       GO TO 30
 C-----DEFINE DEFAULT VALUES
@@ -3424,7 +3520,8 @@ C-----DEFINE DEFAULT VALUES
       MONITR   = 0
 C-----09/01/2013 - Changed from 300 to 293.6 K
       TEMPK    = 293.6d+0
-      XCMIN    = 0.0d0
+c-----2020/12/26 - Changed from 0
+      XCLOW    = XCINP
       MAKEPLUS = 1
       MYUNRES  = 0
 c-----RETRIEVAL MODE
@@ -3433,38 +3530,29 @@ c-----MONITOR MODE
       IF(MONITR.NE.0) MONITR=1
 C-----TEMPERATURE
       CALL OUT9(TEMPK,FIELD6(1,1))
-      IF(XCMIN.LE.0.0d0) GO TO 40
-C-----MINIMUM CROSS SECTION
-      CALL OUT9(XCMIN,FIELD6(1,2))
-      WRITE(OUTP,280) MESS1(MODGET+1),MESS2(MONITR+1),
+C-----MINIMUM CROSS SECTION (no longer an input option)
+      CALL OUT9(XCLOW,FIELD6(1,2))
+      WRITE(OUTP,260) MESS1(MODGET+1),MESS2(MONITR+1),
      1 ((FIELD6(M,KK),M=1,11),KK=1,2)
-      WRITE(*   ,280) MESS1(MODGET+1),MESS2(MONITR+1),
-     1 ((FIELD6(M,KK),M=1,11),KK=1,2)
-      GO TO 50
-C-----USE DEFAULT OPTION FOR MINIMUM CROSS SECTION.
-   40 XCMIN=XCMIN1
-      CALL OUT9(XCMIN,FIELD6(1,2))
-      WRITE(OUTP,290) MESS1(MODGET+1),MESS2(MONITR+1),
-     1 ((FIELD6(M,KK),M=1,11),KK=1,2)
-      WRITE(*   ,290) MESS1(MODGET+1),MESS2(MONITR+1),
+      WRITE(*   ,260) MESS1(MODGET+1),MESS2(MONITR+1),
      1 ((FIELD6(M,KK),M=1,11),KK=1,2)
 C-----NEGATIVE CROSS SECTION TREATMENT
-   50 IF(MAKEPLUS.NE.0) MAKEPLUS=1
+      IF(MAKEPLUS.NE.0) MAKEPLUS=1
       IF(MAKEPLUS.EQ.0) THEN
-      WRITE(OUTP,300)
-      WRITE(*   ,300)
+      WRITE(OUTP,270)
+      WRITE(*   ,270)
       ELSE
-      WRITE(OUTP,310)
-      WRITE(*   ,310)
+      WRITE(OUTP,280)
+      WRITE(*   ,280)
       ENDIF
 C-----UNRESOLVED TREATMENT
       IF(MYUNRES.NE.0) MYUNRES = 1
       IF(MYUNRES.EQ.0) THEN
-      WRITE(OUTP,320)
-      WRITE(*   ,320)
+      WRITE(OUTP,290)
+      WRITE(*   ,290)
       ELSE
-      WRITE(OUTP,330)
-      WRITE(*   ,330)
+      WRITE(OUTP,300)
+      WRITE(*   ,300)
       ENDIF
 C-----------------------------------------------------------------------
 C
@@ -3472,22 +3560,22 @@ C     READ FILENAMES - IF BLANK USE STANDARD FILENAMES
 C
 C-----------------------------------------------------------------------
 C-----INPUT DATA.
-      IF(ISTAT1.EQ.1) GO TO 70
-      READ(INP,60,END=70,ERR=70) NAMEIN
-   60 FORMAT(A72)
+      IF(ISTAT1.EQ.1) GO TO 50
+      READ(INP,40,END=50,ERR=50) NAMEIN
+   40 FORMAT(A72)
       IF(NAMEIN.EQ.' ') NAMEIN = 'ENDFB.IN'
 C-----OUTPUT DATA.
-      READ(INP,60,END=80,ERR=80) NAMEOUT
+      READ(INP,40,END=60,ERR=60) NAMEOUT
       IF(NAMEOUT.EQ.' ') NAMEOUT = 'ENDFB.OUT'
-      GO TO 90
+      GO TO 70
 C-----USE DEFAULT NAMES
-   70 NAMEIN  = 'ENDFB.IN'
-   80 NAMEOUT = 'ENDFB.OUT'
+   50 NAMEIN  = 'ENDFB.IN'
+   60 NAMEOUT = 'ENDFB.OUT'
       ISTAT1 = 1
 C-----PRINT FINAL FILENAME
-   90 WRITE(OUTP,100) NAMEIN,NAMEOUT
-      WRITE(*   ,100) NAMEIN,NAMEOUT
-  100 FORMAT(1X,79('-')/
+   70 WRITE(OUTP,80) NAMEIN,NAMEOUT
+      WRITE(*   ,80) NAMEIN,NAMEOUT
+   80 FORMAT(1X,79('-')/
      1 ' ENDF/B Input and Output Data Filenames'/1X,79('-')/
      2 1X,A72/1X,A72)
 C-----------------------------------------------------------------------
@@ -3502,9 +3590,9 @@ C     TERMINATE IF ERROR OPENING FILE
 C
 C-----------------------------------------------------------------------
       IF(ISTAT2.EQ.1) THEN
-      WRITE(OUTP,110) NAMEIN
-      WRITE(   *,110) NAMEIN
-  110 FORMAT(//' ERROR - Opening ENDF/B formatted file'/1X,A72//)
+      WRITE(OUTP,90) NAMEIN
+      WRITE(   *,90) NAMEIN
+   90 FORMAT(//' ERROR - Opening ENDF/B formatted file'/1X,A72//)
       CALL ENDERROR
       ENDIF
 C-----------------------------------------------------------------------
@@ -3514,36 +3602,36 @@ C     THAN MINIMUM SET IT EQUAL TO MINIMUM. IF FIRST CARD IS BLANK
 C     RETRIEVE ALL DATA.
 C
 C-----------------------------------------------------------------------
-      IF(MODGET.EQ.0) WRITE(OUTP,340)
-      IF(MODGET.EQ.1) WRITE(OUTP,350)
-      IF(MODGET.EQ.0) WRITE(*   ,340)
-      IF(MODGET.EQ.1) WRITE(*   ,350)
-      IF(ISTAT1.EQ.1) GO TO 140
-      READ(INP,120,END=130,ERR=130) MATMIN(1),MATMAX(1)
-  120 FORMAT(2I11)
-      IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 150
-      GO TO 140
-  130 ISTAT1    = 1
-  140 MATMAX(1) = 9999
+      IF(MODGET.EQ.0) WRITE(OUTP,310)
+      IF(MODGET.EQ.1) WRITE(OUTP,320)
+      IF(MODGET.EQ.0) WRITE(*   ,310)
+      IF(MODGET.EQ.1) WRITE(*   ,320)
+      IF(ISTAT1.EQ.1) GO TO 120
+      READ(INP,100,END=110,ERR=110) MATMIN(1),MATMAX(1)
+  100 FORMAT(2I11)
+      IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 130
+      GO TO 120
+  110 ISTAT1    = 1
+  120 MATMAX(1) = 9999
       MODGET=0
       NMATZA=2
-      WRITE(OUTP,370) MATMIN(1),MATMAX(1)
-      WRITE(*   ,370) MATMIN(1),MATMAX(1)
-      GO TO 180
+      WRITE(OUTP,340) MATMIN(1),MATMAX(1)
+      WRITE(*   ,340) MATMIN(1),MATMAX(1)
+      GO TO 160
 c-----Check input and define defaults.
-  150 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
-      WRITE(OUTP,360) MATMIN(1),MATMAX(1)
-      WRITE(*   ,360) MATMIN(1),MATMAX(1)
-      DO 160 NMATZA=2,101
-      READ(INP,120,END=170,ERR=170) MATMIN(NMATZA),MATMAX(NMATZA)
+  130 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
+      WRITE(OUTP,330) MATMIN(1),MATMAX(1)
+      WRITE(*   ,330) MATMIN(1),MATMAX(1)
+      DO 140 NMATZA=2,101
+      READ(INP,100,END=150,ERR=150) MATMIN(NMATZA),MATMAX(NMATZA)
 c-----Check input and define defaults.
-      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 180
+      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 160
       IF(MATMAX(NMATZA).LT.MATMIN(NMATZA)) MATMAX(NMATZA)=MATMIN(NMATZA)
-      WRITE(OUTP,360) MATMIN(NMATZA),MATMAX(NMATZA)
-      WRITE(*   ,360) MATMIN(NMATZA),MATMAX(NMATZA)
-  160 CONTINUE
-      WRITE(OUTP,380)
-      WRITE(*   ,380)
+      WRITE(OUTP,330) MATMIN(NMATZA),MATMAX(NMATZA)
+      WRITE(*   ,330) MATMIN(NMATZA),MATMAX(NMATZA)
+  140 CONTINUE
+      WRITE(OUTP,350)
+      WRITE(*   ,350)
       CALL ENDERROR
 C-----------------------------------------------------------------------
 C
@@ -3554,22 +3642,22 @@ C     BLANK CARD. IF FIRST CARD IS BLANK, TERMINATE ERROR LAW AND
 C     DEFINE ALLOWABLE ERROR TO BE 0.0 (I.E., NO THINNING).
 C
 C-----------------------------------------------------------------------
-  170 ISTAT1 = 1
-  180 NMATZA=NMATZA-1
-      IF(ISTAT1.EQ.1) GO TO 200
+  150 ISTAT1 = 1
+  160 NMATZA=NMATZA-1
+      IF(ISTAT1.EQ.1) GO TO 180
 c----- 2017 - Changed all floating point to character
-      READ(INP,190,END=200,ERR=200) ((FIELD6(j,i),j=1,11),i=1,2)
-  190 FORMAT(22A1)
+      READ(INP,170,END=180,ERR=180) ((FIELD6(j,i),j=1,11),i=1,2)
+  170 FORMAT(22A1)
       CALL IN9(ENER3T(1),FIELD6(1,1))
       CALL IN9(ER3T  (1),FIELD6(1,2))
 c----- 2017 - Changed all floating point to character
-      GO TO 210
-  200 ISTAT1    = 1
+      GO TO 190
+  180 ISTAT1    = 1
       ENER3T(1) = 0.0d0
       ER3T(1)   = 0.0d0
-  210 IF(ENER3T(1).LE.0.0d0) ENER3T(1)=0.0d0
+  190 IF(ENER3T(1).LE.0.0d0) ENER3T(1)=0.0d0
       IF(ER3T  (1).LE.0.0d0) ER3T  (1)=0.0d0
-      IF(ENER3T(1).GT.0.0d0.OR.ER3T(1).GT.0.0d0) GO TO 220
+      IF(ENER3T(1).GT.0.0d0.OR.ER3T(1).GT.0.0d0) GO TO 200
 C-----USE DEFAULT VALUES.
       MAXERT=2
       ENER3T(1)=0.0d0
@@ -3578,49 +3666,51 @@ C-----USE DEFAULT VALUES.
       ERRMAX=0.0d0
       CALL OUT9(ENER3T(1),FIELD6(1,1))
       CALL OUT9(ER3T(1)  ,FIELD6(1,2))
-      WRITE(OUTP,420) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,420) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      GO TO 250
+      WRITE(OUTP,390) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,390) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      GO TO 230
 C-----USE VALUES AS READ.
-  220 IF(ER3T(1).LE.0.0d0) ER3T(1)=0.001d0 ! 2018/2/8 - CHANGED DEFAULT
+  200 IF(ER3T(1).LE.0.0d0) ER3T(1)=0.001d0 ! 2018/2/8 - CHANGED DEFAULT
       PERCNT=100.0d0*ER3T(1)
       ERRMAX=ER3T(1)
       CALL OUT9(ENER3T(1),FIELD6(1,1))
       CALL OUT9(ER3T(1)  ,FIELD6(1,2))
-      WRITE(OUTP,410) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,410) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      DO 230 MAXERT=2,21
+      WRITE(OUTP,380) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,380) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      DO 210 MAXERT=2,21
 c----- 2017 - Changed all floating point to character
-      READ(INP,190,END=200,ERR=200) ((FIELD6(j,i),j=1,11),i=1,2)
+      READ(INP,170,END=180,ERR=180) ((FIELD6(j,i),j=1,11),i=1,2)
       CALL IN9(ENER3T(MAXERT),FIELD6(1,1))
       CALL IN9(ER3T  (MAXERT),FIELD6(1,2))
 c----- 2017 - Changed all floating point to character
-      IF(ENER3T(MAXERT).LE.0.0d0.AND.ER3T(MAXERT).LE.0.0d0) GO TO 250
+      IF(ENER3T(MAXERT).LE.0.0d0.AND.ER3T(MAXERT).LE.0.0d0) GO TO 230
       IF(ER3T(MAXERT).LE.0.0d0) ER3T(MAXERT)=0.001d0
       PERCNT=100.0d0*ER3T(MAXERT)
       IF(ER3T(MAXERT).GT.ERRMAX) ERRMAX=ER3T(MAXERT)
       CALL OUT9(ENER3T(MAXERT),FIELD6(1,1))
       CALL OUT9(ER3T(MAXERT)  ,FIELD6(1,2))
-      WRITE(OUTP,390) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,390) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
-      IF(ENER3T(MAXERT).LT.ENER3T(MAXERT-1)) GO TO 270
-  230 CONTINUE
-      WRITE(OUTP,400)
-      WRITE(*   ,400)
-  240 CALL ENDERROR
-  250 MAXERT=MAXERT-1
+      WRITE(OUTP,360) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,360) ((FIELD6(M,I),M=1,11),I=1,2),PERCNT
+      IF(ENER3T(MAXERT).LT.ENER3T(MAXERT-1)) GO TO 250
+  210 CONTINUE
+      WRITE(OUTP,370)
+      WRITE(*   ,370)
+  220 CALL ENDERROR
+  230 MAXERT=MAXERT-1
       KERR3T=0
       IF(MAXERT.GT.1) KERR3T=1
 C-----SET C = T LAW
       MAXERC=MAXERT
       KERR3C=KERR3T
-      DO 260 I=1,MAXERT
+      DO 240 I=1,MAXERT
       ENER3C(I)=ENER3T(I)
-  260 ER3C  (I)=ER3T  (I)
+      ER3C  (I)=ER3T  (I)
+  240 CONTINUE
 C-----INITIALIZE TO FIRST VALUES
-      ERXC3T=ER3T(1)
-      ERXC3C=ER3C(1)
-      ERXC30=0.1d0*ERXC3C
+      ERXC3T = ER3T(MAXERT)
+      ERRXC3 = ER3C(MAXERT)
+c-----2020/12/31 - ALL uncertainty parameters
+      CALL SETERROR(3)   ! 3 = SIGMA1
 C-----------------------------------------------------------------------
 C
 C     DATA WILL ALWAYS BE THINNED
@@ -3636,39 +3726,36 @@ C     NOTHIN=1
 C***** THINNING ON/OFF
 c-----------------------------------------------------------------------
       RETURN
-  270 WRITE(OUTP,430)
-      WRITE(*   ,430)
-      GO TO 240
-  280 FORMAT(' Retrieval Criteria-----------',7X,A4/
+  250 WRITE(OUTP,400)
+      WRITE(*   ,400)
+      GO TO 220
+  260 FORMAT(' Retrieval Criteria-----------',7X,A4/
      1 ' Monitor Mode-----------------',7X,A4/
      2 ' Temperature------------------',11A1,' KELVIN'/
-     3 ' Mimimum Cross Section--------',11A1)
-  290 FORMAT(' Retrieval Criteria-----------',7X,A4/
-     1 ' Monitor Mode-----------------',7X,A4/
-     2 ' Temperature------------------',11A1,' Kelvin'/
-     3 ' Minimum Cross Section--------',11A1,' (Default Option)')
-  300 FORMAT(' Negative Cross Section-------',
+     3 ' Mimimum Cross Section--------',11A1,
+     4 ' (No Longer an Input Option)')
+  270 FORMAT(' Negative Cross Section-------',
      1 ' No Change (Allow Negative Outout)')
-  310 FORMAT(' Negative Cross Section-------',
+  280 FORMAT(' Negative Cross Section-------',
      1 ' Make = 0 (No Negative Outout)')
-  320 FORMAT(' Unresolved Resonances Region-',' Copy (No Broadening)')
-  330 FORMAT(' Unresolved Resonances Region-',' Ignore (Broaden)')
-  340 FORMAT(1X,79('-')/' Requested MAT Ranges'/1X,79('-')/
+  290 FORMAT(' Unresolved Resonances Region-',' Copy (No Broadening)')
+  300 FORMAT(' Unresolved Resonances Region-',' Ignore (Broaden)')
+  310 FORMAT(1X,79('-')/' Requested MAT Ranges'/1X,79('-')/
      1 5X,'Mimimum',4X,'Maximum'/1X,79('-'))
-  350 FORMAT(1X,79('-')/' Requested ZA Ranges'/1X,79('-')/
+  320 FORMAT(1X,79('-')/' Requested ZA Ranges'/1X,79('-')/
      1 5X,'Minimum',4X,'Maximum'/1X,79('-'))
-  360 FORMAT(1X,2I11)
-  370 FORMAT(1X,2I11,' (Default Option)')
-  380 FORMAT(1X,79('-')/' Over 100 Ranges----Execution Terminated')
-  390 FORMAT(1X,11A1,1X,11A1,F11.4)
-  400 FORMAT(1X,79('-')/' Over 20 Ranges----Execution Terminated')
-  410 FORMAT(1X,79('-')/' Allowable Uncertainty'/1X,79('-')/
+  330 FORMAT(1X,2I11)
+  340 FORMAT(1X,2I11,' (Default Option)')
+  350 FORMAT(1X,79('-')/' Over 100 Ranges----Execution Terminated')
+  360 FORMAT(1X,11A1,1X,11A1,F11.4)
+  370 FORMAT(1X,79('-')/' Over 20 Ranges----Execution Terminated')
+  380 FORMAT(1X,79('-')/' Allowable Uncertainty'/1X,79('-')/
      1 6X,'Energy',1X,'Uncertainty',3X,'per-cent'/1X,79('-')/
      2 1X,11A1,1X,11A1,F11.4)
-  420 FORMAT(1X,79('-')/' Allowable Uncertainty'/1X,79('-')/
+  390 FORMAT(1X,79('-')/' Allowable Uncertainty'/1X,79('-')/
      1 6X,'Energy',1X,'Uncertainty',3X,'per-cent'/1X,79('-')/
      2 1X,11A1,1X,11A1,F11.4,' (Default Option)')
-  430 FORMAT(' Energies MUST be in Ascending Order----',
+  400 FORMAT(' Energies MUST be in Ascending Order----',
      1 'Execution Terminated')
       END
       REAL*8 FUNCTION ESPACE(ERROR)
@@ -3751,10 +3838,10 @@ C-----END OF RUN. RETURN NEGATIVE MATH AS INDICATOR.
       MFH=0
       MTH=0
 C-----THIS MATERIAL REQUESTED. INITIALIZE OUTPUT SEQUENCE NUMBER,
-C-----ENDF/B FORMAT VERSION TO BLANK, ENDF/B FORMAT TO VERSION V AND
+C-----ENDF/B FORMAT VERSION TO BLANK, ENDF/B FORMAT TO VERSION 5 AND 6
 C-----INITIAL TEMPERATURE TO ZERO.
    70 NOSEQ=1
-      FMTHOL='VI  '
+      FMTHOL='6   '
       IVERSE=6
       TEMP3=0.0d0
       RETURN
@@ -3769,7 +3856,8 @@ C     VS. ERROR).
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/OKERRT/ERXC3T,KERR3T,MAXERT,ENER3T(21),ER3T(21)
+      COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
+      COMMON/ERRCOT/ERXC3T
 C-----INITIALIZE INDEX TO INTERPOLATION TABLE.
       DATA MINER3/2/
 C-----ENERGY DEPENDENT. WITHIN ENERGY RANGE OF ERROR LAW USE LINEAR
@@ -3824,7 +3912,8 @@ C     VS. ERROR).
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/OKERRC/ERXC3C,ERXC30,KERR3C,MAXERC,ENER3C(21),ER3C(21)
+      COMMON/OKERR3/ENER3C(21),ER3C(21),KERR3C,MAXERC
+      COMMON/ERRCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
 C-----INITIALIZE INDEX TO INTERPOLATION TABLE.
       DATA MINERD/2/
 C-----ENERGY DEPENDENT. WITHIN ENERGY RANGE OF ERROR LAW USE LINEAR
@@ -3848,30 +3937,25 @@ C-----EXTEND TO HIGHER ENERGIES AS CONSTANT.
 C-----INTERPOLATE BETWEEN ENERGIES.
    40 NM1=NOWERD-1
    50 MINERD=NOWERD
-      ERXC3C=((ENER3C(NOWERD)-E)*ER3C(NM1)+(E-ENER3C(NM1))*ER3C(NOWERD))
+      ERRXC3=((ENER3C(NOWERD)-E)*ER3C(NM1)+(E-ENER3C(NM1))*ER3C(NOWERD))
      1 /(ENER3C(NOWERD)-ENER3C(NM1))
-      ERXC30=0.1d0*ERXC3C
       RETURN
 C-----EXACT ENERGY MATCH.
    60 MINERD=NM1
       IF(MINERD.LE.1) MINERD=2
-      ERXC3C=ER3C(NM1)
-      ERXC30=0.1d0*ERXC3C
+      ERRXC3=ER3C(NM1)
       RETURN
 C-----EXACT ENERGY MATCH.
    70 MINERD=NOWERD
-      ERXC3C=ER3C(NOWERD)
-      ERXC30=0.1d0*ERXC3C
+      ERRXC3=ER3C(NOWERD)
       RETURN
 C-----EXTEND TO LOWER ENERGIES AS CONSTANT.
    80 MINERD=2
-      ERXC3C=ER3C(1)
-      ERXC30=0.1d0*ERXC3C
+      ERRXC3=ER3C(1)
       RETURN
 C-----EXTEND TO HIGHER ENERGIES AS CONSTANT.
    90 MINERD=MAXERC
-      ERXC3C=ER3C(MAXERC)
-      ERXC30=0.1d0*ERXC3C
+      ERRXC3=ER3C(MAXERC)
       RETURN
       END
       SUBROUTINE FILEIO
@@ -4198,7 +4282,8 @@ C=======================================================================
       X = IX
       X = 1.0D-03*X
       ERFCX  (IX) = X
-   10 ERFCTAB(IX) = TERFC(X)*DEXP(X*X)
+      ERFCTAB(IX) = TERFC(X)*DEXP(X*X)
+   10 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     FIRST DEFINE COMPLICATED CUBIC SPLINE COEFFICIENTS
@@ -4236,7 +4321,8 @@ c-----------------------------------------------------------------------
       ERFC1(IX) = -ERFCTAB(IX-1)/(6.0d0*DDD)
       ERFC2(IX) =  ERFCTAB(IX  )/(2.0d0*DDD)
       ERFC3(IX) = -ERFCTAB(IX+1)/(2.0d0*DDD)
-   20 ERFC4(IX) =  ERFCTAB(IX+2)/(6.0d0*DDD)
+      ERFC4(IX) =  ERFCTAB(IX+2)/(6.0d0*DDD)
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     NOW CONVERT TO SIMPLE CUBIC SPLINE COEFFICIENTS
@@ -4259,6 +4345,7 @@ c-----------------------------------------------------------------------
      1                      ERFC2(IX2) -
      2                2.0d0*ERFC3(IX2) -
      3                      ERFC4(IX2))
-   30 F0(IX2) =2.0d0*D*D*D*ERFC2(IX2)
+      F0(IX2) =2.0d0*D*D*D*ERFC2(IX2)
+   30 CONTINUE
       RETURN
       END

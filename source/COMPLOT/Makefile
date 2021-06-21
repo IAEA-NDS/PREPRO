@@ -6,19 +6,25 @@
 # PREPRO is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
+os:=$(shell uname -s)
 
-ifeq ($(PREFIX),)
-	PREFIX := /usr/local
+# $(info $$os is [${os}])
+
+ifeq ($(os),Darwin)
+     CFLAGS = -I/opt/X11/include -w
+     LIBS   = -lXt -lX11
+     LIBDIR = -L/opt/X11/lib
+else
+     CFLAGS = -I/usr/X11/include -w
+     LIBS   = -lX11
+     LIBDIR = -L/usr/X11/lib
 endif
 
-FFLAGS = -O2 -std=legacy
-CFLAGS = -fPIC
-LIBS   = -lX11
-LIBDIR = -L/usr/X11/lib
-CC     = gcc -I/usr/X11/include
+FFLAGS = -O0 -w -static-libgfortran
+CC     = gcc
 FC     = gfortran
 
-FSUB1= complot.f endfio.f scratchb.f timer.f seconds.f screen.f
+FSUB1= complot.f endfio.f scratchb.f screen.f
 
 CSUBS= dash.c
 
@@ -32,13 +38,11 @@ all: complot comhard comhard1
 complot: $(OBJ)
 	$(FC) -o complot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
 
-comhard: complot.o endfio.o scratchb.o timer.o seconds.o saveps.o
-	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps.o
+comhard: complot.o endfio.o scratchb.o saveps.o
+	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o saveps.o
 
-comhard1: complot.o endfio.o scratchb.o timer.o seconds.o saveps1.o
-	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps1.o
+comhard1: complot.o endfio.o scratchb.o saveps1.o
+	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o saveps1.o
 
 .PHONY: install
 install: complot comhard comhard1
@@ -48,5 +52,6 @@ install: complot comhard comhard1
 .PHONY: clean
 clean:
 	rm -f complot comhard comhard1
-	rm -f complot.o dash.o endfio.o saveps.o \
-	    saveps1.o scratchb.o screen.o seconds.o timer.o
+	rm -f complot.o endfio.o scratchb.o screen.o \
+	      dash.o saveps.o saveps1.o 
+#

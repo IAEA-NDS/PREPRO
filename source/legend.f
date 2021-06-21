@@ -120,6 +120,8 @@ C                                  if not, print WARNING messages.
 C                                 *Corrected END Histogram linearized -
 C                                  Previously assumed Y = 0 and deleted
 C                                  Now output whatever the Y value.
+C     VERS. 2020-1 (Feb.  2020)   *Identical to 2019-1.
+C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -607,7 +609,8 @@ c-----------------------------------------------------------------------
       PCON1(L)=CON1/(CON2+ONE)
       PCON2(L)=-CON2/(CON2+ONE)
       CON1=CON1+TWO
-   10 CON2=CON2+ONE
+      CON2=CON2+ONE
+   10 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     READ ALL RUN PARAMETERS.
@@ -833,7 +836,7 @@ c-----Print final WARNING if data not tabulated to same Maximum Energy
 c-----End of run - Normal
       CALL ENDIT
       GO TO 220      ! CANNOT GET TO HERE.
-  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2019-1)'/
+  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2021-1)'/
      1 1X,78('-'))
   240 FORMAT(' Allowable Accuracy----------',11A1,
      2 ' (',F9.4,' per-cent)'/
@@ -941,7 +944,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LEGEND (VERSION 2019-1) ***********',
+     1 ' ***************** Program LEGEND (VERSION 2021-1) ***********',
      2 ' Linearized Angular Distributions from Tables or Coefficients ',
      3 ' Allowable Error of12345678901 per-cent and123456 Max. Points ',
      4 ' Tabulated Data...Copied                                      ',
@@ -978,7 +981,8 @@ C-----INCREASE COMMENT CARD COUNT AND COPY TO END OF HOLLERITH.
       N1=N1+6
       CALL CARDO(C1,C2,L1,L2,N1,N2)
       DO 20 N=1,N1IN
-   20 CALL COPY1
+      CALL COPY1
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ADD SIX COMMENT LINES.
@@ -1125,7 +1129,8 @@ c-----2019/1/3 - Additional Interpolation Law Tests
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       CALL CARDO(C1,C2,L1,L2,N1,N2)
       CALL LISTI(FL,N1)
-   90 CALL LISTO(FL,N1)
+      CALL LISTO(FL,N1)
+   90 CONTINUE
 C-----HIGH ENERGY TABULATED
       CALL CARDI(C1,C2,L1,L2,N1T,N2T)
       CALL CARDO(C1,C2,L1,L2,N1T,N2T)
@@ -1142,7 +1147,8 @@ c-----2019/1/3 - Additional Interpolation Law Tests
       CALL TERPO(NBT,INT,N1)
       ELAST = -1.0d0
       CALL POINTI(XMUIN,PTIN,N2)
-  100 CALL POINTO(XMUIN,PTIN,N2)
+      CALL POINTO(XMUIN,PTIN,N2)
+  100 CONTINUE
 C-----DEFINE NUMBER OF COMBINED INTERPOLATION RANGES AND ENERGIES
       N1COMBO = N1L + N1T
       N2COMBO = N2L + N2T
@@ -1181,7 +1187,8 @@ C-----COPY TRANSFORMATION MATRIX, IF PRESENT.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
       IF(LVT.NE.1) GO TO 150
       DO 140 L=1,N1,6
-  140 CALL COPY1
+      CALL COPY1
+  140 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     POSSIBLE LOOP, IF BOTH LEGENDRE AND TABULATED
@@ -1405,7 +1412,8 @@ C-----POINT (START OF INTERVAL HAS ALREADY BEEN STORED).
       XMUOUT(N2OUT)=XMUIN(NPT)
       PTOUT(N2OUT)=PTIN(NPT)
       XMUOUT(KM1)=XMUOUT(N2OUT)
-   40 PTOUT(KM1)=PTOUT(KM2)
+      PTOUT(KM1)=PTOUT(KM2)
+   40 CONTINUE
 c-----2019/6/30 - Keep last point of histogram.
       GO TO 180
 C-----FOR LINEAR-LINEAR INTERPOLATION JUST COPY POINTS TO OUTPUT ARRAY.
@@ -1574,13 +1582,15 @@ C-----IGNOR HIGHER ZERO COEFFICIENTS IN CALCULATIONS.
       LEGTOP=LEGUSE
       DO 10 L=1,LEGTOP
       IF(PTOUT(LEGUSE).ne.0.0D+0) go to 20
-   10 LEGUSE=LEGUSE-1
+      LEGUSE=LEGUSE-1
+   10 CONTINUE
    20 IF(LEGUSE.LE.0) LEGUSE=1
 C-----TRANSFER ALL COEFFICIENTS TO ARRAY WHICH WILL BE USED.
       DO 30 L=1,LEGUSE
       FL(L)=PTOUT(L)
       FLOLD(L)=FL(L)
-   30 NEWFL(L)=0
+      NEWFL(L)=0
+   30 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     KEEP COEFFICIENTS AT LAST 3 ENERGIES FOR ENERGY VARIATION TEST.
@@ -1595,14 +1605,16 @@ C-----MOVE FORWARD COEFFICIENTS FROM PRECEDING ENERGIES.
       EKEEP(LM1)=EKEEP(L)
       IF(LEGO.LE.0) GO TO 60
       DO 50 J=1,LEGO
-   50 FLKEEP(J,LM1)=FLKEEP(J,L)
+      FLKEEP(J,LM1)=FLKEEP(J,L)
+   50 CONTINUE
    60 CONTINUE
 C-----SAVE CURRENT SET OF COEFFICIENTS AT END OF TABLE.
    70 LKEEP(3)=LEGUSE
       EKEEP(3)=E
       IF(LEGUSE.LE.0) GO TO 90
       DO 80 J=1,LEGUSE
-   80 FLKEEP(J,3)=FLOLD(J)
+      FLKEEP(J,3)=FLOLD(J)
+   80 CONTINUE
       GO TO 100
    90 LEGUSE=0
       FL(1)=0.0d0
@@ -1717,7 +1729,8 @@ C-----INITIALIZE COEFFICIENTS TO ORIGINAL VALUES AND INITIALIZE
 C-----COFFICIENT CHANGED FLAGS OFF.
       DO 200 L=1,LEGUSE
       FL(L)=FLOLD(L)
-  200 NEWFL(L)=0
+      NEWFL(L)=0
+  200 CONTINUE
 C-----LOOP OVER COEFFICIENTS TO CHANGE.
       DO 210 LOOPL=1,LEGUSE
       KPASS=KPASS+1
@@ -1749,7 +1762,8 @@ C-----ORIGINAL DISTRIBUTION.
   230 WRITE(OUTP,410)
       DO 240 I=1,LEGUSE
       FL(I)=FLOLD(I)
-  240 NEWFL(I)=0
+      NEWFL(I)=0
+  240 CONTINUE
       CALL ANGLEN
 c-----------------------------------------------------------------------
 C
@@ -1827,14 +1841,14 @@ C=======================================================================
       COMMON/FIELDC/FIELD6(11,6)
       INCLUDE 'legend.h'
 C-----NO TEST FOR FIRST ENERGY.
-      IF(JE.LE.1) GO TO 60
+      IF(JE.LE.1) GO TO 70
 C-----CONVERT ENERGIES TO OUTPUT FORM.
       CALL OUT9(EKEEP(2),FIELD6(1,1))
       CALL OUT9(EKEEP(3),FIELD6(1,2))
 C-----COMPARE NUMBER OF LEGENDRE COEFFICIENTS AT LAST ENERGY AND
 C-----CURRENT ENERGY.
       IF(LKEEP(2).LE.LKEEP(3)) GO TO 10
-      WRITE(OUTP,70) LKEEP(2),(FIELD6(M,1),M=1,11),
+      WRITE(OUTP,80) LKEEP(2),(FIELD6(M,1),M=1,11),
      1               LKEEP(3),(FIELD6(M,2),M=1,11)
 C-----COMPARE COEFFICIENTS TO INSURE THAT THEY ARE MONOTONICALLY
 C-----CHANGING AS A FUNCTION OF ENERGY (IN ABSOLUTE VALUE AND SIGN).
@@ -1848,46 +1862,47 @@ C-----CHANGING AS A FUNCTION OF ENERGY (IN ABSOLUTE VALUE AND SIGN).
       IF(FLKEEP(L,2).GT.0.0d0.AND.FLKEEP(L,3).LT.0.0d0) GO TO 20
       IF(FLKEEP(L,2).LT.0.0d0.AND.FLKEEP(L,3).GT.0.0d0) GO TO 20
       GO TO 30
-   20 IF(IERR.EQ.0) WRITE(OUTP,80)
+   20 IF(IERR.EQ.0) WRITE(OUTP,90)
       IERR=1
 C-----CONVERT COEFFICIENTS TO OUTPUT FORM.
       CALL OUT9(FLKEEP(L,2),FIELD6(1,3))
       CALL OUT9(FLKEEP(L,3),FIELD6(1,4))
-      WRITE(OUTP,90) L,(FIELD6(M,3),M=1,11),(FIELD6(M,1),M=1,11),
+      WRITE(OUTP,100) L,(FIELD6(M,3),M=1,11),(FIELD6(M,1),M=1,11),
      1                 (FIELD6(M,4),M=1,11),(FIELD6(M,2),M=1,11)
    30 CONTINUE
-      IF(IERR.NE.0) WRITE(OUTP,120)
+      IF(IERR.NE.0) WRITE(OUTP,130)
 C-----COMPARE COEFFICIENTS TO INSURE THAT THEY ARE MONOTONICALLY
 C-----DECREASING AS A FUNCTION OF L.
    40 LTOP=LKEEP(3)
-      IF(LTOP.LE.0) GO TO 60
+      IF(LTOP.LE.0) GO TO 70
       FLAST=1.0d0
       IERR=0
-      DO 50 L=1,LTOP
+      DO 60 L=1,LTOP
       IF(DABS(FLKEEP(L,3)).LE.DABS(FLAST)) GO TO 50
-      IF(IERR.EQ.0) WRITE(OUTP,100)
+      IF(IERR.EQ.0) WRITE(OUTP,110)
       LM1=L-1
 C-----CONVERT COEFFICIENTS TO OUTPUT FORM.
       CALL OUT9(FLAST      ,FIELD6(1,3))
       CALL OUT9(FLKEEP(L,3),FIELD6(1,4))
-      WRITE(OUTP,110) LM1,(FIELD6(M,3),M=1,11),
+      WRITE(OUTP,120) LM1,(FIELD6(M,3),M=1,11),
      1                  L,(FIELD6(M,4),M=1,11)
       IERR=1
    50 FLAST=FLKEEP(L,3)
-      IF(IERR.NE.0) WRITE(OUTP,120)
-   60 RETURN
-   70 FORMAT(1X,78('-')/' WARNING - ',I3,' Coefficients at E=',
+   60 CONTINUE
+      IF(IERR.NE.0) WRITE(OUTP,130)
+   70 RETURN
+   80 FORMAT(1X,78('-')/' WARNING - ',I3,' Coefficients at E=',
      1 11A1,' eV'/
      2 '       Only',I3,' Coefficients at E=',
      3 11A1,' eV'/1X,78('-'))
-   80 FORMAT(1X,78('-')/' WARNING - Coefficient Has Decreased or',
+   90 FORMAT(1X,78('-')/' WARNING - Coefficient Has Decreased or',
      1 ' Changed Sign')
-   90 FORMAT(' L=',I3,1X,11A1,' at E=',11A1,' eV'/
+  100 FORMAT(' L=',I3,1X,11A1,' at E=',11A1,' eV'/
      1                7X,11A1,' at E=',11A1,' eV')
-  100 FORMAT(1X,78('-')/' WARNING - Coefficients do NOT Decrease',
+  110 FORMAT(1X,78('-')/' WARNING - Coefficients do NOT Decrease',
      1 ' with L')
-  110 FORMAT(' L=',I3,1X,11A1,' L=',I3,1X,11A1)
-  120 FORMAT(1X,78('-'))
+  120 FORMAT(' L=',I3,1X,11A1,' L=',I3,1X,11A1)
+  130 FORMAT(1X,78('-'))
       END
       SUBROUTINE ANGLEN
 C=======================================================================
@@ -2054,7 +2069,8 @@ C=======================================================================
       SUMX=0.0D+00
       IF(I.LT.2) GO TO 20
       DO 10 J=2,I
-   10 SUMX=SUMX+(X(J)-X(J-1))*(Y(J)+Y(J-1))
+      SUMX=SUMX+(X(J)-X(J-1))*(Y(J)+Y(J-1))
+   10 CONTINUE
    20 XINT=SUMX/TWO
       RETURN
       END
@@ -2121,7 +2137,8 @@ C-----INTERVAL AND CONTINUE BINARY SEARCH.
       PTEND(2)=PTMID
 C-----SAVE NEW MINIMUM COORDINATES.
       XMUMIN=XMUMID
-   30 PTMIN=PTMID
+      PTMIN=PTMID
+   30 CONTINUE
 C-----2016/5/21 - Increased from 900 to MAXPOINT
 C-----IF MANY POINTS DO NOT ADD ANY MORE.
    40 IF(N2OUT.GE.MAXPOINT) GO TO 50
@@ -2146,12 +2163,14 @@ C-----XMUOUT(I2OUT-1) AND XMUOUT(I2OUT).
 C-----SAVE CURRENT POINT.
    70 N2IN=N2IN+1
       XMUIN(N2IN)=XMUOUT(I2OUT)
-   80 PTIN(N2IN)=PTOUT(I2OUT)
+      PTIN(N2IN)=PTOUT(I2OUT)
+   80 CONTINUE
 C-----COPY DISTRIBUTION TO OUTPUT ARRAYS.
       N2OUT=N2IN
       DO 90 I=1,N2OUT
       XMUOUT(I)=XMUIN(I)
-   90 PTOUT(I)=PTIN(I)
+      PTOUT(I)=PTIN(I)
+   90 CONTINUE
   100 RETURN
       END
       SUBROUTINE THIN
@@ -2363,7 +2382,8 @@ C-----COSINE=XMU
 C-----MOVE INDEX AND CONTRIBUTIONS OF EACH L ORDER FOR INTERNAL USE.
       DO 10 L=1,LEGUSE
       LVALUE(L)=L
-   10 VALUES(L)=SUMN(L)
+      VALUES(L)=SUMN(L)
+   10 CONTINUE
 C-----SORT CONTRIBUTIONS INTO ASCENDING ORDER.
       CALL SORT(VALUES,LVALUE,LEGUSE)
 C-----LIST PARAMETERS AND THERE CONTRIBUTIONS TO INITIAL DISTRIBUTION.
@@ -2479,7 +2499,8 @@ c-----------------------------------------------------------------------
       ADDIT=(SIGMIN-PTMIN)/(1.0d0-2.0d0*SIGMIN)
       IF(N2OUT.LE.0) GO TO 20
       DO 10 I=1,N2OUT
-   10 PTOUT(I)=PTOUT(I)+ADDIT
+      PTOUT(I)=PTOUT(I)+ADDIT
+   10 CONTINUE
       IF(LTT.EQ.2) WRITE(OUTP,50) ADDIT
 c-----------------------------------------------------------------------
 C
@@ -2491,7 +2512,8 @@ c-----------------------------------------------------------------------
       DO 30 L=1,LEGUSE
       FLOLD(L)=FL(L)
       FL(L)=FL(L)/SUMX
-   30 NEWFL(L)=1
+      NEWFL(L)=1
+   30 CONTINUE
       WRITE(OUTP,60) SUMX
    40 RETURN
    50 FORMAT(F10.5,' Added to Each Point to Make Distribution Positive')
@@ -2506,12 +2528,12 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       DIMENSION SUMN(*),LVALUE(*)
-      IF(L.LE.1) GO TO 30
+      IF(L.LE.1) GO TO 40
       LTOP=L
-      DO 20 I=2,L
+      DO 30 I=2,L
       ISWTCH=0
       JM1=1
-      DO 10 J=2,LTOP
+      DO 20 J=2,LTOP
       IF(SUMN(J).ge.SUMN(JM1)) go to 10
       DD=SUMN(J)
       SUMN(J)=SUMN(JM1)
@@ -2521,9 +2543,11 @@ C=======================================================================
       LVALUE(JM1)=LL
       ISWTCH=1
    10 JM1=J
-      IF(ISWTCH.le.0) go to 30
-   20 LTOP=LTOP-1
-   30 RETURN
+   20 CONTINUE
+      IF(ISWTCH.le.0) go to 40
+      LTOP=LTOP-1
+   30 CONTINUE
+   40 RETURN
       END
       SUBROUTINE TAB4
 C=======================================================================
@@ -2546,7 +2570,8 @@ C-----DEFINE INTEGRAL OF DISTRIBUTION.
       SUMX=XINT(XMUOUT,PTOUT,N2OUT)
 C-----NORMALIZE DISTRIBUTION.
       DO 10 I=1,N2OUT
-   10 PTOUT(I)=PTOUT(I)/SUMX
+      PTOUT(I)=PTOUT(I)/SUMX
+   10 CONTINUE
 C-----DEFINE ONE INTERPOLATION REGION AND THE NUMBER OF POINTS IN THE
 C-----SECTION AND OUTPUT FIRST CARD OF TAB1 RECORD.
       N1=1
@@ -2583,7 +2608,8 @@ C-----IF NECESSARY FILL IN TRAILING ZERO VALUES.
    10 IF(LEGUSE.GE.N1) GO TO 30
       L=LEGUSE+1
       DO 20 I=L,N1
-   20 FL(I)=0.0d0
+      FL(I)=0.0d0
+   20 CONTINUE
 C-----OUTPUT START OF LIST RECORD.
    30 CALL CARDO(C1,C2,L1,L2,N1,N2)
 C-----OUTPUT LEGENDRE COEFFICIENTS.
@@ -2661,7 +2687,8 @@ C=======================================================================
       DATA DIGITS/'0','1','2','3','4','5','6','7','8','9'/
 C-----INITIALIZE TO BLANK
       DO 10 I=1,LENGTH
-   10 FIELD(I)=' '
+      FIELD(I)=' '
+   10 CONTINUE
 C-----FILL IN LAST DIGIT TO FIRST
       II=INT
       DO 20 I=LENGTH,1,-1
@@ -2669,7 +2696,8 @@ C-----FILL IN LAST DIGIT TO FIRST
       KK=II/10
       LL=II-10*KK
       FIELD(I)=DIGITS(LL)
-   20 II=KK
+      II=KK
+   20 CONTINUE
    30 RETURN
       END
       SUBROUTINE FILIO1

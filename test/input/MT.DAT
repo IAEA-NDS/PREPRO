@@ -221,5 +221,7 @@
  800 800   0   0 (n,]a') Ground                          *
  801 849 780 799       MeV (n,]a') Level                 *
  851 870   0   0 Covariance Data                         *
+ 875 875   0   0 (n,2n) Ground                           *
+ 876 891   0   9       MeV (n,2n) Level                  *
    0   0   0   0 (THIS LINE TERMINATES INPUT...0 IN COLUMNS 1 - 16)
  

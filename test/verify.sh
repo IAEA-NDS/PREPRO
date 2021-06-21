@@ -6,6 +6,7 @@ cp input/* output
 cd output
 
 endf2c
+merger
 linear
 recent
 rm LINEAR.OUT
@@ -18,9 +19,14 @@ rm ACTIVATE.OUT
 fixup
 rm LEGEND.OUT
 dictin
-rm FIXUP.OUT
+sixpak
+spectra
 groupie
 mixer
 virgin
 evalplot
 complot
+evalhard1
+mv PLOT0001.ps evalhard1.ps
+comhard1
+mv PLOT0001.ps comhard1.ps

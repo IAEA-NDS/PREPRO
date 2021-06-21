@@ -17,7 +17,7 @@ C                                 *FORTRAN-77/H VERSION
 C     VERSION 86-2 (JUNE 1986)    *ALLOW CREATION OF SECTIONS OF CROSS
 C                                  SECTIONS WHICH ARE NOT PRESENT IN
 C                                  THE ORIGINAL EVALUATION
-C     VERSION 88-1 (JULY 1988)    *OPTION...INTERNALLY DEFINE ALL I/O
+C     VERSION 88-1 (JULY 1988)    *OPTION...INTERNALLY DEFINE REA I/O
 C                                  FILE NAMES (SEE, SUBROUTINE FILEIO
 C                                  FOR DETAILS).
 C                                 *IMPROVED BASED ON USER COMMENTS.
@@ -146,6 +146,36 @@ C                                  same Maximum Tabulated Energy =
 C                                  in this case data above the lowest
 C                                  common energy is identied as being
 C                                  UNRELIABLE.
+C     VERS. 2019-2 (Oct.  2019)   *Corrected ERROR defining first point
+C                                  of each MT = first point was being
+C                                  ERRONEOUSLY skipped (due to an ERROR
+C                                  in removing the previous THRESHOLD
+C                                  "correction" test - which is no
+C                                  longer allowed).
+C     VERS. 2020-1 (Dec.  2020)   *ZA & AWRE Correction Required.
+C                                 *Extenstion to 20 MeV NOT ALLOWED.
+C                                 *Threshold correction NOT ALLOWED.
+C                                 *Added Target isomeric state
+C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
+C                                 *DELETED MT=3 = Nonelastic by adding
+C                                  it to the built-in DELETION table -
+C                                  to select set option 3 = 2 (use
+C                                  built-in DELETION table). MT=3 is
+C                                  never used in applications, and yet
+C                                  can add an enormous volume to ENDF
+C                                  format files: (MT=3) = (MT-1)-(MT-2),
+C                                  included ALL of the resonances from
+C                                  capture, fission,.....
+C     VERS. 2021-2 (Aug.  2021)   *Corrected MTCHEK to check only if
+C                                  using built-in tables,
+C                                  IMOPS(4) = DELETION
+C                                  IMOPS(5) = SUMMATION
+C                                  ERROR = Only print WARNING - NO STOP
+C     2019-2 Acknowledgment
+C     =====================
+C     I thank Jean-Christophe Sublet (NDS, IAEA, Vienna, Austria) for
+C     reporting the ERROR in FIXUP (2019-1) that led to the update in
+C     FIXUP (2019-2) to correctly define the first point in each MT.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -881,14 +911,15 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/MAXIEMEV/XMAX
       COMMON/HOLFMT/FMTHOL(4)
       COMMON/TEMPO/TEMP1,TEMP3,IVERSE
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
-      COMMON/SAVE6/MTRAN6(20),MTADD6(2,10,20)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/SAVE6/MTRAN6(20),MTADD6(2,15,20)
       COMMON/CORTAB/MFCORE,MTCORE,N2CORE
       COMMON/FIELDC/FIELD6(11,6)
       COMMON/PAGER/NPAGE,NPAGEM1
       COMMON/PROJECT/AWI
+      COMMON/LISOCOM/LISO
       INCLUDE 'fixup.h'
-      DIMENSION ZABCD(10)
+      DIMENSION ZABCD(12)
 C-----08/08/2012 DEFINE CODE NAME
       CODENAME = 'FIXUP   '
 C-----INITIALIZE TIMER
@@ -908,6 +939,10 @@ C-----DEFINE MAXIMUM ENERGY OF INTEREST (100 MEV).
       XMAX  =1.0D+09
 C-----READ AND INTERPRET ALL INPUT PARAMETERS.
       CALL READIN
+c-----Load ALL MT Definitions
+      CALL MTREADIN
+c-----Check SUMMATION rules
+      CALL MTCHEK
 C-----INITIALIZE SECTION VALUES.
       MATLST=-99999
       MFLST=-99999
@@ -926,7 +961,8 @@ C-----INITIALIZE SECTION VALUES.
 C-----INITIALIZE ENDF FORMAT DESCRIPTION TO BLANK, CROSS SECTION
 C-----TEMPERATURE TO 0.0 AND ENDF FORMAT VERSION NUMBER TO 6.
       DO 10 I=1,4
-   10 FMTHOL(I)='    '
+      FMTHOL(I)='    '
+   10 CONTINUE
       TEMP1=0.0d0
       TEMP3=0.0d0
       IVERSE=6
@@ -942,10 +978,10 @@ C-----END ON TEND LINE.
    20 CALL CONTIF
       IF(MTH.gt.0) go to 30
       CALL OUTSF
-      IF(MATH.lt.0) go to 250
+      IF(MATH.lt.0) go to 260
       go to 20
 C-----CHECK FOR NEW MAT.
-   30 IF(MATH.EQ.MATLST) GO TO 150
+   30 IF(MATH.EQ.MATLST) GO TO 160
 c-----------------------------------------------------------------------
 C
 C     NEW MAT. INITIALIZE AND CHECK ZA AND AWRE.
@@ -956,10 +992,12 @@ c-----------------------------------------------------------------------
 C-----INITIALIZE ENDF FORMAT DESCRIPTION TO BLANK, CROSS SECTION
 C-----TEMPERATURE TO 0.0 AND ENDF FORMAT VERSION NUMBER TO 6.
       DO 40 I=1,4
-   40 FMTHOL(I)='    '
+      FMTHOL(I)='    '
+   40 CONTINUE
       TEMP1=0.0d0
       TEMP3=0.0d0
       IVERSE=6
+      LISO  =0   ! Target isomer state number
       MT451=0
       MFCORE=0
       MTCORE=0
@@ -973,62 +1011,65 @@ C     (MAY BE CHANGED IF MF=1, MT-451 INDICATES THAT THE EVALUATION
 C     IS NOT IN THE ENDF-6 FORMAT).
 C
 c-----------------------------------------------------------------------
-      IF(IMOPS(5).NE.2) GO TO 70
-      DO 60 I=1,20
+      IF(IMOPS(5).NE.2) GO TO 80
+      DO 70 I=1,20
       MTRANG(I)=MTRAN6(I)
-      DO 60 K=1,10
+      DO 60 K=1,15
       DO 50 J=1,2
-   50 MTADD(J,K,I)=MTADD6(J,K,I)
-   60 MTADD(3,K,I)=0
+      MTADD(J,K,I)=MTADD6(J,K,I)
+   50 CONTINUE
+      MTADD(3,K,I)=0
+   60 CONTINUE
+   70 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CHECK FOR HOLLERITH SECTION.
 C
 c-----------------------------------------------------------------------
-   70 IF(MFH.NE.1.OR.MTH.NE.451) GO TO 80
+   80 IF(MFH.NE.1.OR.MTH.NE.451) GO TO 90
 C-----READ AND WRITE HOLLERITH SECTION.
       CALL FILE1A
       MT451=1
-   80 CALL ZAHOL(IZALST,ZABCD)
+   90 CALL ZAHOLM(IZALST,LISO,ZABCD)
       CALL OUT9(AWRLST,FIELD6(1,1))
 C-----WRITE HEADING FOR OUTPUT.
-      WRITE(OUTP,280) ZABCD,MATH,(FIELD6(M,1),M=1,11),FMTHOL
-      WRITE(*   ,280) ZABCD,MATH,(FIELD6(M,1),M=1,11),FMTHOL
+      WRITE(OUTP,290) ZABCD,MATH,(FIELD6(M,1),M=1,11),FMTHOL
+      WRITE(*   ,290) ZABCD,MATH,(FIELD6(M,1),M=1,11),FMTHOL
 C-----CHECK FOR ASCENDING MAT ORDER.
-      IF(IMOPS(9).LE.0.OR.MATH.GT.MATLST) GO TO 90
-      WRITE(OUTP,310) MATH,MATLST
-   90 MATLST=MATH
+      IF(IMOPS(9).LE.0.OR.MATH.GT.MATLST) GO TO 100
+      WRITE(OUTP,320) MATH,MATLST
+  100 MATLST=MATH
       MFLST=MFH
       MTLST=MTH
       IF(MT451.LE.0) NOSEQ=1
       IERR=0
 C-----IF ZA AND AWRE ARE NOT POSITIVE WRITE ERROR MESSAGE AND COPY
 C-----ENTIRE MAT.
-      IF(IMOPS(1).LE.0.OR.(IZALST.GT.0.AND.AWRLST.GT.0.0d0)) GO TO 200
+      IF(IMOPS(1).LE.0.OR.(IZALST.GT.0.AND.AWRLST.GT.0.0d0)) GO TO 210
 c-----------------------------------------------------------------------
 C
 C     COPY ENTIRE MAT WITHOUT CHANGE.
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,300)
-      WRITE(*   ,300)
-      IF(MT451.LE.0) GO TO 100
+      WRITE(OUTP,310)
+      WRITE(*   ,310)
+      IF(MT451.LE.0) GO TO 110
       MT451=0
-      GO TO 110
-  100 CALL CONTOF
+      GO TO 120
+  110 CALL CONTOF
       CALL COPYSF
 C-----COPY UP TO MEND LINE ONE SECTION AT A TIME.
-  110 CALL CONTIF
+  120 CALL CONTIF
       CALL CONTOF
-      IF(MTH.gt.0) go to 120
+      IF(MTH.gt.0) go to 130
       IF(MATH.le.0) go to 20
 C-----CHECK FOR ASCENDING MF/MT ORDER.
-  120 IF(IMOPS(9).LE.0) GO TO 140
-      IF(MFH.GT.MFLST.OR.MTH.GT.MTLST) GO TO 130
-      WRITE(OUTP,320) MFH,MTH,MFLST,MTLST
-  130 MFLST=MFH
+  130 IF(IMOPS(9).LE.0) GO TO 150
+      IF(MFH.GT.MFLST.OR.MTH.GT.MTLST) GO TO 140
+      WRITE(OUTP,330) MFH,MTH,MFLST,MTLST
+  140 MFLST=MFH
       MTLST=MTH
-  140 CALL COPYSF
+  150 CALL COPYSF
       GO TO 20
 c-----------------------------------------------------------------------
 C
@@ -1038,29 +1079,29 @@ C     SECTION.
 C
 c-----------------------------------------------------------------------
 C-----CHECK FOR ASCENDING MF/MT ORDER.
-  150 IF(IMOPS(9).LE.0) GO TO 170
-      IF(MFH.GT.MFLST.OR.MTH.GT.MTLST) GO TO 160
-      WRITE(OUTP,320) MFH,MTH,MFLST,MTLST
-  160 MFLST=MFH
+  160 IF(IMOPS(9).LE.0) GO TO 180
+      IF(MFH.GT.MFLST.OR.MTH.GT.MTLST) GO TO 170
+      WRITE(OUTP,330) MFH,MTH,MFLST,MTLST
+  170 MFLST=MFH
       MTLST=MTH
-  170 IZANOW=C1H
+  180 IZANOW=C1H
       AWRNOW=C2H
 C-----CHECK LEGAL C1 AND C2.
       IF(IMOPS(1).LE.0.OR.(IZANOW.EQ.IZALST.AND.AWRNOW.EQ.AWRLST))
-     1 GO TO 200
+     1 GO TO 210
 C-----IF BEYOND FILE 3 WRITE TITLE FOR OUTPUT THE FIRST TIME THAT AN
 C-----ERROR IS FOUND.
-      IF(MFH.LE.3) GO TO 190
-      IF(IERR.GT.0) GO TO 180
+      IF(MFH.LE.3) GO TO 200
+      IF(IERR.GT.0) GO TO 190
       CALL OUT9(AWRLST,FIELD6(1,1))
-      WRITE(OUTP,290) IZALST,MATH,(FIELD6(M,1),M=1,11)
-      WRITE(*   ,290) IZALST,MATH,(FIELD6(M,1),M=1,11)
-  180 IERR=IERR+1
-  190 CALL OUT9(AWRNOW,FIELD6(1,1))
+      WRITE(OUTP,300) IZALST,MATH,(FIELD6(M,1),M=1,11)
+      WRITE(*   ,300) IZALST,MATH,(FIELD6(M,1),M=1,11)
+  190 IERR=IERR+1
+  200 CALL OUT9(AWRNOW,FIELD6(1,1))
       CALL OUT9(AWRLST,FIELD6(1,2))
-      WRITE(OUTP,260) MFH,MTH,IZANOW,(FIELD6(M,1),M=1,11),
+      WRITE(OUTP,270) MFH,MTH,IZANOW,(FIELD6(M,1),M=1,11),
      1 IZALST,(FIELD6(M,2),M=1,11)
-      WRITE(*   ,260) MFH,MTH,IZANOW,(FIELD6(M,1),M=1,11),
+      WRITE(*   ,270) MFH,MTH,IZANOW,(FIELD6(M,1),M=1,11),
      1 IZALST,(FIELD6(M,2),M=1,11)
       C1H=IZALST
       C2H=AWRLST
@@ -1069,7 +1110,7 @@ C
 C     SAVE TOTAL NU-BAR
 C
 c-----------------------------------------------------------------------
-  200 IF(MFH.NE.1.OR.MTH.NE.452) GO TO 210
+  210 IF(MFH.NE.1.OR.MTH.NE.452) GO TO 220
       CALL FILE1B
       GO TO 20
 c-----------------------------------------------------------------------
@@ -1077,19 +1118,19 @@ C
 C     CHECK FOR MF=3 OR 23.
 C
 c-----------------------------------------------------------------------
-  210 IF(MFH.lt.3) go to 220
-      IF(MFH.eq.3) go to 240
-      IF(MFH.eq.23) go to 240
+  220 IF(MFH.lt.3) go to 230
+      IF(MFH.eq.3) go to 250
+      IF(MFH.eq.23) go to 250
 c-----------------------------------------------------------------------
 C
 C     NOT MF=3 OR 23. COPY SECTION.
 C
 c-----------------------------------------------------------------------
 C-----OUTPUT FIRST LINE IN STANDARD FORMAT.
-  220 IF(MT451.LE.0) GO TO 230
+  230 IF(MT451.LE.0) GO TO 240
       MT451=0
       GO TO 20
-  230 CALL CONTOF
+  240 CALL CONTOF
 C-----COPY UP TO SEND LINE.
       CALL COPYSF
       GO TO 20
@@ -1098,7 +1139,7 @@ C
 C     BEGINNING OF FILE 3 OR 23 FOUND. PROCESS ENTIRE FILE.
 C
 c-----------------------------------------------------------------------
-  240 CALL FILEX
+  250 CALL FILEX
       GO TO 20
 c-----------------------------------------------------------------------
 C
@@ -1106,24 +1147,24 @@ C     END OF RUN. TERMINATE EXECUTION.
 C
 c-----------------------------------------------------------------------
 c-----Final WARNING if ANY Inconsistences.
-  250 call maxie4(1)
-      WRITE(OUTP,270)
-      WRITE(*   ,270)
+  260 call maxie4(1)
+      WRITE(OUTP,280)
+      WRITE(*   ,280)
       CALL ENDIT
-      GO TO 250     ! Cannot get to here.
-  260 FORMAT(I3,I4,32X,' ZA=',I7,' AWRE=',11A1,' Changed to'/
+      GO TO 260     ! Cannot get to here.
+  270 FORMAT(I3,I4,32X,' ZA=',I7,' AWRE=',11A1,' Changed to'/
      1             39X,' ZA=',I7,' AWRE=',11A1)
-  270 FORMAT(1X,78('-')/' End of Run'/1X,78('-'))
-  280 FORMAT(1X,78('-')/' Reading ',10A1,' MAT=',I5,' AWRE=',
+  280 FORMAT(1X,78('-')/' End of Run'/1X,78('-'))
+  290 FORMAT(1X,78('-')/' Reading ',12A1,' MAT=',I5,' AWRE=',
      1 11A1,1X,4A4/1X,78('-')/' MF  MT  Points',
      2 '      Kelvin     Q-Value Message'/1X,78('-'))
-  290 FORMAT(1X,78('-')/' Continue Reading ZA=',I7,' MAT=',I5,
+  300 FORMAT(1X,78('-')/' Continue Reading ZA=',I7,' MAT=',I5,
      1 ' AWRE=',11A1/1X,78('-')/' MF  MT  Points Messages'/
      2 1X,78('-'))
-  300 FORMAT(I3,I4,32X,' ZA and/or AWRE are not Positive.'/
+  310 FORMAT(I3,I4,32X,' ZA and/or AWRE are not Positive.'/
      1             39X,' MAT Copied without Change')
-  310 FORMAT(39X,' WARNING...MAT=',I5,' Less than Last MAT=',I5)
-  320 FORMAT(I3,I4,32X,' WARNING...MF/MT Less than Last MF/MT=',I3,I4)
+  320 FORMAT(39X,' WARNING...MAT=',I5,' Less than Last MAT=',I5)
+  330 FORMAT(I3,I4,32X,' WARNING...MF/MT Less than Last MF/MT=',I3,I4)
       END
       SUBROUTINE READIN
 C=======================================================================
@@ -1139,10 +1180,10 @@ C=======================================================================
       CHARACTER*72 LINE72
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
-      COMMON/SAVE5/MTRAN5(20),MTADD5(2,10,20)
-      COMMON/SAVE6/MTRAN6(20),MTADD6(2,10,20)
-      COMMON/SAVEP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(2,10,10)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
+      COMMON/SAVE5/MTRAN5(20),MTADD5(2,15,20)
+      COMMON/SAVE6/MTRAN6(20),MTADD6(2,15,20)
       COMMON/DELETE/IDEL,MTDEL(2,20)
       COMMON/OPS/IMOPS(14)
       COMMON/READI/MTREAD(2,10)
@@ -1163,8 +1204,8 @@ C=======================================================================
       DATA PLUS/'+'/
       DATA MINUS/'-'/
 C-----PRINT TITLE FOR OUTPUT.
-      WRITE(OUTP,860)
-      WRITE(*   ,860)
+      WRITE(OUTP,870)
+      WRITE(*   ,870)
 c-----------------------------------------------------------------------
 C
 C     READ AND EDIT ALL TEST/CORRECT OPTIONS.
@@ -1193,11 +1234,17 @@ C-----DEFINE DEFAULT VALUES
 C-----2015/10/22
 c-----------------------------------------------------------------------
 C
+C     IMOPS(1) Required for ALL ENDF Data = correct ZA & AWRE
+C
+c-----------------------------------------------------------------------
+   30 IMOPS( 1) = 1   ! correct za and awr
+c-----------------------------------------------------------------------
+C
 C     WARNING IF THRESHOLD CORRECTION (no longer ERROR stop)
 C
 c-----------------------------------------------------------------------
 C-----2017/5/20 - changed from ERROR and STOP to WARNING and ignore.
-   30 IF(IMOPS(2).ne.0) THEN
+      IF(IMOPS(2).ne.0) THEN
       WRITE(OUTP,40)
       WRITE(   *,40)
    40 FORMAT(
@@ -1213,7 +1260,7 @@ C-----2017/5/20 - changed from ERROR and STOP to WARNING and ignore.
       ENDIF
 c-----------------------------------------------------------------------
 C
-c     2019/2/26 - WARNING IF EXTENSION TO 20 MEV = No longer ALLOWED
+c     2020/2/2  - WARNING IF EXTENSION TO 20 MEV = No longer ALLOWED
 C
 c-----------------------------------------------------------------------
       IF(IMOPS(3).ne.0) then
@@ -1242,33 +1289,33 @@ c-----------------------------------------------------------------------
       KOPS=IMOPS(I)+1
       GO TO (60,70,80,90,100,110,120,130,140,150,
      1 160,170,180,190),I
-   60 WRITE(OUTP,1140) ANSWER(KOPS)
+   60 WRITE(OUTP,1150) ANSWER(KOPS)
       GO TO 200
-   70 WRITE(OUTP,1150) ANSWER(KOPS)
+   70 WRITE(OUTP,1160) ANSWER(KOPS)
       GO TO 200
-   80 WRITE(OUTP,1160) ANSWER(KOPS)
+   80 WRITE(OUTP,1170) ANSWER(KOPS)
       GO TO 200
-   90 WRITE(OUTP,1170) ANSWER(KOPS),(HOWMT(J,KOPS),J=1,5)
+   90 WRITE(OUTP,1180) ANSWER(KOPS),(HOWMT(J,KOPS),J=1,5)
       GO TO 200
-  100 WRITE(OUTP,1180) ANSWER(KOPS),(HOWMT(J,KOPS),J=1,5)
+  100 WRITE(OUTP,1190) ANSWER(KOPS),(HOWMT(J,KOPS),J=1,5)
       GO TO 200
-  110 WRITE(OUTP,1190) ANSWER(KOPS)
+  110 WRITE(OUTP,1200) ANSWER(KOPS)
       GO TO 200
-  120 WRITE(OUTP,1200) ANSWER(KOPS)
+  120 WRITE(OUTP,1210) ANSWER(KOPS)
       GO TO 200
-  130 WRITE(OUTP,1210) ANSWER(KOPS)
+  130 WRITE(OUTP,1220) ANSWER(KOPS)
       GO TO 200
-  140 WRITE(OUTP,1220) ANSWER(KOPS)
+  140 WRITE(OUTP,1230) ANSWER(KOPS)
       GO TO 200
-  150 WRITE(OUTP,1230) ANSWER(KOPS)
+  150 WRITE(OUTP,1240) ANSWER(KOPS)
       GO TO 200
-  160 WRITE(OUTP,1240) ANSWER(KOPS)
+  160 WRITE(OUTP,1250) ANSWER(KOPS)
       GO TO 200
-  170 WRITE(OUTP,1250) ANSWER(KOPS)
+  170 WRITE(OUTP,1260) ANSWER(KOPS)
       GO TO 200
-  180 WRITE(OUTP,1260) ANSWER(KOPS)
+  180 WRITE(OUTP,1270) ANSWER(KOPS)
       GO TO 200
-  190 WRITE(OUTP,1270) ANSWER(KOPS)
+  190 WRITE(OUTP,1280) ANSWER(KOPS)
   200 CONTINUE
 c-----------------------------------------------------------------------
 C
@@ -1344,10 +1391,10 @@ C-----2017/5/20 - IMOPS(2) must = 0 = no threshold "correction"
       IF(IMOPS(4).EQ.1.OR.IMOPS(5).EQ.1) GO TO 280
       GO TO 440
 C-----PRINT TITLE FOR INPUT DATA INTERPRETATION.
-  280 WRITE(OUTP,870)
-      WRITE(OUTP,890)
-      WRITE(*   ,870)
-      WRITE(*   ,890)
+  280 WRITE(OUTP,880)
+      WRITE(OUTP,900)
+      WRITE(*   ,880)
+      WRITE(*   ,900)
 C-----READ THRESHOLD TEST EXCLUSION/DELETION/RECONSTRUCTION REQUESTS
   290 IF(ISTAT1.EQ.1) GO TO 310
       READ(INP,300,END=310,ERR=310) LINEIN
@@ -1373,21 +1420,21 @@ c-----------------------------------------------------------------------
       IF(II.GT.20) II=20
       MTDEL(1,II)=IABS(MTREAD(1,I))
       MTDEL(2,II)=IABS(MTREAD(2,I))
-      WRITE(OUTP,900) MTDEL(1,II),MTDEL(2,II)
+      WRITE(OUTP,910) MTDEL(1,II),MTDEL(2,II)
 C-----PRINT ERROR IF MT RANGES ARE NOT LEGAL (ASCENDING MT ORDER).
       IF(MTDEL(1,II).LE.MTDEL(2,II)) GO TO 330
-      WRITE(OUTP,1060)
+      WRITE(OUTP,1070)
       IERR=IERR+1
   330 CONTINUE
 C-----PRINT ERROR MESSAGE IF DELETIONS ARE NOT ALLOWED.
       IF(IMOPS(4).EQ.1) GO TO 340
       IERR=IERR+1
-      WRITE(OUTP,990)
+      WRITE(OUTP,1000)
       GO TO 290
 C-----PRINT ERROR MESSAGE IF OVER 20 DELETION REQUESTS.
   340 IF(INDEL.LT.20) GO TO 290
       IERR=IERR+1
-      WRITE(OUTP,940)
+      WRITE(OUTP,950)
       GO TO 290
 c-----------------------------------------------------------------------
 C
@@ -1407,7 +1454,8 @@ C-----SAVE AND PRINT PARAMETERS.
       MSIGN(J)=PLUS
       IF(MTREAD(1,J).LT.0) MSIGN(J)=MINUS
       MTREAD(1,J)=IABS(MTREAD(1,J))
-  360 MTREAD(2,J)=IABS(MTREAD(2,J))
+      MTREAD(2,J)=IABS(MTREAD(2,J))
+  360 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CHECK FOR RATIO - TYPE = 3 FROM SCANER.
@@ -1417,10 +1465,10 @@ c-----------------------------------------------------------------------
       MTADD(3,1,MAKEP1)=3
       MTRANG(MAKEP1)=1
       IF(MTREAD(2,1).LT.MTREAD(1,1)) MTADD(3,1,MAKEP1)=-3
-      WRITE(OUTP,960) MTI,MTREAD(1,1),MTREAD(2,1)
+      WRITE(OUTP,970) MTI,MTREAD(1,1),MTREAD(2,1)
 C-----RATIO REQUIRES 2 DIFFERENT MT NUMBERS.
       IF(MTREAD(1,1).NE.MTREAD(2,1)) GO TO 400
-      WRITE(OUTP,980)
+      WRITE(OUTP,990)
       IERR=IERR+1
       GO TO 400
 c-----------------------------------------------------------------------
@@ -1431,10 +1479,10 @@ c-----------------------------------------------------------------------
   370 IF(ITYPE.NE.4) GO TO 380
       MTADD(3,1,MAKEP1)=4
       MTRANG(MAKEP1)=1
-      WRITE(OUTP,970) MTI,MTREAD(1,1),MTREAD(2,1)
+      WRITE(OUTP,980) MTI,MTREAD(1,1),MTREAD(2,1)
 C-----PRODUCT REQUIRES 2 DIFFERENT MT NUMBERS.
       IF(MTREAD(1,1).NE.MTREAD(2,1)) GO TO 400
-      WRITE(OUTP,980)
+      WRITE(OUTP,990)
       IERR=IERR+1
       GO TO 400
 c-----------------------------------------------------------------------
@@ -1442,22 +1490,22 @@ C
 C     SUMMATION.
 C
 c-----------------------------------------------------------------------
-  380 WRITE(OUTP,950) MTI,(MSIGN(I),(MTREAD(J,I),J=1,2),I=1,KRANGE)
+  380 WRITE(OUTP,960) MTI,(MSIGN(I),(MTREAD(J,I),J=1,2),I=1,KRANGE)
 C-----PRINT ERROR IF MT RANGES ARE NOT LEGAL (ASCENDING MT ORDER).
       DO 390 I=1,KRANGE
       IF(MTREAD(1,I).LE.MTREAD(2,I)) GO TO 390
-      WRITE(OUTP,1060)
+      WRITE(OUTP,1070)
       IERR=IERR+1
   390 CONTINUE
 C-----PRINT ERROR MESSAGE IF SUMMATIONS ARE NOT ALLOWED.
   400 IF(IMOPS(5).EQ.1) GO TO 410
       IERR=IERR+1
-      WRITE(OUTP,990)
+      WRITE(OUTP,1000)
       GO TO 290
 C-----PRINT ERROR MESSAGE IF OVER 20 SUMMATIONS.
   410 IF(INMAKE.LE.20) GO TO 290
       IERR=IERR+1
-      WRITE(OUTP,1000)
+      WRITE(OUTP,1010)
       GO TO 290
 c-----------------------------------------------------------------------
 C
@@ -1465,11 +1513,11 @@ C     END OF INPUT DATA. TERMINATE IF ANY ERRORS IN INPUT DATA.
 C
 c-----------------------------------------------------------------------
   420 IF(IERR.LE.0) GO TO 430
-      WRITE(OUTP,1050)
-      WRITE(OUTP,1030)
+      WRITE(OUTP,1060)
+      WRITE(OUTP,1040)
 c-----2018/1/22 - Added on-line
-      WRITE(*   ,1050)
-      WRITE(*   ,1030)
+      WRITE(*   ,1060)
+      WRITE(*   ,1040)
       CALL ENDERROR
 c-----------------------------------------------------------------------
 C
@@ -1484,16 +1532,16 @@ C-----CORRESPONDING BUILT-IN TABLE.
 C-----IF ANY BUILT-IN TABLES WILL BE USED LIST THEM.
   440 IF(IDEL.LE.0.AND.MAKE.LE.0) GO TO 650
 C-----PRINT TITLE FOR BUILT-IN TABLES.
-      WRITE(OUTP,880)
       WRITE(OUTP,890)
+      WRITE(OUTP,900)
       IERR=0
 C-----LIST BUILT-IN DELETION RULES (IF THEY WILL BE USED).
       IF(IDEL.LE.0) GO TO 460
       DO 450 M=1,IDEL
-      WRITE(OUTP,900) MTDEL(1,M),MTDEL(2,M)
+      WRITE(OUTP,910) MTDEL(1,M),MTDEL(2,M)
 C-----PRINT ERROR IF BUILT-IN MT NUMBER TO BE DELETED IS ZERO.
       IF(MTDEL(1,M).GT.0) GO TO 450
-      WRITE(OUTP,1010)
+      WRITE(OUTP,1020)
       IERR=IERR+1
   450 CONTINUE
 c-----------------------------------------------------------------------
@@ -1508,7 +1556,7 @@ C
 C     ENDF-5.
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,910)
+      WRITE(OUTP,920)
       DO 520 M=1,MAKE
       K=MTRAN5(M)
       IF(K.LE.0) GO TO 480
@@ -1518,20 +1566,20 @@ c-----------------------------------------------------------------------
       MSIGN(J)=PLUS
       IF(MTADD5(1,J,M).LT.0) MSIGN(J)=MINUS
   470 CONTINUE
-      WRITE(OUTP,950) MTMAKE(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
+      WRITE(OUTP,960) MTMAKE(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
       GO TO 490
-  480 WRITE(OUTP,950) MTMAKE(M)
+  480 WRITE(OUTP,960) MTMAKE(M)
 C-----PRINT ERROR IF BUILT-IN SUMMATION MT NUMBER IS NOT POSITIVE OR
 C-----NO MT RANGES ARE GIVEN TO DEFINE HOW TO SUM.
   490 IF(MTMAKE(M).GT.0.AND.K.GT.0) GO TO 500
-      WRITE(OUTP,950) MTMAKE(M)
-      WRITE(OUTP,1020)
+      WRITE(OUTP,960) MTMAKE(M)
+      WRITE(OUTP,1030)
       IERR=IERR+1
       GO TO 520
 C-----PRINT ERROR IF MT RANGES ARE NOT LEGAL (ASCENDING MT ORDER).
   500 DO 510 I=1,K
       IF(MTREAD(1,I).LE.MTREAD(2,I)) GO TO 510
-      WRITE(OUTP,1060)
+      WRITE(OUTP,1070)
       IERR=IERR+1
   510 CONTINUE
   520 CONTINUE
@@ -1540,7 +1588,7 @@ C
 C     ENDF-6
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,920)
+      WRITE(OUTP,930)
       DO 580 M=1,MAKE
       K=MTRAN6(M)
       IF(K.LE.0) GO TO 540
@@ -1550,20 +1598,20 @@ c-----------------------------------------------------------------------
       MSIGN(J)=PLUS
       IF(MTADD6(1,J,M).LT.0) MSIGN(J)=MINUS
   530 CONTINUE
-      WRITE(OUTP,950) MTMAKE(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
+      WRITE(OUTP,960) MTMAKE(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
       GO TO 550
-  540 WRITE(OUTP,950) MTMAKE(M)
+  540 WRITE(OUTP,960) MTMAKE(M)
 C-----PRINT ERROR IF BUILT-IN SUMMATION MT NUMBER IS NOT POSITIVE OR
 C-----NO MT RANGES ARE GIVEN TO DEFINE HOW TO SUM.
   550 IF(MTMAKE(M).GT.0.AND.K.GT.0) GO TO 560
-      WRITE(OUTP,950) MTMAKE(M)
-      WRITE(OUTP,1020)
+      WRITE(OUTP,960) MTMAKE(M)
+      WRITE(OUTP,1030)
       IERR=IERR+1
       GO TO 580
 C-----PRINT ERROR IF MT RANGES ARE NOT LEGAL (ASCENDING MT ORDER).
   560 DO 570 I=1,K
       IF(MTREAD(1,I).LE.MTREAD(2,I)) GO TO 570
-      WRITE(OUTP,1060)
+      WRITE(OUTP,1070)
       IERR=IERR+1
   570 CONTINUE
   580 CONTINUE
@@ -1572,7 +1620,7 @@ C
 C     ENDF-6 PHOTONS
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,930)
+      WRITE(OUTP,940)
       DO 640 M=1,MAKEP
       K=MTRANP(M)
       IF(K.LE.0) GO TO 600
@@ -1582,20 +1630,20 @@ c-----------------------------------------------------------------------
       MSIGN(J)=PLUS
       IF(MTADDP(1,J,M).LT.0) MSIGN(J)=MINUS
   590 CONTINUE
-      WRITE(OUTP,950) MTMAKP(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
+      WRITE(OUTP,960) MTMAKP(M),(MSIGN(J),(MTREAD(I,J),I=1,2),J=1,K)
       GO TO 610
-  600 WRITE(OUTP,950) MTMAKP(M)
+  600 WRITE(OUTP,960) MTMAKP(M)
 C-----PRINT ERROR IF BUILT-IN SUMMATION MT NUMBER IS NOT POSITIVE OR
 C-----NO MT RANGES ARE GIVEN TO DEFINE HOW TO SUM.
   610 IF(MTMAKP(M).GT.0.AND.K.GT.0) GO TO 620
-      WRITE(OUTP,950) MTMAKP(M)
-      WRITE(OUTP,1020)
+      WRITE(OUTP,960) MTMAKP(M)
+      WRITE(OUTP,1030)
       IERR=IERR+1
       GO TO 640
 C-----PRINT ERROR IF MT RANGES ARE NOT LEGAL (ASCENDING MT ORDER).
   620 DO 630 I=1,K
       IF(MTREAD(1,I).LE.MTREAD(2,I)) GO TO 630
-      WRITE(OUTP,1060)
+      WRITE(OUTP,1070)
       IERR=IERR+1
   630 CONTINUE
   640 CONTINUE
@@ -1604,11 +1652,11 @@ C
 C     TERMINATE IF ANY ERRORS IN BUILT-IN DATA.
 C
 c-----------------------------------------------------------------------
-  650 WRITE(OUTP,1050)
+  650 WRITE(OUTP,1060)
       IF(IERR.LE.0) GO TO 660
-      WRITE(OUTP,1040)
+      WRITE(OUTP,1050)
 c-----2018/1/22 - Added on-line
-      WRITE(*   ,1040)
+      WRITE(*   ,1050)
       CALL ENDERROR
 c-----------------------------------------------------------------------
 C
@@ -1644,10 +1692,10 @@ c-----2017/5/6 - Changed all floating point to character
       MTTAB(I)  = 0
 C-----01/23/05 - SKIP IF MT NOT DEFINED (MAT = 0 IS O.K.)
   710 IF(MTTAB(I).LE.0) GO TO 770
-      IF(I.EQ.1) WRITE(OUTP,1070)
+      IF(I.EQ.1) WRITE(OUTP,1080)
       CALL OUT9(C1HTAB(I),FIELD6(1,1))
       CALL OUT9(C2HTAB(I),FIELD6(1,2))
-      WRITE(OUTP,1080) ((FIELD6(M,J),M=1,11),J=1,2),
+      WRITE(OUTP,1090) ((FIELD6(M,J),M=1,11),J=1,2),
      1 L1HTAB(I),L2HTAB(I),MATTAB(I),MTTAB(I)
       IF(ISTAT1.EQ.1) GO TO 720
 c-----2017/5/6 - Changed all floating point to character
@@ -1664,7 +1712,7 @@ c-----2017/5/6 - Changed all floating point to character
       L2TAB(I) = 0
   730 CALL OUT9(C1TAB(I),FIELD6(1,1))
       CALL OUT9(C2TAB(I),FIELD6(1,2))
-      WRITE(OUTP,1080) ((FIELD6(M,J),M=1,11),J=1,2),
+      WRITE(OUTP,1090) ((FIELD6(M,J),M=1,11),J=1,2),
      1 L1TAB(I),L2TAB(I),MATTAB(I),MTTAB(I)
 C-----CHECK FOR DUPLICATE MAT/MT.
       IF(I.EQ.1) GO TO 760
@@ -1674,20 +1722,20 @@ C-----CHECK FOR DUPLICATE MAT/MT.
   740 CONTINUE
       GO TO 760
 C-----PRINT MESSAGE AND SKIP DUPLICATE MAT/MT.
-  750 WRITE(OUTP,1100)
-      WRITE(*   ,1100)
+  750 WRITE(OUTP,1110)
+      WRITE(*   ,1110)
       GO TO 680
   760 CONTINUE
   770 MAKCT=I-1
-      IF(MAKCT.EQ.0) WRITE(OUTP,1090)
-      IF(MAKCT.EQ.0) WRITE(*   ,1090)
+      IF(MAKCT.EQ.0) WRITE(OUTP,1100)
+      IF(MAKCT.EQ.0) WRITE(*   ,1100)
 c-----------------------------------------------------------------------
 C
 C     IF ENERGY POINTS CAN BE INSERTED READ UP TO 50 ENERGY, MAT, MT
 C
 c-----------------------------------------------------------------------
   780 NXINS=0
-      IF(IMOPS(12).LE.0) GO TO 850
+      IF(IMOPS(12).LE.0) GO TO 860
       DO 800 NXINS=1,50
       IF(ISTAT1.EQ.1) GO TO 810
       READ(INP,790,END=810,ERR=810)
@@ -1696,21 +1744,21 @@ c-----------------------------------------------------------------------
       CALL IN9(XINS(NXINS),LINEIN)
 C-----LIST ENDS IF ENERGY IS NOT POSITIVE.
       IF(XINS(NXINS).le.0.0d+0) go to 810
-      IF(NXINS.EQ.1) WRITE(OUTP,1120)
+      IF(NXINS.EQ.1) WRITE(OUTP,1130)
       CALL OUT9(XINS(NXINS),FIELD6(1,1))
-      WRITE(OUTP,1130) (FIELD6(M,1),M=1,11),MATINS(NXINS),
+      WRITE(OUTP,1140) (FIELD6(M,1),M=1,11),MATINS(NXINS),
      1 MTINS(NXINS)
   800 CONTINUE
       NXINS=51
   810 NXINS=NXINS-1
-      IF(NXINS.LE.1) GO TO 840
+      IF(NXINS.LE.1) GO TO 850
 c-----------------------------------------------------------------------
 C
 C     SORT INTO ASCENDING ENERGY ORDER.
 C
 c-----------------------------------------------------------------------
       KXINS=NXINS
-      DO 830 I=2,NXINS
+      DO 840 I=2,NXINS
 C-----SELECT LARGEST REMAINING ENERGY.
       IBIG=1
       DO 820 J=2,KXINS
@@ -1729,79 +1777,82 @@ C-----MOVE TO END OF TABLE.
       MTINS(KXINS)=MTX
 C-----DECREMENT REMAINING TABLE SIZE.
   830 KXINS=KXINS-1
+  840 CONTINUE
 C-----PRINT MESSAGE IF NO POINTS TO INSERT.
-  840 IF(NXINS.LE.0) WRITE(OUTP,1110)
+  850 IF(NXINS.LE.0) WRITE(OUTP,1120)
 c-----------------------------------------------------------------------
 C
 C     END OF INPUT.
 C
 c-----------------------------------------------------------------------
-  850 WRITE(OUTP,1050)
-      WRITE(*   ,1050)
+  860 WRITE(OUTP,1060)
+      WRITE(*   ,1060)
       RETURN
-  860 FORMAT(' Test and Correct Data in the ENDF FORMAT',
-     1 ' (FIXUP 2019-1)'/1X,78('-')/
+  870 FORMAT(' Test and Correct Data in the ENDF FORMAT',
+     1 ' (FIXUP 2021-2)'/1X,78('-')/
      1 ' Interpretation of Input Test/Correction Options'/1X,78('-'))
-  870 FORMAT(1X,78('-')/' Input Summation/Deletion/Threshold',
+  880 FORMAT(1X,78('-')/' Input Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
-  880 FORMAT(1X,78('-')/' Built-in Summation/Deletion/Threshold',
+  890 FORMAT(1X,78('-')/' Built-in Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
-  890 FORMAT(
+  900 FORMAT(
      1 1X,78('-')/'  MT = MT Ranges and Messages'/1X,78('-'))
-  900 FORMAT(6X,1X,'(',I3,',',I3,')',' Delete')
-  910 FORMAT(1X,78('-')/' Neutrons - ENDF-5 and Earlier Versions of',
+  910 FORMAT(6X,1X,'(',I3,',',I3,')',' Delete')
+  920 FORMAT(1X,78('-')/' Neutrons - ENDF-5 and Earlier Versions of',
      1 ' ENDF'/1X,78('-'))
-  920 FORMAT(1X,78('-')/' Neutrons - ENDF-6'/1X,78('-'))
-  930 FORMAT(1X,78('-')/' Photons, Electrons and Positrons - ENDF-6'/
+  930 FORMAT(1X,78('-')/' Neutrons - ENDF-6'/1X,78('-'))
+  940 FORMAT(1X,78('-')/' Photons, Electrons and Positrons - ENDF-6'/
      1 1X,78('-'))
-  940 FORMAT(12X,'ERROR---Over 20 Deletion Requests.')
-  950 FORMAT(I4,' =',7(A1,'(',I3,',',I3,')')/
-     1 4X,3(A1,'(',I3,',',I3,')'))
-  960 FORMAT(I4,' = (',I3,'/',I3,') WARNING - Defining a Ratio')
-  970 FORMAT(I4,' = (',I3,'*',I3,') WARNING - Defining a Product')
-  980 FORMAT(12X,' 2 Different MT Numbers Required for Ratio or',
+  950 FORMAT(12X,'ERROR---Over 20 Deletion Requests.')
+  960 FORMAT(I4,' =',(6(A1,'(',I3,',',I3,')'))/
+     1           (6X, 6(A1,'(',I3,',',I3,')'))/
+     2           (6X, 6(A1,'(',I3,',',I3,')')))
+  970 FORMAT(I4,' = (',I3,'/',I3,') WARNING - Defining a Ratio')
+  980 FORMAT(I4,' = (',I3,'*',I3,') WARNING - Defining a Product')
+  990 FORMAT(12X,' 2 Different MT Numbers Required for Ratio or',
      1 ' Product')
-  990 FORMAT(12X,'ERROR---Input Deletions Not Allowed.')
- 1000 FORMAT(12X,'ERROR---Input Summations Not Allowed.')
- 1010 FORMAT(12X,'ERROR---MT MUST be Positive (Check Blank Common)')
- 1020 FORMAT(12X,'ERROR---MT and Number of Ranges MUST be Positive',
+ 1000 FORMAT(12X,'ERROR---Input Deletions Not Allowed.')
+ 1010 FORMAT(12X,'ERROR---Input Summations Not Allowed.')
+ 1020 FORMAT(12X,'ERROR---MT MUST be Positive (Check Blank Common)')
+ 1030 FORMAT(12X,'ERROR---MT and Number of Ranges MUST be Positive',
      1 ' (Check Blank Commen)')
- 1030 FORMAT(' ERRORS in Input Data---Execution Terminsted'/
+ 1040 FORMAT(' ERRORS in Input Data---Execution Terminated'/
      1 1X,78('-'))
- 1040 FORMAT(' ERRORS in Built-in Data---Execution Terminated'/
+ 1050 FORMAT(' ERRORS in Built-in Data---Execution Terminated'/
      1 1X,78('-'))
- 1050 FORMAT(1X,78('-'))
- 1060 FORMAT(12X,'ERROR---MT Range is Not in Ascending Order.')
- 1070 FORMAT(
+ 1060 FORMAT(1X,78('-'))
+ 1070 FORMAT(12X,'ERROR---MT Range is Not in Ascending Order.')
+ 1080 FORMAT(
      1 ' If Not Present the Following Sections will be Created'/
      2 1X,78('-')/
      3 10X,'C1',9X,'C2',9X,'L1',9X,'L2','  MAT  MT'/
      4 1X,78('-'))
- 1080 FORMAT(1X,22A1,2I11,I5,I4)
- 1090 FORMAT(1X,78('-')/' No Sections Will be Created')
- 1100 FORMAT(54X,' Duplicate MAT/MT Ignored')
- 1110 FORMAT(1X,78('-')/' No Energy Points Will be Inserted')
- 1120 FORMAT(1X,78('-')/
+ 1090 FORMAT(1X,22A1,2I11,I5,I4)
+ 1100 FORMAT(1X,78('-')/' No Sections Will be Created')
+ 1110 FORMAT(54X,' Duplicate MAT/MT Ignored')
+ 1120 FORMAT(1X,78('-')/' No Energy Points Will be Inserted')
+ 1130 FORMAT(1X,78('-')/
      1 ' If Not Present the Following Energies Will be Inserted'/
      2 1X,78('-')/
      3 '   Energy-eV   MAT    MT'/1X,78('-'))
- 1130 FORMAT(1X,11A1,2I6)
- 1140 FORMAT(' Correct ZA/AWR in All Sections----------',2X,A3)
- 1150 FORMAT(' Correct Thresholds----------------------',2X,A3,
+ 1140 FORMAT(1X,11A1,2I6)
+ 1150 FORMAT(' Correct ZA/AWR in All Sections----------',2X,A3,
+     1 ' (Required for ALL ENDF Data)')
+ 1160 FORMAT(' Correct Thresholds----------------------',2X,A3,
      1 ' (No Longer Allowed)')
- 1160 FORMAT(' Extend Cross Section to 20 MeV----------',2X,A3,
+ 1170 FORMAT(' Extend Cross Section to 20 MeV----------',2X,A3,
      1 ' (No Longer Allowed)')
- 1170 FORMAT(' Allow Cross Section Deletion------------',2X,A3,1X,5A4)
- 1180 FORMAT(' Allow Cross Section Reconstruction------',2X,A3,1X,5A4)
- 1190 FORMAT(' Make All Cross Sections Non-Negative----',2X,A3)
- 1200 FORMAT(' Delete Energies Not in Ascending Order--',2X,A3)
- 1210 FORMAT(' Delete Duplicate Points-----------------',2X,A3)
- 1220 FORMAT(' Check for Ascending MAT/MF/MT Order-----',2X,A3)
- 1230 FORMAT(' Check for Legal MF/MT Numbers-----------',2X,A3)
- 1240 FORMAT(' Allow Creation of Missing Sections------',2X,A3)
- 1250 FORMAT(' Allow Insertion of Energy Points--------',2X,A3)
- 1260 FORMAT(' Uniform Energy Grid for ALL MT----------',2X,A3)
- 1270 FORMAT(' Delete Section if Cross Section =0------',2X,A3)
+ 1180 FORMAT(' Allow Cross Section Deletion------------',2X,A3,1X,5A4)
+ 1190 FORMAT(' Allow Cross Section Reconstruction------',2X,A3,1X,5A4)
+ 1200 FORMAT(' Make All Cross Sections Non-Negative----',2X,A3)
+ 1210 FORMAT(' Delete Energies Not in Ascending Order--',2X,A3)
+ 1220 FORMAT(' Delete Duplicate Points-----------------',2X,A3)
+ 1230 FORMAT(' Check for Ascending MAT/MF/MT Order-----',2X,A3)
+ 1240 FORMAT(' Check for Legal MF/MT Numbers-----------',2X,A3)
+ 1250 FORMAT(' Allow Creation of Missing Sections------',2X,A3)
+ 1260 FORMAT(' Allow Insertion of Energy Points--------',2X,A3)
+ 1270 FORMAT(' Uniform Energy Grid for ALL MT----------',2X,A3)
+ 1280 FORMAT(' Delete Section if Cross Section =0------',2X,A3)
       END
       SUBROUTINE FILE1A
 C=======================================================================
@@ -1817,6 +1868,8 @@ C     ENDF-4  = N1 > N2 = 0, LINE COUNT (POSITIVE)
 C     ENDF-5  = N1 = N2 = 0
 C     ENDF-6  =      N2 = VERSION NUMBER (6 OR MORE)
 C
+C     First line has already been read.
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 PROGDOC1,YESX,NOX
@@ -1824,12 +1877,13 @@ C=======================================================================
       CHARACTER*66 PROGDOC
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OPS/IMOPS(14)
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
-      COMMON/SAVE5/MTRAN5(20),MTADD5(2,10,20)
-      COMMON/SAVEP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(2,10,10)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
+      COMMON/SAVE5/MTRAN5(20),MTADD5(2,15,20)
       COMMON/HOLFMT/FMTHOL(4)
       COMMON/TEMPO/TEMP1,TEMP3,IVERSE
       COMMON/PROJECT/AWI
+      COMMON/LISOCOM/LISO
       DIMENSION FMTTAB(4,3),PROGDOC(15),PROGDOC1(66,15),
      1 YESX(3),NOX(3)
       EQUIVALENCE (PROGDOC(1),PROGDOC1(1,1))
@@ -1850,7 +1904,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program FIXUP (Version 2019-1) ************',
+     1 ' ***************** Program FIXUP (Version 2021-2) ************',
      1 ' Corrected ZA/AWR in All Sections-----------------------------',
      2 ' Corrected Thresholds-----------------------------------------',
      3 ' Extended Cross Sections to 20 MeV----------------------------',
@@ -1872,15 +1926,22 @@ C-----FILL IN REMAINDER OF FIRST LINE.
       PROGDOC1(66,1) = '*'
 C-----SECTION HEAD LINE WAS READ IN MAIN. OUTPUT IT.
       CALL CONTOF
+c
+c     Read second line
+c
 C-----AND DETERMINE IF THIS IS THE ENDF-4, 5 OR 6 FORMAT.
       CALL CARDIF
       IVERSE=4
+      LISOX = L2        ! save potential target state number
 C-----CHECK FOR ENDF-4.
 C-----IV N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF-4. READ THIRD LINE.
       N2IN=N2
       CALL CARDOF
+c
+c     Read third line
+c
       CALL CARDIF
       IVERSE=5
 C-----CHECK FOR ENDF-5 FORMAT.
@@ -1891,69 +1952,80 @@ C-----3/20/2012 - ADDED AWI (INCIDENT PARTICLE) FOR THRESHOLLD TESTS.
       NSUB=N1
 C-----ENDF-6 FORMAT. READ FOURTH LINE.
       CALL CARDOF
+c
+c     Read third line
+c
       CALL CARDIF
       IVERSE=6
+      LISO = LISOX    ! Target state
 C-----DEFINE TEMPERATURE OF FILE 3 CROSS SECTIONS.
       TEMP3=C1
 C-----DESCRIBE ENDF FORMAT.
    10 II=IVERSE-3
       DO 20 I=1,4
-   20 FMTHOL(I)=FMTTAB(I,II)
+      FMTHOL(I)=FMTTAB(I,II)
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     IF NOT ENDF-6 FORMAT SWITCH TO ENDF-5 RECONSTRUCTION
 C     CONVENTIONS.
 C
 c-----------------------------------------------------------------------
-      IF(IVERSE.EQ.6.OR.IMOPS(5).NE.2) GO TO 50
-      DO 40 I=1,20
+      IF(IVERSE.EQ.6.OR.IMOPS(5).NE.2) GO TO 60
+      DO 50 I=1,20
       MTRANG(I)=MTRAN5(I)
-      DO 40 K=1,10
+      DO 40 K=1,15
       DO 30 J=1,2
-   30 MTADD(J,K,I)=MTADD5(J,K,I)
-   40 MTADD(3,K,I)=0
-      GO TO 90
+      MTADD(J,K,I)=MTADD5(J,K,I)
+   30 CONTINUE
+      MTADD(3,K,I)=0
+   40 CONTINUE
+   50 CONTINUE
+      GO TO 100
 c-----------------------------------------------------------------------
 C
 C     IF ENDF-6 PHOTONS CHANGE TO PHOTON RULES
 C
 c-----------------------------------------------------------------------
-   50 IF(NSUB.NE.3) GO TO 90
+   60 IF(NSUB.NE.3) GO TO 100
       MAKE=MAKEP
-      DO 80 I=1,MAKE
+      DO 90 I=1,MAKE
       MTMAKE(I)=MTMAKP(I)
       MTRANG(I)=MTRANP(I)
-      DO 70 K=1,10
-      DO 60 J=1,2
-   60 MTADD(J,K,I)=MTADDP(J,K,I)
-   70 MTADD(3,K,I)=0
+      DO 80 K=1,15
+      DO 70 J=1,2
+      MTADD(J,K,I)=MTADDP(J,K,I)
+   70 CONTINUE
+      MTADD(3,K,I)=0
    80 CONTINUE
+   90 CONTINUE
 C-----SAVE COMMENT LINE COUNT TO COPY LINES.
-   90 N1IN=N1
+  100 N1IN=N1
 C-----INCREASE COMMENT LINE COUNT TO ALLOW FOR PROGRAM IDENTIFICATION
 C-----AND DESCRIPTION OF ALL OPERATIONS
       N1=N1+15
 C-----INDICATE WHETHER OR NOT EACH OPERATION WAS PERFORMED (YES/NO).
       IP=1
-      DO 110 I=1,14
+      DO 120 I=1,14
       IP=IP+1
-      IF(IMOPS(I).LE.0) GO TO 100
+      IF(IMOPS(I).LE.0) GO TO 110
       PROGDOC1(63,IP)=YESX(1)
       PROGDOC1(64,IP)=YESX(2)
       PROGDOC1(65,IP)=YESX(3)
-      GO TO 110
-  100 PROGDOC1(63,IP)=NOX(1)
+      GO TO 120
+  110 PROGDOC1(63,IP)=NOX(1)
       PROGDOC1(64,IP)=NOX(2)
       PROGDOC1(65,IP)=NOX(3)
-  110 CONTINUE
+  120 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     OUTPUT LAST HEADER LINE AND COPY ALL COMMENT LINES.
 C
 c-----------------------------------------------------------------------
       CALL CARDOF
-      DO 120 N=1,N1IN
-  120 CALL COPY1
+      DO 130 N=1,N1IN
+      CALL COPY1
+  130 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ADD COMMENTS TO DEFINE WHAT WAS DONE TO DATA
@@ -2060,12 +2132,12 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
-      COMMON/SAVEP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(2,10,10)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
       COMMON/INMFH/MFHIN
 c-----2019/2/26 = upper energy and cross section limits for ALL MT
       INCLUDE 'fixup.h'
-      DIMENSION MTMAKS(20),MTRANS(20),MTADDS(2,10,20)
+      DIMENSION MTMAKS(20),MTRANS(20),MTADDS(2,15,20)
 c-----------------------------------------------------------------------
 C
 C     2019/2/26 - Initialize ALL MT upper limits
@@ -2079,26 +2151,29 @@ C     USE EITHER FILE 3 OR 23 RECONSTRUCTION RULES.
 C
 c-----------------------------------------------------------------------
       MFHIN=MFH
-      IF(MFHIN.EQ.3) GO TO 50
+      IF(MFHIN.EQ.3) GO TO 60
 C-----SAVE FILE 3 RULES AND USE FILE 23 RULES.
       MAKES=MAKE
-      DO 20 I=1,MAKE
+      DO 30 I=1,MAKE
       MTMAKS(I)=MTMAKE(I)
       MTRANS(I)=MTRANG(I)
-      DO 10 J=1,2
-      DO 10 K=1,10
-   10 MTADDS(J,K,I)=MTADD(J,K,I)
+      DO 20 J=1,2
+      DO 10 K=1,15
+      MTADDS(J,K,I)=MTADD(J,K,I)
+   10 CONTINUE
    20 CONTINUE
+   30 CONTINUE
       MAKE=MAKEP
-      DO 40 I=1,MAKE
+      DO 50 I=1,MAKE
       MTMAKE(I)=MTMAKP(I)
       MTRANG(I)=MTRANP(I)
-      DO 30 J=1,2
-      DO 30 K=1,10
-   30 MTADD(J,K,I)=MTADDP(J,K,I)
+      DO 40 J=1,2
+      DO 40 K=1,15
+      MTADD(J,K,I)=MTADDP(J,K,I)
    40 CONTINUE
+   50 CONTINUE
 C-----READ ALL SECTION, EDIT AND COPY TO SCRATCH FILE TAPEC.
-   50 CALL PASS1
+   60 CALL PASS1
 C-----IF REQUESTED, CREATE UNIFORM ENERGY GRID.
       CALL PASS2
 C-----DEFINE ALL SUM CROSS SECTIONS.
@@ -2106,17 +2181,19 @@ C-----DEFINE ALL SUM CROSS SECTIONS.
 C-----OUTPUT ALL SECTIONS TO NEW ENDF FORMATTED FILE.
       CALL PASS4
 C-----IF NECESSARY RESTORE FILE 3 RULES.
-      IF(MFHIN.EQ.3) GO TO 90
+      IF(MFHIN.EQ.3) GO TO 100
       MAKE=MAKES
-      DO 80 I=1,MAKE
+      DO 90 I=1,MAKE
       MTMAKE(I)=MTMAKS(I)
       MTRANG(I)=MTRANS(I)
-      DO 70 K=1,10
-      DO 60 J=1,2
-   60 MTADD(J,K,I)=MTADDS(J,K,I)
-   70 MTADD(3,K,I)=0
+      DO 80 K=1,15
+      DO 70 J=1,2
+      MTADD(J,K,I)=MTADDS(J,K,I)
+   70 CONTINUE
+      MTADD(3,K,I)=0
    80 CONTINUE
-   90 RETURN
+   90 CONTINUE
+  100 RETURN
       END
       SUBROUTINE PASS1
 C=======================================================================
@@ -2189,7 +2266,8 @@ C-----IF LAST SECTION WAS CREATED RESTORE HEADER LINE AND SKIP READ.
       C1H = C1HS
       C2H = C2HS
       DO 20 J=1,7
-   20 INCORE(J)=ISAVE(J)
+      INCORE(J)=ISAVE(J)
+   20 CONTINUE
       NSAVE=0
       GO TO 50
    30 NSAVE=0
@@ -2243,7 +2321,8 @@ C-----SAVE CURRENT HEADER LINE AND CREATE SECTION.
       C1HS = C1H
       C2HS = C2H
       DO 150 J=1,7
-  150 ISAVE(J)=INCORE(J)
+      ISAVE(J)=INCORE(J)
+  150 CONTINUE
       C1H=C1HTAB(I)
       C2H=C2HTAB(I)
       L1H=L1HTAB(I)
@@ -2532,7 +2611,8 @@ c-----------------------------------------------------------------------
       IF(MTH.LT.251.OR.MTH.GT.255) GO TO 20
 C-----SKIP PARAMETERS.
       DO 10 I=1,N2C,NPAGE
-   10 READ(ISCRC) XC,YC
+      READ(ISCRC) XC,YC
+   10 CONTINUE
       GO TO 140
 c-----------------------------------------------------------------------
 C
@@ -2548,7 +2628,8 @@ c-----------------------------------------------------------------------
       N2B=N2C
       DO 30 I=1,N2C,NPAGE
       READ(ISCRC) XC,YC
-   30 WRITE(ISCRB) XC
+      WRITE(ISCRB) XC
+   30 CONTINUE
       ENDFILE ISCRB
       GO TO 140
 c-----------------------------------------------------------------------
@@ -2589,7 +2670,8 @@ c-----------------------------------------------------------------------
    60 DO 70 I2B=1,I3B
       IF(XB(I2B).GE.XC(1)) GO TO 80
       I2A=I2A+1
-   70 XA(I2A)=XB(I2B)
+      XA(I2A)=XB(I2B)
+   70 CONTINUE
       I2B=I3B+1
 c-----------------------------------------------------------------------
 C
@@ -2685,7 +2767,8 @@ c-----------------------------------------------------------------------
 C-----COPY PARAMETERS.
       DO 150 I=1,N2C,NPAGE
       READ(ISCRC) XC,YC
-  150 WRITE(ISCRA) XC,YC
+      WRITE(ISCRA) XC,YC
+  150 CONTINUE
       GO TO 280
 c-----------------------------------------------------------------------
 C
@@ -2708,7 +2791,8 @@ c-----------------------------------------------------------------------
       IF(I2B.GT.N2BTOT) I2B=N2BTOT
       I3B=(I2B-I1B)+1
       IF(XB(I3B).GE.XC(1)) GO TO 180
-  170 N2B=N2B-I3B
+      N2B=N2B-I3B
+  170 CONTINUE
 C-----INITIALIZE INDICES.
   180 DO 190 I2B=1,I3B
       IF(XB(I2B).GE.XC(1)) GO TO 200
@@ -2815,7 +2899,7 @@ C=======================================================================
       COMMON/MTOLD/MTC,MTCX,N2TABC(1000),MTTABC(1000)
       COMMON/MTNEW/MTD,MTDX,N2TABD(20),MTTABD(20)
       COMMON/MTNEED/MTE,MTEX,N2TABE(20),MTTABE(20)
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
       COMMON/INMFH/MFHIN
       DIMENSION MTBOTH(2)
 C-----INITIALIZE COUNT OF SECTIONS RECONSTRUCTED AND FOR FUTURE USE.
@@ -3131,7 +3215,8 @@ c-----------------------------------------------------------------------
 C-----SKIP ORIGINAL DATA.
    70 IF(N2.LE.0) GO TO 90
       DO 80 J=1,N2,NPAGE
-   80 READ(ISCRC) XC,YC
+      READ(ISCRC) XC,YC
+   80 CONTINUE
 C-----DEFINE NEW POINT COUNT.
    90 N2=N2TABD(MTX)
       IF(IVERSE.EQ.6) GO TO 110
@@ -3296,7 +3381,8 @@ C-----SKIP SECTION.
       MTC=MTC+1
       IF(N2.LE.0) GO TO 10
       DO 40 I=1,N2,NPAGE
-   40 READ(ISCRC) XC,YC
+      READ(ISCRC) XC,YC
+   40 CONTINUE
       GO TO 10
 C-----INCREMENT INDEX TO INDICATE THAT NEXT READ WILL READ ONE SECTION.
    50 MTC=MTC+1
@@ -3326,7 +3412,8 @@ C-----SKIP SECTION.
       MTD=MTD+1
       IF(N2X.LE.0) GO TO 10
       DO 30 I=1,N2X,NPAGE
-   30 READ(ISCRD) XC,YC
+      READ(ISCRD) XC,YC
+   30 CONTINUE
       GO TO 10
 C-----INCREMENT INDEX TO INDICATE THAT NEXT READ WILL READ ONE SECTION.
    40 MTD=MTD+1
@@ -3356,7 +3443,8 @@ C-----SKIP SECTION.
       MTE=MTE+1
       IF(N2X.LE.0) GO TO 10
       DO 30 I=1,N2X,NPAGE
-   30 READ(ISCRC) XC,YC
+      READ(ISCRC) XC,YC
+   30 CONTINUE
       GO TO 10
 C-----INCREMENT INDEX TO INDICATE THAT NEXT READ WILL READ ONE SECTION.
    40 MTE=MTE+1
@@ -3371,7 +3459,7 @@ C     OTHERWISE RETURN =0 (NO REQUIRED).
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
       COMMON/WAITER/WEIGHT
       COMMON/OHRATS/MYRATS
 C-----SET UP LOOP OVER REQUESTS.
@@ -3605,14 +3693,17 @@ c-----2019/2/26 - Savec MT limit X and Y limikts
 C-----INITIALIZE LAST POINT TO ZERO ENERGY AND CROSS SECTION.
       XALAST=0.0d0
       YALAST=0.0d0
-C-----DEFINE FIRST POINT AT OR ABOVE THRESHOLD.
+C-----DEFINE FIRST POINT
       XANOW=XA(I2A)
       YANOW=YA(I2A)
 c-----------------------------------------------------------------------
 C
-C     2019/3/6 - THRESHOLD REACTION TREATMENT NO LONGER ALLOWED
+C     2020/2/2 - THRESHOLD REACTION TREATMENT NO LONGER ALLOWED
 C
 c-----------------------------------------------------------------------
+c-----2019/10/31 - Added to ALWAYS accept first point, bypassing the
+C-----             previous Threshold Treatment, no longer allowed.
+      go to 50
 C-----INCREMENT POINT INDEX AND SAVE LAST POINT VALUES.
    10 I2A=I2A+1
       XALAST=XANOW
@@ -3875,7 +3966,8 @@ C-----DEFINE POINT COUNT.
 C-----COPY POINTS FROM CORE TO A.
       DO 10 I=1,N2A
       XA(I)=XCORE(I)
-   10 YA(I)=YCORE(I)
+      YA(I)=YCORE(I)
+   10 CONTINUE
       WRITE(OUTP,30) MFCORE,MTCORE,N2CORE,N2A
    20 RETURN
    30 FORMAT(I3,I4,2I9)
@@ -3918,7 +4010,8 @@ C-----SUBTRACT = -1.0).
       IF(II.GT.N2A) II=N2A
       III=(II-I)+1
       DO 10 J=1,III
-   10 YA(J)=WEIGHT*YA(J)
+      YA(J)=WEIGHT*YA(J)
+   10 CONTINUE
    20 IF(N2A.LE.NPAGE) GO TO 40
       WRITE(ISCRA) XA,YA
    30 CONTINUE
@@ -4008,7 +4101,8 @@ C-----IF PARTIAL SUMMATION COPY A TO B.
       IF(ISCRX.NE.ISCRB) GO TO 20
       DO 10 I=1,N2A
       XB(I)=XA(I)
-   10 YB(I)=YA(I)
+      YB(I)=YA(I)
+   10 CONTINUE
       GO TO 50
    20 WRITE(ISCRX) XA,YA
       GO TO 60
@@ -4016,7 +4110,8 @@ C-----IF PARTIAL SUMMATION REWIND ISCRB BEFORE WRITE.
    30 IF(ISCRX.EQ.ISCRB) REWIND ISCRB
       DO 40 I=1,N2A,NPAGE
       READ(ISCRA) XA,YA
-   40 WRITE(ISCRX) XA,YA
+      WRITE(ISCRX) XA,YA
+   40 CONTINUE
 C-----IF PARTIAL SUMMATION END FILE AND REWIND ISCRB.
       IF(ISCRX.NE.ISCRB) GO TO 60
       END FILE ISCRB
@@ -4068,11 +4163,13 @@ C-----MERGE DATA INTO MT ORDER.
 C-----COPY DATA FROM E TO B.
       DO 10 I=1,N2X,NPAGE
       READ(ISCRE) XB,YB
-   10 WRITE(ISCRB) XB,YB
+      WRITE(ISCRB) XB,YB
+   10 CONTINUE
 C-----SAVE INFORMATION FOR SECTION.
       MTXX=MTXX+1
       MTTABX(MTXX)=MTX
-   20 N2TABX(MTXX)=N2X
+      N2TABX(MTXX)=N2X
+   20 CONTINUE
 C-----ALL DATA FROM E HAS BEEN MERGED AND DATA FROM A HAS NOT YET BEEN
 C-----MERGED. SET INDEX TO INDICATE NO MORE SECTIONS ON E AND COPY A
 C-----TO B.
@@ -4081,7 +4178,8 @@ C-----TO B.
 C-----SAME MT NUMBER ON E AND A. SKIP SECTION ON E AND USE LATEST
 C-----RECONSTRUCTED SECTION FROM B.
    30 DO 40 I=1,N2X,NPAGE
-   40 READ(ISCRE) XB,YB
+      READ(ISCRE) XB,YB
+   40 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     COPY A TO B.
@@ -4093,7 +4191,8 @@ c-----------------------------------------------------------------------
    60 REWIND ISCRA
       DO 70 I=1,N2A,NPAGE
       READ(ISCRA) XA,YA
-   70 WRITE(ISCRB) XA,YA
+      WRITE(ISCRB) XA,YA
+   70 CONTINUE
 C-----SAVE INFORMATION FOR SECTION.
    80 MTXX=MTXX+1
       MTTABX(MTXX)=MTA
@@ -4109,11 +4208,13 @@ c-----------------------------------------------------------------------
       N2X=N2TABE(M)
       DO 90 I=1,N2X,NPAGE
       READ(ISCRE) XB,YB
-   90 WRITE(ISCRB) XB,YB
+      WRITE(ISCRB) XB,YB
+   90 CONTINUE
 C-----SAVE INFORMATION FOR SECTION.
       MTXX=MTXX+1
       MTTABX(MTXX)=MTTABE(M)
-  100 N2TABX(MTXX)=N2X
+      N2TABX(MTXX)=N2X
+  100 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ALL SECTIONS HAVE BEEN MERGED IN MT ORDER TO B.
@@ -4130,7 +4231,8 @@ C-----DEFINE NUMBER OF SECTIONS AND MT/N2 FOR ALL SECTIONS ON B.
       MTEX=MTXX
       DO 120 I=1,MTEX
       MTTABE(I)=MTTABX(I)
-  120 N2TABE(I)=N2TABX(I)
+      N2TABE(I)=N2TABX(I)
+  120 CONTINUE
 C-----SET INDEX TO INDICATE THAT E HAS BEEN REWOUND.
       MTE=1
       RETURN
@@ -4171,7 +4273,7 @@ C-----SET FLAG TO INDICATE FIRST PAGE IS ALREADY IN CORE.
       DO 10 IP1=1,N2
       IF(YA(IP1).NE.0.0d0) GO TO 20
    10 CONTINUE
-      WRITE(OUTP,70)
+      WRITE(OUTP,80)
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -4212,7 +4314,7 @@ C-----OUTPUT SECTION LEADER LINE.
 C-----OUTPUT INTERPOLATION LAW AS LINEAR-LINEAR.
       CALL TERPO(NBTO,INTO,N1)
 C-----SET UP LOOP OVER PAGES OF DATA.
-      DO 40 IP1=1,N2,NPAGE
+      DO 50 IP1=1,N2,NPAGE
       IP2=IP1+NPAGEM1
       IF(IP2.GT.N2) IP2=N2
       ICORE=(IP2-IP1)+1
@@ -4220,29 +4322,31 @@ C-----FIRST PAGE MAY HAVE ALREADY BEEN LOADED ABOVE.
       IF(IMLOAD.LE.0) READ(ISCRX) XA,YA
       IMLOAD=0
 C-----TEST ENERGY ORDER.
-      DO 30 I=1,ICORE
+      DO 40 I=1,ICORE
       IF(XA(I).GE.ELAST) GO TO 30
       CALL OUT9(ELAST,FIELD6(1,1))
       CALL OUT9(XA(I),FIELD6(1,2))
-      WRITE(OUTP,50) ((FIELD6(M,J),M=1,11),J=1,2)
+      WRITE(OUTP,60) ((FIELD6(M,J),M=1,11),J=1,2)
    30 ELAST=XA(I)
+   40 CONTINUE
 C-----OUTPUT A PAGE OF POINTS.
-   40 CALL POINTO(XA,YA,ICORE)
+      CALL POINTO(XA,YA,ICORE)
+   50 CONTINUE
 C-----OUTPUT SEND LINE.
       CALL OUTSF
 C-----PRINT MESSAGE IF ANY CROSS SECTIONS ARE NEGATIVE.
-      IF(MINUS3.GT.0) WRITE(OUTP,60) MINUS3
+      IF(MINUS3.GT.0) WRITE(OUTP,70) MINUS3
 C-----PRINT MESSAGE IF CROSS SECTIONS IS NOT POSITIVE AT ANY ENERGY.
-      IF(IMPLUS.LE.0) WRITE(OUTP,80)
+      IF(IMPLUS.LE.0) WRITE(OUTP,90)
       RETURN
-   50 FORMAT(39X,' ERROR...Last Point E=',11A1,' eV'/
+   60 FORMAT(39X,' ERROR...Last Point E=',11A1,' eV'/
      1       39X,'         Next Point E=',11A1,' eV'/
      1       39X,'         Energy Order ERROR')
-   60 FORMAT(39X,' WARNING...Above Cross Section is Negative at',
+   70 FORMAT(39X,' WARNING...Above Cross Section is Negative at',
      1       39X,'          ',I6,' Energies')
-   70 FORMAT(39X,' WARNING...Cross Section = 0 at All'/
+   80 FORMAT(39X,' WARNING...Cross Section = 0 at All'/
      1       39X,'           Energies. Section Deleted')
-   80 FORMAT(39X,' WARNING...Cross Section is Not Positive'/
+   90 FORMAT(39X,' WARNING...Cross Section is Not Positive'/
      1       39X,'           at Any Energies. Section Output')
       END
       SUBROUTINE CONTIF
@@ -4675,19 +4779,19 @@ C     DEFINE BUILT-IN SUMMATION/DELETION/THRESHOLD EXCLUSION TABLES.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/MAKER/MAKE,MTMAKE(20),MTRANG(20),MTADD(3,10,20)
-      COMMON/SAVE5/MTRAN5(20),MTADD5(2,10,20)
-      COMMON/SAVE6/MTRAN6(20),MTADD6(2,10,20)
-      COMMON/SAVEP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(2,10,10)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
+      COMMON/SAVE5/MTRAN5(20),MTADD5(2,15,20)
+      COMMON/SAVE6/MTRAN6(20),MTADD6(2,15,20)
       COMMON/DELETE/IDEL,MTDEL(2,20)
-      DIMENSION              MTMAKX(20),MTADD5X(2,10,13),
-     1 MTADD6X(2,10,13),MTDELX(2,20),MTMAPX(10),MTADPX(2,10,4)
+      DIMENSION MTMAKX(20),MTADD5X(2,15,20),MTADD6X(2,15,20),
+     1 MTDELX(2,20),MTMAPX(10),MTADPX(2,15,10)
 C-----------------------------------------------------------------------
 C
 C     DEFINE TABLE OF RANGES OF MT NUMBERS WHOSE THRESHOLD SHOULD NOT
 C     BE CHANGED.
 C
-c     2019/3/6 - Threshold Correction no longer allowed
+c     2020/2/2 - Threshold Correction no longer allowed
 C
 C     AT PRESENT THE REACTIONS EXCLUDED FROM THRESHOLD CORRECTION ARE,
 C     (1) THE TOTAL CROSS SECTION (MT=1)
@@ -4707,7 +4811,9 @@ C     ANY PRESENT NO REACTIONS ARE DELETED.
 C
 c-----------------------------------------------------------------------
       DATA MTDELX/
-     1 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+c-----2021/3/25 - Added MT=3 = Nonelastic
+c-----MYDELX = 2 X 20
+     1 3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
      2 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0/
 C-----------------------------------------------------------------------
 C
@@ -4794,27 +4900,56 @@ C
 C-----------------------------------------------------------------------
 C-----2007/5/6 - ADDED MT=16 TO SUMS = 875 THROUGH 891
       DATA MTMAKX/
-     1 4,103,104,105,106,107, 16,101,18,27,3,19,1,0,0,0,0,0,0,0/
-C      1  2   3   4   5   6    7  8   9  A 1  2 3
+     1 4,103,104,105,106,107, 16, 27, 19, 3, 1, 0,0,0,0,0,0,0,0,0/
+C      1   2   3   4   5   6   7   8   9  A  1  2 3 4 5 6 7 8 9 10
 C-----------------------------------------------------------------------
 C
 C     ENDF-5 AND EARLIER VERSIONS OF ENDF
 C
 c-----------------------------------------------------------------------
       DATA MTADD5X/
-     1  51, 91,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     2 700,718,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     3 720,738,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     4 740,758,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     5 760,778,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     6 780,798,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     7 875,891,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     8 102,114,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     9  19, 19, 20, 21, 38, 38,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     A  18, 18,101,101,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     1   4,  5,  6,  9, 16, 17, 22, 37,0,0,0,0,0,0,0,0,0,0,0,0,
-     2  18, 18,-20,-21,-38,-38,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0,
-     3   2,  3,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,0,0/
+c            1       2       3       4       5   6   7   8   9  10
+c                                               11  12  13  14  15
+     1  51, 91,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     1                                         0,0,0,0,0,0,0,0,0,0,
+     2 700,718,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     2                                         0,0,0,0,0,0,0,0,0,0,
+     3 720,738,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     3                                         0,0,0,0,0,0,0,0,0,0,
+     4 740,758,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     4                                         0,0,0,0,0,0,0,0,0,0,
+     5 760,778,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     5                                         0,0,0,0,0,0,0,0,0,0,
+     6 780,798,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     6                                         0,0,0,0,0,0,0,0,0,0,
+     7 875,891,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     7                                         0,0,0,0,0,0,0,0,0,0,
+     8  18, 18,101,101,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     8                                         0,0,0,0,0,0,0,0,0,0,
+     9  18, 18,-20,-21,-38,-38,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     9                                         0,0,0,0,0,0,0,0,0,0,
+     A   4,  5,  6,  9, 16, 17, 22, 37,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     A                                         0,0,0,0,0,0,0,0,0,0,
+     1   2,  3,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     1                                         0,0,0,0,0,0,0,0,0,0,
+     2   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     2                                         0,0,0,0,0,0,0,0,0,0,
+     3   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     3                                         0,0,0,0,0,0,0,0,0,0,
+     4   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     4                                         0,0,0,0,0,0,0,0,0,0,
+     5   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     5                                         0,0,0,0,0,0,0,0,0,0,
+     6   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     6                                         0,0,0,0,0,0,0,0,0,0,
+     7   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     7                                         0,0,0,0,0,0,0,0,0,0,
+     8   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     8                                         0,0,0,0,0,0,0,0,0,0,
+     9   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     9                                         0,0,0,0,0,0,0,0,0,0,
+     A   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     A                                         0,0,0,0,0,0,0,0,0,0/
 C-----------------------------------------------------------------------
 C
 C     ENDF-6
@@ -4822,21 +4957,59 @@ C
 c-----------------------------------------------------------------------
 c-----Note - corrected dedfinition of MF=3, not to include MT=18,
 c            since it is already included in MT=27.
+c-----MTADD6X = 2 X 15 X 20
       DATA MTADD6X/
+c            1       2       3       4       5   6   7   8   9  10
+c                                               11  12  13  14  15
      1  50, 91,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     1                                         0,0,0,0,0,0,0,0,0,0,
      2 600,649,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     2                                         0,0,0,0,0,0,0,0,0,0,
      3 650,699,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     3                                         0,0,0,0,0,0,0,0,0,0,
      4 700,749,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     4                                         0,0,0,0,0,0,0,0,0,0,
      5 750,799,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     5                                         0,0,0,0,0,0,0,0,0,0,
      6 800,849,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     6                                         0,0,0,0,0,0,0,0,0,0,
      7 875,891,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
-     8 102,117,155,155,182,182,191,193,197,197,0,0,0,0,0,0,0,0,0,0,
-     9  19, 21, 38, 38,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
-     A  18, 18,101,101,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
-     1   4,  5, 11, 11, 16, 17, 22, 37, 41, 45,
-     1 152,154,156,181,183,190,194,196,198,200,
-     2  18, 18,-20,-21,-38,-38,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
-     3   2,  3,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0/
+     7                                         0,0,0,0,0,0,0,0,0,0,
+c-----(n, disppearance) = no n out
+c            1       2       3       4       5       6
+     8 102,109,111,117,155,155,182,182,191,193,197,197,
+c      *** ***                   7   8   9  10  11  12  13  14  15
+     8                         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+     9  18, 18,-20,-21,-38,-38,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+c      *** ***
+     9                                         0,0,0,0,0,0,0,0,0,0,
+c            1       2       3       4       5       6       7
+     A   4,  5, 11, 11, 16, 18, 22, 25, 27, 30, 32, 37, 41, 42,
+c                          ***
+c    A       8       9      10      11      12      13  14  15
+     A  44, 45,152,154,156,181,183,190,194,196,198,200,0,0,0,0,
+c    A  44, 45,103,107,152,154,156,181,183,190,194,196,198,200,0,0,
+c              *** ***
+     1   2,  3,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     1                                         0,0,0,0,0,0,0,0,0,0,
+     2   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     2                                         0,0,0,0,0,0,0,0,0,0,
+     3   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     3                                         0,0,0,0,0,0,0,0,0,0,
+     4   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     4                                         0,0,0,0,0,0,0,0,0,0,
+     5   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     5                                         0,0,0,0,0,0,0,0,0,0,
+     6   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     6                                         0,0,0,0,0,0,0,0,0,0,
+     7   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     7                                         0,0,0,0,0,0,0,0,0,0,
+     8   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     8                                         0,0,0,0,0,0,0,0,0,0,
+     9   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     9                                         0,0,0,0,0,0,0,0,0,0,
+     A   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     A                                         0,0,0,0,0,0,0,0,0,0/
 C-----------------------------------------------------------------------
 C
 C     ENDF-6 PHOTONS and ELECTRONS
@@ -4853,11 +5026,30 @@ c-----------------------------------------------------------------------
 c                 tot   tot     tot
 c                 pair  ion
 c-----Use these MTs to define above SUMS
+c     MTAPPX = 2 X 15 X 10
       DATA MTADPX/
+c            1       2       3       4       5   6   7   8   9  10
      1 515,515,517,517,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+c                                               11  12  13  14  15
+     1                                         0,0,0,0,0,0,0,0,0,0,
      2 534,572,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     2                                         0,0,0,0,0,0,0,0,0,0,
      3 502,502,504,504,516,516,522,522,526,528,0,0,0,0,0,0,0,0,0,0,
-     4   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0/
+     3                                         0,0,0,0,0,0,0,0,0,0,
+     4   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     4                                         0,0,0,0,0,0,0,0,0,0,
+     5   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     5                                         0,0,0,0,0,0,0,0,0,0,
+     6   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     6                                         0,0,0,0,0,0,0,0,0,0,
+     7   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     7                                         0,0,0,0,0,0,0,0,0,0,
+     8   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     8                                         0,0,0,0,0,0,0,0,0,0,
+     9   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     9                                         0,0,0,0,0,0,0,0,0,0,
+     A   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
+     A                                         0,0,0,0,0,0,0,0,0,0/
 c      coh     incoh   tot     ion     scat,brem,excit
 c                      pair    tot
 c     ---- PHOTON---------- --BOTH---- ---ELECTRONS-----
@@ -4879,7 +5071,8 @@ C-----------------------------------------------------------------------
    20 IF(IDEL.LE.0) GO TO 40
       DO 30 I=1,IDEL
       MTDEL(1,I)=MTDELX(1,I)
-   30 MTDEL(2,I)=MTDELX(2,I)
+      MTDEL(2,I)=MTDELX(2,I)
+   30 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     MT NUMBERS TO DEFINE BY SUMMATION.
@@ -4890,7 +5083,7 @@ C-----------------------------------------------------------------------
       IF(MTMAKX(MAKE).GT.0) GO TO 60
    50 CONTINUE
       MAKE = 0
-   60 IF(MAKE.LE.0) GO TO 140
+   60 IF(MAKE.LE.0) GO TO 160
 C-----------------------------------------------------------------------
 C
 C     INTIALIZE RECONSTRUCTION RULES TO ENDF-6 CONVENTIONS.
@@ -4905,62 +5098,68 @@ C     ENDF-5
 C
 C-----------------------------------------------------------------------
 C-----02/26/03 - COUNT NUMBER OF MT RANGES USED FOR SUMMATION
-      DO 80 I=1,MAKE
-      DO 70 K=10,1,-1
+      DO 90 I=1,MAKE
+      DO 70 K=15,1,-1
       IF(MTADD5X(2,K,I).NE.0) GO TO 80
    70 CONTINUE
       K = 0
    80 MTRAN5(I) = K
+   90 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     ENDF-6
 C
 C-----------------------------------------------------------------------
 C-----02/26/03 - COUNT NUMBER OF MT RANGES USED FOR SUMMATION
-      DO 100 I=1,MAKE
-      DO 90 K=10,1,-1
-      IF(MTADD6X(2,K,I).NE.0) GO TO 100
-   90 CONTINUE
+      DO 120 I=1,MAKE
+      DO 100 K=15,1,-1
+      IF(MTADD6X(2,K,I).NE.0) GO TO 110
+  100 CONTINUE
       K = 0
-  100 MTRAN6(I) = K
+  110 MTRAN6(I) = K
+  120 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     LOAD RULES FOR NEUTRONS
 C
 C-----------------------------------------------------------------------
-      DO 130 I=1,MAKE
+      DO 150 I=1,MAKE
       MTMAKE(I)=MTMAKX(I)
       MTRANG(I)=MTRAN6(I)
-      DO 120 K=1,10
-      DO 110 J=1,2
+      DO 140 K=1,15
+      DO 130 J=1,2
       MTADD (J,K,I)=MTADD6X(J,K,I)
       MTADD5(J,K,I)=MTADD5X(J,K,I)
-  110 MTADD6(J,K,I)=MTADD6X(J,K,I)
-  120 MTADD (3,K,I)=0
+      MTADD6(J,K,I)=MTADD6X(J,K,I)
   130 CONTINUE
+      MTADD (3,K,I)=0
+  140 CONTINUE
+  150 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     ENDF-6 PHOTONS
 C
 C-----02/26/03 - COUNT MT NUMBERS OF BE DEFINED BY SUMMATION
 C-----------------------------------------------------------------------
-  140 DO 150 MAKEP=10,1,-1
-      IF(MTMAPX(MAKEP).GT.0) GO TO 160
-  150 CONTINUE
+  160 DO 170 MAKEP=10,1,-1
+      IF(MTMAPX(MAKEP).GT.0) GO TO 180
+  170 CONTINUE
       MAKEP = 0
-  160 IF(MAKEP.LE.0) RETURN
-      DO 200 I=1,MAKEP
+  180 IF(MAKEP.LE.0) RETURN
+      DO 230 I=1,MAKEP
       MTMAKP(I)=MTMAPX(I)
 C-----02/26/03 - COUNT NUMBER OF MT RANGES USED FOR SUMMATION
-      DO 170 K=10,1,-1
-      IF(MTADPX(2,K,I).NE.0) GO TO 180
-  170 CONTINUE
+      DO 190 K=15,1,-1
+      IF(MTADPX(2,K,I).NE.0) GO TO 200
+  190 CONTINUE
       K = 0
-  180 MTRANP(I) = K
-      DO 190 J=1,2
-      DO 190 L=1,10
-  190 MTADDP(J,L,I)=MTADPX(J,L,I)
-  200 CONTINUE
+  200 MTRANP(I) = K
+      DO 220 J=1,2
+      DO 210 L=1,10
+      MTADDP(J,L,I)=MTADPX(J,L,I)
+  210 CONTINUE
+  220 CONTINUE
+  230 CONTINUE
       RETURN
       END
       SUBROUTINE SCANER(LINEIN,MTI,ITYPE,MTREAD,KRANGE)
@@ -4973,9 +5172,9 @@ C     BY AN MT NUMBER - OR IT MAY CONTAIN A CHARACTER (D) FOLLOWED
 C     BY BLANKS.
 C      ITYPE = 0 - S OR BLANK = SUM (OR DIFFERENCES)
 C            = 1 - D = DELETE
-c***** 2019/3/3 - NO LONGER ALLOWED
+c***** 2020/2/2 - NO LONGER ALLOWED
 C            = 2 - T = NO THRESHOLD ENERGY CORRECTIONS
-c***** 2019/3/3 - NO LONGER ALLOWED
+c***** 2020/2/2 - NO LONGER ALLOWED
 C            = 3 - R = RATIO
 C            = 4 - * = PRODUCT
 C
@@ -5013,7 +5212,7 @@ C-----TYPE CHARACTER FOUND.
    20 ITYPE=IT-1
 c-----------------------------------------------------------------------
 c
-c     2019/3/1 - Threshold Correction no longer allowed.
+c     2020/2/2 - Threshold Correction no longer allowed.
 c
 c-----------------------------------------------------------------------
       if(ITYPE.eq.2) then
@@ -5135,3 +5334,233 @@ C=======================================================================
    20 ISTAT2 = 1
       RETURN
       END
+      SUBROUTINE MTREADIN
+C=======================================================================
+C
+C     READ TABLE OF MT DEFINITIONS.
+C
+c     Only use ENDF-8 - ENDF/B-VIII - Definitions
+C     MTTABB(I,..), I = 1 = 1 = MT used/0 = No used
+C                     = 2 = # of times Used as SUM result
+C                     = 3 = # of times used IN SUM
+C                     = 4 = Exempt
+C                     = 5
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      CHARACTER*40 MTTABA,MTTABIN
+c-----01/18/11 - increased dimension from 200 to 1,000
+      COMMON/MTDAT1/MTTABA(1000)
+      COMMON/MTDAT2/MTTABB(5,1000)
+C-----Initialize
+      do i=1,1000
+      MTTABA(i) = '   '
+      do j=1,5
+      MTTABB(j,i) = 0
+      enddo
+      enddo
+c-----------------------------------------------------------------------
+c
+c     Define EXEMPT MT = not not be included in SUMs
+c
+c-----------------------------------------------------------------------
+      MTTABB(4,  1) = 1   ! Total                   never used in sum
+      MTTABB(4, 10) = 1   ! Total Continuum
+      MTTABB(4, 18) = 1   ! Fission  (difference & final sum)
+      MTTABB(4, 19) = 1   ! First Chance Fission (defined, not usd)
+      MTTABB(4,101) = 1   ! Neutron Disapearance
+      MTTABB(4,151) = 1   ! Resonance Parameters
+      do j=201,218        ! Particle Production
+      MTTABB(4,j)   = 1
+      enddo
+      MTTABB(4,222) = 1   ! Thermal Scatter
+      do j=251,255        ! Parameters, e.g., <mu>
+      MTTABB(4,j)   = 1
+      enddo
+      do j=301,452        ! Kerma & DPA &....
+      MTTABB(4,j)   = 1
+      enddo
+      do j=454,460        ! <nu>....
+      MTTABB(4,j)   = 1
+      enddo
+      MTTABB(4,500) = 1   ! C.P. Stopping Power
+      MTTABB(4,501) = 1   ! Total ?????????
+      MTTABB(4,505) = 1   ! I Anomylous
+      MTTABB(4,506) = 1   ! R Anomylous
+      MTTABB(4,523) = 1   ! Excitation              Electron - Add
+      MTTABB(4,525) = 1   ! Large Angle
+      MTTABB(4,533) = 1   ! Relaxation
+      do j=851,870        ! Covariance
+      MTTABB(4,j)   = 1
+      enddo
+C-----------------------------------------------------------------------
+c
+c     Open and Read ALL MT.DAT
+c
+C-----------------------------------------------------------------------
+      open(9,file='MT.DAT',status='OLD',err=40)
+C-----SET UP LOOP TO READ MT DEFINITIONS (NOW UP TO 1,000).
+      DO 20 I=1,1000
+      READ(9,10,END=30) MTIN1,MTIN2,MTTABIN
+   10 FORMAT(2I4,9X,A40)
+      if(MTIN1.le.0) go to 20
+      do j=MTIN1,MTIN2
+      MTTABB(1,j) = 1
+      MTTABA(j) = MTTABIN
+      enddo
+   20 CONTINUE
+c-----Finished with MT.DAT
+   30 CLOSE(9)
+      RETURN
+C-----------------------------------------------------------------------
+c
+c     ERROR opening file
+c
+C-----------------------------------------------------------------------
+   40 write(*,50)
+   50 format(' ERROR...Opening MT.DAT = MT Definitions.'/
+     1       '         EXECUTION TERMINATED')
+      STOP
+      END
+      SUBROUTINE MTCHEK
+C=======================================================================
+C
+C     CHECK Deletion & Summation Rules
+C
+c     Only use ENDF-8 - ENDF/B-VIII - Definitions
+C     MTTABB(I,..), I = 1 = 1 = MT used/0 = No used
+C                     = 2 = # of times Used as SUM result
+C                     = 3 = # of times used IN SUM
+C                     = 4 + Exempt
+C                     = 5
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      CHARACTER*40 MTTABA,MTTABIN
+c-----01/18/11 - increased dimension from 200 to 1,000
+      COMMON/MTDAT1/MTTABA(1000)
+      COMMON/MTDAT2/MTTABB(5,1000)
+      COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
+      COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
+      COMMON/DELETE/IDEL,MTDEL(2,20)
+      COMMON/OPS/IMOPS(14)
+c-----------------------------------------------------------------------
+c
+c     IMOPS(4) = Check DELETIONS
+c
+c-----------------------------------------------------------------------
+c-----2021-2 = Only check if using built-in tables
+      if(IMOPS(4).ne.2) go to 20
+      if(IDEL.le.0) go to 20
+      do 12 i=1,IDEL
+      jj1 = MTDEL(1,i)
+      jj2 = MTDEL(2,i)
+      do 11 j=jj1,jj2
+      if(MTTABB(1,j).gt.0) go to 11
+      write(*,10) j
+      write(3,10) j
+   10 format(' WARNING...MT=',i5,' Not Defined for DELETION')
+   11 continue
+   12 continue
+c-----------------------------------------------------------------------
+c
+c     IMOPS(5) = Check NEUTRON SUMS
+c
+c-----------------------------------------------------------------------
+c-----2021-2 = Only check if using built-in tables
+   20 if(IMOPS(5).ne.2) go to 100
+      if(MAKE.le.0) go to 40
+      do 35 i=1,MAKE
+c-----Sum
+      MTUSE = MTMAKE(i)
+      MTTABB(2,MTUSE) = MTTABB(2,MTUSE) + 1      ! Used AS SUM
+      if(MTTABB(1,MTUSE).gt.0) go to 31
+      write(*,30) MTUSE
+      write(3,30) MTUSE
+   30 format(' WARING...MT=',i5,' Not Defined for Neutron SUMMATION')
+c-----Parts
+   31 do 34 k=1,15
+      jj1 = IABS(MTADD(1,k,i))     ! Allow for subtraction
+      jj2 = IABS(MTADD(2,k,i))
+      if(jj1.le.0) go to 35
+      do 33 j=jj1,jj2
+      if(MTTABB(4,j).gt.0) go to 33              ! NOT exempt
+      MTUSE = j
+      MTTABB(3,MTUSE) = MTTABB(3,MTUSE) + 1      ! Used IN SUM
+      if(MTTABB(3,MTUSE).gt.1) then
+      write(*,7774) k,j,MTTABB(3,MTUSE)
+ 7774 format(' k/j/#=',3i5,' #1 neutrons')
+      endif
+      if(MTTABB(1,MTUSE).gt.0) go to 33
+      write(*,30) MTUSE
+      write(3,30) MTUSE
+   33 continue
+   34 continue
+   35 continue
+c-----------------------------------------------------------------------
+c
+c     Check PHOTON SUMS
+c
+c-----------------------------------------------------------------------
+   40 if(MAKEP.le.0) go to 60
+      do 55 i=1,MAKEP
+c-----Sum
+      MTUSE = MTMAKP(i)
+      MTTABB(2,MTUSE) = MTTABB(2,MTUSE) + 1      ! Used AS SUM
+      if(MTTABB(1,MTUSE).gt.0) go to 51
+      write(*,50) MTUSE
+      write(3,50) MTUSE
+   50 format(' WARNING...MT=',i5,' Not Defined for Photon SUMMATION')
+c-----Parts
+   51 do 54 k=1,10
+      jj1 = IABS(MTADDP(1,k,i))   ! Allow for subtraction
+      jj2 = IABS(MTADDP(2,k,i))
+      if(jj1.le.0) go to 55
+      do 53 j=jj1,jj2
+      if(MTTABB(4,j).gt.0) go to 53              ! NOT exempt
+      MTUSE = j
+      MTTABB(3,MTUSE) = MTTABB(3,MTUSE) + 1      ! Used IN SUM
+      if(MTTABB(3,MTUSE).gt.1) then
+      write(*,7773) k,j,MTTABB(3,MTUSE)
+ 7773 format(' k/j/#=',3i5,' #2 photons')
+      endif
+      if(MTTABB(1,MTUSE).gt.0) go to 53
+      write(*,50) MTUSE
+      write(3,50) MTUSE
+   53 continue
+   54 continue
+   55 continue
+c-----------------------------------------------------------------------
+C
+C     Check for Unused MT
+c
+c-----------------------------------------------------------------------
+   60 do 65 i=1,1000
+      if(MTTABB(4,i).gt.0) go to 65              ! NOT exempt
+      if(MTTABB(1,i).le.0) go to 65
+      if(MTTABB(3,i).le.0) then
+      write(3,62) i,MTTABA(i)
+      write(*,62) i,MTTABA(i)
+   62 format(' WARNING...MT=',i5,1x,a40,' Not Used in SUMMATION')
+      endif
+   65 continue
+c-----------------------------------------------------------------------
+C
+C     Check for Used MT more than once
+c
+c-----------------------------------------------------------------------
+      do 75 i=1,1000
+      if(MTTABB(1,i).le.0) go to 75
+      if(MTTABB(3,i).gt.1) then
+      write(3,72) i,MTTABA(i),MTTABB(3,i)
+      write(*,72) i,MTTABA(i),MTTABB(3,i)
+   72 format(' WARNING..MT=',i5,1x,a40,' Used',i2,' Times in SUMMATION')
+      endif
+   75 continue
+c-----------------------------------------------------------------------
+C
+C     Finished
+c
+c-----------------------------------------------------------------------
+  100 return
+      end

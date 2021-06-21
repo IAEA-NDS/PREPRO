@@ -10,6 +10,8 @@ C under the terms of the MIT License; see LICENSE file for more details.
       SUBROUTINE PALTAB(PENMAP,RTAB,GTAB,BTAB,NPAL)
 C=======================================================================
 C
+C     Version 2021-1 (Jan. 2021)
+c     ==================================================================
 C     DEFINE PALLETTE OF 256 RGB COLORS
 C     NPAL  = 1 = MAXIMUM CONTRAST PALLETTE
 C          <> 1 = RAINBOW PALLETTE
@@ -159,17 +161,11 @@ C-----RAINBOW PALLETTE
       IF(NPAL.NE.1) GO TO 20
 C-----MAXIMUM CONTRAST PALLETTE
       DO 10 I=1,256
-C***** DEBUG
       RTAB(I)=R1(I)
       GTAB(I)=G1(I)
       BTAB(I)=B1(I)
-   10 PENMAP(I)=PAL1(I)
-c     K=PAL1(I)+1
-c     RTAB(I)=R1(K)
-c     GTAB(I)=G1(K)
-c     BTAB(I)=B1(K)
-c  10 PENMAP(I)=I-1
-C***** DEBUG
+      PENMAP(I)=PAL1(I)
+   10 CONTINUE
       RETURN
 C-----RAINBOW PALLETTE
    20 IF(NPAL.NE.2) GO TO 40
@@ -177,24 +173,24 @@ C-----RAINBOW PALLETTE
       RTAB(I)=R2(I)
       GTAB(I)=G2(I)
       BTAB(I)=B2(I)
-   30 PENMAP(I)=PAL2(I)
+      PENMAP(I)=PAL2(I)
+   30 CONTINUE
       RETURN
 C-----SHADING PALLETTE
-   40 IF(NPAL.NE.3) GO TO 100
+   40 IF(NPAL.NE.3) GO TO 90
 C-----BASIC 16 COLORS
-      DO 60 I=1,16
+      DO 50 I=1,16
       K=PAL1(I)+1
       RTAB(I)=R1(K)
       GTAB(I)=G1(K)
       BTAB(I)=B1(K)
-   60 PENMAP(I)=I-1
-      DO 65 I=17,256
-   65 PENMAP(I)=I-1
+      PENMAP(I)=I-1
+   50 CONTINUE
+      DO 60 I=17,256
+      PENMAP(I)=I-1
+   60 CONTINUE
       RGBMULT=1.0
-C***** DEBUG
-c     DRGBMULT=1.0/27.0
       DRGBMULT=1.0/22.0
-C***** DEBUG
       DO 80 I1=17,256,14
       I2=I1+13
       IF(I2.GT.256) I2=256
@@ -204,7 +200,8 @@ C***** DEBUG
       RTAB(I)=RGBMULT*RTAB(KK)
       GTAB(I)=RGBMULT*GTAB(KK)
       BTAB(I)=RGBMULT*BTAB(KK)
-   70 KK=KK+1
+      KK=KK+1
+   70 CONTINUE
    80 CONTINUE
-  100 RETURN
+   90 RETURN
       END

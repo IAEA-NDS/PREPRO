@@ -10,6 +10,8 @@ C under the terms of the MIT License; see LICENSE file for more details.
       SUBROUTINE STARPLOT
 C=======================================================================
 C
+C     Version 2021-1 (Jan. 2021)
+C     ==================================================================
 C     2014 - Andrej Trkov Additions
 C            MONEF = 0 =   1 plot   per file (old convention)
 C                  = 1 = ALL plots in 1 file (new convention)
@@ -124,31 +126,31 @@ C
 C-----SET IF DRAW
       IF(IPEN.EQ.2) MYDRAW=1
 C-----ALWAYS USE IF NOT THE SAME TYPE OUTPUT AS PRECEEDING
-      IF(IPEN.NE.LASTPEN) GO TO 20
+      IF(IPEN.NE.LASTPEN) GO TO 10
 C-----OTHERWISE FILTER TO RESOLUTION OF PLOTTER
       IF(ABS(X-XLAST).GE.RESOLVE.OR.
-     1   ABS(Y-YLAST).GE.RESOLVE) GO TO 30
+     1   ABS(Y-YLAST).GE.RESOLVE) GO TO 20
       RETURN
 C-----SAVE COORDINATES FOR FILTERING
-   20 LASTPEN=IPEN
-   30 XLAST=X
+   10 LASTPEN=IPEN
+   20 XLAST=X
       YLAST=Y
 C-----SCALE X AND Y FOR OUTPUT.
       XX=DX*(X-XMIN)
       YY=DY*(Y-YMIN)
 C-----TEST FOR DRAW.
-      IF(IPEN.EQ.2) WRITE(IDEV,40) XX,YY
-   40 FORMAT(2F6.1,' lineto')
+      IF(IPEN.EQ.2) WRITE(IDEV,30) XX,YY
+   30 FORMAT(2F6.1,' lineto')
 C-----TEST FOR MOVE.
-      IF(IPEN.EQ.3) WRITE(IDEV,50) XX,YY
-   50 FORMAT(2F6.1,' moveto')
+      IF(IPEN.EQ.3) WRITE(IDEV,40) XX,YY
+   40 FORMAT(2F6.1,' moveto')
 C-----COUNT STROKES IN CURRENT SET AND DRAW SET EVERY 100 STROKES.
       MYCOUNT=MYCOUNT+1
       IF(MYCOUNT.GE.100) THEN
       MYCOUNT=0
-      WRITE(IDEV,60)
-   60 FORMAT('stroke'/'newpath')
-      WRITE(IDEV,50) XX,YY
+      WRITE(IDEV,50)
+   50 FORMAT('stroke'/'newpath')
+      WRITE(IDEV,40) XX,YY
       ENDIF
       RETURN
       ENTRY NEXTPLOT
@@ -163,18 +165,18 @@ C-----RE-INITIALIZE STROKE COUNT.
       MYDRAW=0
       MYSTROKE=0
 C-----IF ANY STROKES LEFT IN CURRENT SET DRAW THEM.
-      IF(MYCOUNT.NE.0) WRITE(IDEV,70)
-   70 FORMAT('stroke')
+      IF(MYCOUNT.NE.0) WRITE(IDEV,60)
+   60 FORMAT('stroke')
 C-----FINISH PLOT FILE AND CLOSE.
-      WRITE(IDEV,80)
-   80 FORMAT('showpage')
+      WRITE(IDEV,70)
+   70 FORMAT('showpage')
 C* Trkov start (do not close the file until all plots are drawn
 c     CLOSE(IDEV)
-      WRITE(*,82) '============== SENDING PLOT',IPAGE,' ============== '
-   82 FORMAT(A,I4,A)
+      WRITE(*,80) '============== SENDING PLOT',IPAGE,' ============== '
+   80 FORMAT(A,I4,A)
       IF(MONEF.EQ.0) THEN
-        CLOSE(IDEV)
-        IPAGE=0
+      CLOSE(IDEV)
+      IPAGE=0
       ENDIF
 C*Trkov end
 C
@@ -218,7 +220,8 @@ C=======================================================================
    10 CONTINUE
       RETURN
    20 IF(K.LT.9) GO TO 40
-   30 POST1(I)='0'
+      POST1(I)='0'
+   30 CONTINUE
       RETURN
    40 POST1(I)=DIGITS(K+1)
       RETURN
@@ -254,21 +257,21 @@ C    7 F4.1,' setlinewidth'/
 C    8 ' 1 setlinecap'/
 C    9 ' 1 setlinejoin')
       IF(IPAGE.EQ.0 .OR. MONEF.EQ.0) THEN
-        OPEN(IDEV,FILE=POSTSCRT,STATUS='UNKNOWN')
-        WRITE(IDEV,10) '%!PS-Adobe-2.0'
-        WRITE(IDEV,10) '%%Creator: STARPLOT'
+      OPEN(IDEV,FILE=POSTSCRT,STATUS='UNKNOWN')
+      WRITE(IDEV,10) '%!PS-Adobe-2.0'
+      WRITE(IDEV,10) '%%Creator: STARPLOT'
       ENDIF
       IPAGE=IPAGE+1
-      WRITE(IDEV,12) '%%Page:',IPAGE,IPAGE
+      WRITE(IDEV,20) '%%Page:',IPAGE,IPAGE
       WRITE(IDEV,10) '585 27 translate'
       WRITE(IDEV,10) '90 rotate'
       WRITE(IDEV,10) 'newpath'
-      WRITE(IDEV,14) THICKNES,' setlinewidth'
+      WRITE(IDEV,30) THICKNES,' setlinewidth'
       WRITE(IDEV,10) ' 1 setlinecap'
       WRITE(IDEV,10) ' 1 setlinejoin'
    10 FORMAT(A)
-   12 FORMAT(A,2I4)
-   14 FORMAT(F4.1,A)
+   20 FORMAT(A,2I4)
+   30 FORMAT(F4.1,A)
 C* Trkov end
 C-----INITIALIZE STROKE COUNT IN CURRENT SET OF STROKES.
       MYCOUNT  = 0
@@ -333,15 +336,15 @@ C     CALL NEXTPLOT
      1 MYSTROKE,LASTPEN
       COMMON/PLOTSTAR3/IPAGE,MONEF
       IF(MONEF.EQ.0) THEN
-        CALL NEXTPLOT
+      CALL NEXTPLOT
       ELSE
-        WRITE(IDEV,10) '%%Trailer'
-        WRITE(IDEV,12) '%%Pages:',IPAGE
-        WRITE(IDEV,10) '%%EOF'
-        CLOSE(UNIT=IDEV)
+      WRITE(IDEV,10) '%%Trailer'
+      WRITE(IDEV,20) '%%Pages:',IPAGE
+      WRITE(IDEV,10) '%%EOF'
+      CLOSE(UNIT=IDEV)
       ENDIF
    10 FORMAT(A)
-   12 FORMAT(A,I4)
+   20 FORMAT(A,I4)
 C* Trkov end
       RETURN
       END

@@ -47,11 +47,13 @@ C                                 *Message for every MF=7 output,
 C                                  whether created or copied from input.
 C     VERS. 2018-1 (Jan. 2018)    *Updated based on user feedback.
 C                                 *Added on-line output for ALL ENDERROR
-C     VERS. 2019-1 (June 2019)    *Additional Interpolation Law Tesrs
+C     VERS. 2020-1 (Mar. 2020)    *Additional Interpolation Law Tesrs
 C                                 *Checked consistency of Maximum
 C                                  tabulated energy for MF=3 and 9 data
 C                                  to be compbined - print WARNING if
 C                                  inconsistent.
+C                                 *Added Target Isomer State
+C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C
 C     Acknowledgement 2015
 C     --------------------
@@ -159,7 +161,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM ACTIVATE (2019-1) ****************
+C     ***************** PROGRAM ACTIVATE (2021-1) ****************
 C     FILE 10 ACTIVATION CROSS SECTIONS HAVE BEEN DEFINED BY COMBINING
 C     FILE 3 CROSS SECTIONS AND FILE 9 MULTIPLIERS. FILE 9 DELETED.
 C
@@ -322,7 +324,7 @@ C=======================================================================
 C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*8 CODENAME
       COMMON/NAMECODE/CODENAME
-      COMMON/BCDZA/ZABCD(10)
+      COMMON/BCDZA/ZABCD(12)
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
@@ -330,6 +332,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/COPC/CARD(17)
       COMMON/COPI/MFIELD(3)
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
+      COMMON/LISOCOM/LISO
       COMMON/LSTCOM/LSTIZA,LSTMAT,LSTMF
       COMMON/CLINE66/LINE66(66)
 c-----2014/2/20 - if MF=8, change flag MF=9 to MF=10
@@ -375,6 +378,7 @@ C-----INITIALIZE LAST MAT READ.
       LSTMAT = -9999
       LSTMF  = -99
       IMALL10= 0     ! Flag to indicate MF=10 data already exists
+      LISO    = 0
 C-----------------------------------------------------------------------
 C
 C     LOOP OVER MATS
@@ -387,6 +391,7 @@ C-----INITIALIZE MT TABLE AND MF=9 SECTION AND POINT COUNTS.
    10 IMFILE9  = 0
       N2MATI   = 0
       N2MATO   = 0
+      LISO     = 0
       DO K=1,MAXMT
       MTTAB3(K)  = 0
       MTTAB9(K)  = 0
@@ -395,6 +400,8 @@ C-----INITIALIZE MT TABLE AND MF=9 SECTION AND POINT COUNTS.
 C-----COPY ENTIRE MAT.
       REWIND ISCR1
       ITAPE = ISAVE
+      LISIN = 0   ! MF/MT line counter
+      LISO  = 0   ! Target isomer flag
 C-----------------------------------------------------------------------
 c
 c     Next line is start of next MAT or TEND.
@@ -404,10 +411,13 @@ C-----------------------------------------------------------------------
       IF(MATH.LT.0) GO TO 190                   ! TEND if MATH < 0
 c-----translate ZA and save MAT
       MATNOW = MATH
+      LISO   = 0
+      LISIN  = 0
       call IN9(ZAX,LINE66(1))
       IZANOW = ZAX
       MATNOW = MATH
-      CALL ZAHOL(IZANOW,ZABCD)
+c-----2020/3/21 - Added LISO = Target State  Number
+      CALL ZAHOLM(IZANOW,LISO,ZABCD)
 c-----2019/3/9 - Initialize MT table for next MAT
       CALL MAXIE0
 C-----------------------------------------------------------------------
@@ -445,6 +455,25 @@ c-----If L1H = 9, Replace by L1H = 10
       enddo
       ENDIF
    30 WRITE(ISCR1,210) LINE66,MATH,MFH,MTH
+c-----------------------------------------------------------------------
+c
+c     Define LISO target isomer flag
+c
+c     WARNING - This only works for ENDFB-6 format - where
+C               LISO, target isomer flag is L2 on second line
+C               of MF/MT=1/451.
+C
+c-----------------------------------------------------------------------
+      IF(MTH.eq.451) LISIN = LISIN + 1
+      IF(LISIN.eq.2) then
+      CALL IN9(XLISO,LINE66(34))
+      LISO = XLISO
+c-----2020/3/21 - Added LISO = Target State
+      CALL ZAHOLM(IZANOW,LISO,ZABCD)
+      ENDIF
+c
+c     Read next line
+c
       READ(ITAPE,210) LINE66,MATH,MFH,MTH
       IF(MATH.GT.0) GO TO 20
 c-----MEND = Entire MAT has been copied to scratch.
@@ -468,7 +497,7 @@ C-----------------------------------------------------------------------
       if(MTTAB10(K).ne.0) then
       write(OUTP,40) ZABCD,MATNOW,MFPRINT,K
       write(*   ,40) ZABCD,MATNOW,MFPRINT,K
-   40 format(1x,10A1,I5,I4,I4,
+   40 format(1x,12A1,I5,I4,I4,
      1 ' WARNING - MF=10 data already exists - will copy MT.')
       MTTAB9(k) = 0
       MTTAB3(k) = 0
@@ -658,14 +687,14 @@ C                ! included here only avoid compiler ERROR Messages.
   220 FORMAT(66X,'  -1 0  0    0')
   230 FORMAT(1X,78('-')/
      1 ' ENDF Tape Label'/1X,78('-')/1X,16A4,A2,I4/1X,78('-')/
-     2 '   Material  MAT  MF  MT  ENDF    ZAP Final',6X,'Q-Value',
+     2 '   Material    MAT  MF  MT  ENDF    ZAP Final',6X,'Q-Value',
      3 ' Points Points'/
-     4 '                          Format      State',6X,'     eV',
+     4 '                            Format      State',6X,'     eV',
      5 '     In    Out'/
      4 1X,78('-'))
   240 FORMAT(1X,78('-')/45X,'Tape Totals',2I7/1X,78('-'))
   250 FORMAT(' ENDF Activation Cross Sections',
-     1 ' (ACTIVATE 2019-1)'/1X,78('-'))
+     1 ' (ACTIVATE 2021-1)'/1X,78('-'))
       END
       SUBROUTINE CREATE10
 C=======================================================================
@@ -782,7 +811,8 @@ C-----OUTPUT MF=10 LEADER AND INTERPLATION LAW
       CALL CARDO(C1,C2,L1,L2,N1,N2)
       CALL TERPO(NBT,INT,N1)
 C-----COMBINE MF=3 AND 9 DATA
-   50 CALL FILEX
+      CALL FILEX
+   50 CONTINUE
 C-----ADD SEND LINE.
       CALL OUTS(MATH,MFH)
       GO TO 90
@@ -872,7 +902,7 @@ C=======================================================================
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
 c-----2019/1/5 - Increased to 100 from 50 = PREPRO Standard
       COMMON/NBTINT/NBT(100),INT(100)
-      COMMON/BCDZA/ZABCD(10)
+      COMMON/BCDZA/ZABCD(12)
 C-----------------------------------------------------------------------
 C
 C     READ AND CHECK SECTION LEADER LINE AND INTERPOLATION LAW. IF
@@ -907,14 +937,16 @@ C=======================================================================
       COMMON/HOLFMT/FMTHOL
       COMMON/FIELDC/FIELD(11,6)
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
-      COMMON/BCDZA/ZABCD(10)
+      COMMON/LISOCOM/LISO
+      COMMON/BCDZA/ZABCD(12)
       COMMON/CLINE66/LINE66(66)
 C-----INITIALIZE TO AVOID COMPILER WARNING.
       DATA MF3/0/
       IF(MF3.eq.0) MF3 = 3    ! Avoid Freud WARNING
 C-----DEFINE MATERIAL
       KZA = C1H
-      CALL ZAHOL(KZA,ZABCD)
+c-----2020/3/21 - Added LISO = Target State
+      CALL ZAHOLM(KZA,LISO,ZABCD)
 C-----SET OUTPUT FOR MF=10
       MFH = 10
       MTIN = MTH
@@ -961,10 +993,12 @@ C-----RE-NORMALIZE MF=3 CROSS SECTION AND PUT BACK ON OUTPUT LINE
    40 I9 = K9
       XCNOW = XCNOW*XMULT
       CALL OUT9(XCNOW,LINE66(KK+11))
-   50 KK=KK+22
+      KK=KK+22
+   50 CONTINUE
 C-----OUTPUT LINE OF UP TO 3 ENERGY POINTS
       WRITE(OTAPE,90) LINE66,MATH,MFH,MTH,NOSEQ
-   60 NOSEQ = NXTSEQ(NOSEQ)
+      NOSEQ = NXTSEQ(NOSEQ)
+   60 CONTINUE
 c-----2019/3/9 - Maximum tabulated MF=3 energy and value
       CALL MAXIE2(ENOW,XCNOW)
 C-----------------------------------------------------------------------
@@ -977,7 +1011,7 @@ C-----------------------------------------------------------------------
      1 (FIELD(K,1),K=1,11),N2IN,N2OUT
       WRITE(*   ,70) ZABCD,MATH,MFH,MTIN,FMTHOL,L1,L2,
      1 (FIELD(K,1),K=1,11),N2IN,N2OUT
-   70 FORMAT(1X,10A1,I5,I4,I4,3X,A2,I8,I6,2X,11A1,2I7)
+   70 FORMAT(1X,12A1,I5,I4,I4,3X,A2,I8,I6,2X,11A1,2I7)
 c-----------------------------------------------------------------------
 c
 c     NOTE: ZAP=0 is o.k. = photon production.
@@ -1018,6 +1052,8 @@ C     ENDF-4  = N1 > 0, N2 = 0,LINE COUNT (POSITIVE)
 C     ENDF-5  = N1 = N2 = 0
 C     ENDF-6  =      N2 = VERSION NUMBER (6 OR MORE)
 C
+C     The First line has already been read.
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 PROGDOC1
@@ -1025,6 +1061,7 @@ C=======================================================================
       CHARACTER*66 PROGDOC
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/HOLFMT/FMTHOL
+      COMMON/LISOCOM/LISO
       DIMENSION FMTTAB(3),PROGDOC(3),PROGDOC1(66,3)
       EQUIVALENCE (PROGDOC(1),PROGDOC1(1,1))
 C-----ENDF FORMAT VERSION
@@ -1037,7 +1074,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' *************** PROGRAM ACTIVATE (VERSION 2019-1) ***********',
+     1 ' *************** PROGRAM ACTIVATE (VERSION 2021-1) ***********',
      2 ' MF=10 Activation Cross Sections Defined by Combining MF=3    ',
      3 ' Cross Section and MF=9 Multiplier. MF=9 Deleted/MF=8 Updated.'/
 C-----FILL IN REMAINDER OF FIRST LINE.
@@ -1045,24 +1082,35 @@ C-----FILL IN REMAINDER OF FIRST LINE.
       PROGDOC1(64,1) = '*'
       PROGDOC1(65,1) = '*'
       PROGDOC1(66,1) = '*'
+c
+c     Read Second Line
+c
 C-----HEAD LINE OF SECTION HAS BEEN READ AND WRITTEN. READ NEXT LINE
 C-----AND DETERMINE IF THIS IS THE ENDF-4, 5 OR 6 FORMAT.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
+      LISOX = L2         ! Save as potntial isomeric number
 C-----CHECK FOR ENDF-4.
 C-----IV N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF-4. READ THIRD LINE.
       N2X=N2
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read third Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=5
 C-----CHECK FOR ENDF-5 FORMAT.
       IF(N2X.LE.0) GO TO 10
 C-----ENDF-6 FORMAT. READ FOURTH LINE.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read fourth Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
+      LISO  = LISOX                 ! Isomer state number
 C-----SET DERIVED MATERIAL FLAG.
       L1=1
 C-----DEFINE ENDF FORMAT NUMBER.
@@ -1071,7 +1119,8 @@ C-----INCREASE COMMENT LINE COUNT AND COPY TO END OF HOLLERITH.
       N1OUT = N1+3
       CALL CARDO(C1,C2,L1,L2,N1OUT,N2)
       DO 20 N=1,N1
-   20 CALL COPY1
+      CALL COPY1
+   20 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     ADD COMMENTS TO DOCUMENT WHAT WAS DONE TO DATA.
@@ -1278,7 +1327,8 @@ C=======================================================================
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/HOLFMT/FMTHOL
-      COMMON/BCDZA/ZABCD(10)
+      COMMON/LISOCOM/LISO
+      COMMON/BCDZA/ZABCD(12)
 C-----READ NEXT LINE AND CHECK FOR END OF ENDF TAPE.
    10 CALL CONTI
       IF(MTH.gt.0) go to 30
@@ -1314,7 +1364,8 @@ C-----INITIALIZE TO ENDF-6 FORMAT.
       FMTHOL='6   '
 C-----SAVE CURRENT ZA, MAT.
    40 IZANOW = C1H
-      CALL ZAHOL(IZANOW,ZABCD)
+c-----2020/3/21 - Added LISO = Target State Number
+      CALL ZAHOLM(IZANOW,LISO,ZABCD)
       MATNOW=MATH
       RETURN
       END
@@ -1354,7 +1405,8 @@ C=======================================================================
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/LSTCOM/LSTIZA,LSTMAT,LSTMF
-      COMMON/LSTCOMC/ZABCD2(10)
+      COMMON/LSTCOMC/ZABCD2(12)
+      COMMON/LISOCOM/LISO
       IF(OTAPE.LE.0) RETURN
 C-----------------------------------------------------------------------
 c
@@ -1385,7 +1437,8 @@ C-----------------------------------------------------------------------
    10 LSTIZA = C1H
       LSTMAT = MATH
       LSTMF  = MFH
-      CALL ZAHOL(LSTIZA,ZABCD2)
+c-----2020/3/21 - Added LISO = Target State Number
+      CALL ZAHOLM(LSTIZA,LISO,ZABCD2)
       RETURN
       END
       SUBROUTINE REPORT
@@ -1401,7 +1454,7 @@ C=======================================================================
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/LSTCOM/LSTIZA,LSTMAT,LSTMF
-      COMMON/LSTCOMC/ZABCD2(10)
+      COMMON/LSTCOMC/ZABCD2(12)
 C-----SPECIAL MESSAGE IF NO MF=9 DATA.
       IF(N2MATI.GT.0.OR.N2MATO.GT.0) GO TO 10
       WRITE(OUTP,40) ZABCD2,LSTMAT
@@ -1416,7 +1469,7 @@ C-----PRINT TIME
       CALL TIMEMAT
       RETURN
    30 FORMAT(1X,78('-')/45X,' MAT Totals',2I7/1X,78('-'))
-   40 FORMAT(1X,10A1,I5,8x,' WARNING - No MF=10 to create -',
+   40 FORMAT(1X,12A1,I5,8x,' WARNING - No MF=10 to create -',
      1 ' will copy MAT')
       END
       SUBROUTINE FILEIO

@@ -93,6 +93,19 @@ C                                  MT = the ENDF Data is NOT uniquely
 C                                  defined above this energy.
 C                                 *Corrected ERROR that could set last
 C                                  (highest energy) cross section = 0.0
+C                                 *No longer automatically extend cross
+C                                  sections as constant above tabulated
+C                                  energy range.
+C     VERS. 2020-1 (June 2020)    *Complete Re-write to allow some
+C                                  reactions to be missing, e.g.,
+C                                  define (n,t) for natural abundant
+C                                  element by summing over isotopes,
+C                                  where only some isotopes have (n,t).
+C                                 *Additional Interpolation Law Tests
+C                                 *Min 1 File allowed,e.g. select MT
+C                                  Previously assumed 2 or more files
+C                                  needed for MIX.
+C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C
 C     Acknowledgement 2019
 C     --------------------
@@ -205,7 +218,7 @@ C     THE FACT THAT THIS PROGRAM HAS COMBINED THE DATA IS DOCUMENTED
 C     IN THE OUTPUT ENDF/B FORMAT IN THE HOLLERITH SECTION BY FIRST
 C     IDENTIFYING THE VERSION OF THIS PROGRAM THAT WAS USED, IN THE FORM
 C
-C     ********************( PROGRAM MIXER 2019-1) **********************
+C     ********************( PROGRAM MIXER 2021-1) **********************
 C
 C     THIS IS FOLLOWED BY THE TWO LINE IDENTIFICATION INPUT BY THE USER.
 C     THIS IS FOLLOWED BY COMPOSITION INPUT BY THE USER.
@@ -565,7 +578,7 @@ c-----------------------------------------------------------------------
       CALL ENDIT
       GO TO 40    ! CANNOT GET TO HERE
    50 FORMAT(' Mix Energy Dependent ENDF/B Cross Sections',
-     1 ' (MIXER 2019-1)'/1X,78('-'))
+     1 ' (MIXER 2021-1)'/1X,78('-'))
       END
       SUBROUTINE READIN
 C=======================================================================
@@ -589,38 +602,39 @@ C=======================================================================
 C-----INITIALIZE INPUT ERROR FLAG.
       IGOOF=0
 C-----READ TWO LINE IDENTIFICATION FOR PROBLEM.
-      READ(INP,10,END=120,ERR=120) TITLE
-   10 FORMAT(16A4,A2)
+      READ(INP,10,END=130,ERR=130) TITLE
+   10 FORMAT(17A4)                     ! 66 Columns for ENDF Format
 C-----PRINT TITLE FOR OUTPUT REPORT.
-      WRITE(OUTP,150) TITLE
-      WRITE(*   ,150) TITLE
+      WRITE(OUTP,160) TITLE
+      WRITE(*   ,160) TITLE
 c-----------------------------------------------------------------------
 C
 C     READ ENDF/B FILE NAMES AND USE DEFAULT IF BLANK.
 C
 c-----------------------------------------------------------------------
 C-----INPUT DATA.
-      READ(INP,20,END=120,ERR=120) NAMEIN
+      READ(INP,20,END=130,ERR=130) NAMEIN
    20 FORMAT(A72)
       IF(NAMEIN.EQ.' ') NAMEIN = 'ENDFB.IN'
 C-----OUTPUT DATA.
-      READ(INP,20,END=120,ERR=120) NAMEOUT
+      READ(INP,20,END=130,ERR=130) NAMEOUT
       IF(NAMEOUT.EQ.' ') NAMEOUT = 'ENDFB.OUT'
 C-----PRINT FINAL FILENAMES
       WRITE(OUTP,30) NAMEIN,NAMEOUT
       WRITE(*   ,30) NAMEIN,NAMEOUT
    30 FORMAT(
-     1 ' ENDF/B Input and Output Data Filenames'/1X,A72/
+     1 ' ENDF/B Input and Output Data Filenames'/1x,78('-')/1X,A72/
      2 1X,A72)
 c-----------------------------------------------------------------------
 C
 C     READ IDENTIFICATION FOR COMBINED MATERIAL.
 C
 c-----------------------------------------------------------------------
-      WRITE(OUTP,160)
-      WRITE(*   ,160)
-      READ(INP,40,END=120,ERR=120) IZAOUT,MATOUT,MFOUT,MTOUT,MYTYPE
+      WRITE(OUTP,170)
+      WRITE(*   ,170)
+      READ(INP,40,END=130,ERR=130) IZAOUT,MATOUT,MFOUT,MTOUT,MYTYPE
    40 FORMAT(I11,I6,I2,I3,I11)
+c             11 17 19 22  33
 C-----ASSUME STANDARD VALUES IF NOT DEFINED.
       IF(IZAOUT.LE.0) IZAOUT=1
       IF(MATOUT.LE.0) MATOUT=1
@@ -628,100 +642,102 @@ C-----ASSUME STANDARD VALUES IF NOT DEFINED.
       IF(MTOUT.LE.0) MTOUT=1
 C-----READ, CHECK MATERIALS LIST AND CALCULATE OUTPUT DENSITY.
       SUMIN=0.0d0
-      DO 70 NMAT=1,10
+      DO 80 NMAT=1,10
 c-----2017/5/6 - Changed all floating point to character
-      READ(INP,50,END=90,ERR=90) IZAGET(NMAT),MTGET(NMAT),
+      READ(INP,50,END=100,ERR=100) IZAGET(NMAT),MTGET(NMAT),
      1 (FIELD6(j,1),j=1,11)
    50 FORMAT(I11,7X,I4,11A1)
       CALL IN9(DENSE(NMAT),FIELD6(1,1))
-c-----2017/5/6 - Changed all floating point to character
+c-----2017/5/6 - ss Read Changed all floating point to character
 C-----TREAT BLANK (OR ZERO) LINE AS END OF MATERIAL LIST.
       IF(IZAGET(NMAT).EQ.0.AND.MTGET(NMAT).EQ.0.AND.
-     1 DENSE(NMAT).EQ.0.0d0) GO TO 90
+     1 DENSE(NMAT).EQ.0.0d0) GO TO 100
 C-----TREAT NON-POSITIVE ZA, MT OR DENSITY AS ERROR.
       IF(IZAGET(NMAT).GT.0.AND.MTGET(NMAT).GT.0.AND.
      1 DENSE(NMAT).GT.0.0d0) GO TO 60
       IGOOF=1
       CALL OUT9(DENSE(NMAT),FIELD6(1,1))
-      WRITE(OUTP,190) IZAGET(NMAT),MFOUT,MTGET(NMAT),
+      WRITE(OUTP,200) IZAGET(NMAT),MFOUT,MTGET(NMAT),
      1 (FIELD6(M,1),M=1,11)
-      WRITE(*   ,190) IZAGET(NMAT),MFOUT,MTGET(NMAT),
+      WRITE(*   ,200) IZAGET(NMAT),MFOUT,MTGET(NMAT),
      1 (FIELD6(M,1),M=1,11)
       GO TO 70
    60 CALL OUT9(DENSE(NMAT),FIELD6(1,1))
       IF(MYTYPE.EQ.0) THEN
 C-----GRAMS
-      WRITE(OUTP,170) IZAGET(NMAT),MFOUT,MTGET(NMAT),
-     1 (FIELD6(M,1),M=1,11)
-      WRITE(*   ,170) IZAGET(NMAT),MFOUT,MTGET(NMAT),
-     1 (FIELD6(M,1),M=1,11)
-      ELSE
-C-----ATOMS
       WRITE(OUTP,180) IZAGET(NMAT),MFOUT,MTGET(NMAT),
      1 (FIELD6(M,1),M=1,11)
       WRITE(*   ,180) IZAGET(NMAT),MFOUT,MTGET(NMAT),
      1 (FIELD6(M,1),M=1,11)
+      ELSE
+C-----ATOMS
+      WRITE(OUTP,190) IZAGET(NMAT),MFOUT,MTGET(NMAT),
+     1 (FIELD6(M,1),M=1,11)
+      WRITE(*   ,190) IZAGET(NMAT),MFOUT,MTGET(NMAT),
+     1 (FIELD6(M,1),M=1,11)
       ENDIF
    70 SUMIN=SUMIN+DENSE(NMAT)
+   80 CONTINUE
 C-----10 MATERIALS READ. NEXT LINE MUST BE BLANK, OR ELSE THERE IS AN
 C-----ERROR.
 c-----2017/5/6 - Changed all floating point to character
-      READ(INP,50,END=80,ERR=80) IZADUM,MTDUM,(FIELD6(j,1),j=1,11)
+      READ(INP,50,END=90,ERR=90) IZADUM,MTDUM,(FIELD6(j,1),j=1,11)
       CALL IN9(DENDUM,FIELD6(1,1))
 c-----2017/5/6 - Changed all floating point to character
-      IF(IZADUM.LE.0.AND.MTDUM.LE.0.AND.DENDUM.LE.0.0d0) GO TO 80
-      WRITE(OUTP,220)
-      WRITE(*   ,220)
+      IF(IZADUM.LE.0.AND.MTDUM.LE.0.AND.DENDUM.LE.0.0d0) GO TO 90
+      WRITE(OUTP,230)
+      WRITE(*   ,230)
       IGOOF=1
-      GO TO 110
-   80 NMAT=11
-   90 IF(IGOOF.GT.0) GO TO 110
-C-----DEFINE NUMBER OF MATERIALS. STOP IF LESS THAN TWO.
+      GO TO 120
+   90 NMAT=11
+  100 IF(IGOOF.GT.0) GO TO 120
+C-----DEFINE NUMBER OF MATERIALS. STOP IF LESS THAN ONE.
       NMAT=NMAT-1
-      IF(NMAT.GE.2) GO TO 100
-      WRITE(OUTP,140) NMAT
-      WRITE(*   ,140) NMAT
+c-----2020/6/12 - Decreased from 2 to 1
+      IF(NMAT.GE.1) GO TO 110
+      WRITE(OUTP,150) NMAT
+      WRITE(*   ,150) NMAT
       IGOOF=1
-      GO TO 110
+      GO TO 120
 C-----PRINT TITLE FOR OUTPUT REPORT.
-  100 CALL OUT9(SUMIN,FIELD6(1,1))
+  110 CALL OUT9(SUMIN,FIELD6(1,1))
       IF(MYTYPE.EQ.0) THEN
-      WRITE(OUTP,200) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
-      WRITE(*   ,200) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
-      ELSE
       WRITE(OUTP,210) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
       WRITE(*   ,210) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
+      ELSE
+      WRITE(OUTP,220) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
+      WRITE(*   ,220) IZAOUT,MFOUT,MTOUT,(FIELD6(M,1),M=1,11)
       ENDIF
-  110 RETURN
+  120 RETURN
 C-----------------------------------------------------------------------
 C
 C     END OF FILE WHILE READING INPUT
 C
 C-----------------------------------------------------------------------
-  120 WRITE(OUTP,130)
-      WRITE(   *,130)
-  130 FORMAT(//' ERROR - End of file reading MIXER.INP'//)
+  130 WRITE(OUTP,140)
+      WRITE(   *,140)
+  140 FORMAT(//' ERROR - End of file reading MIXER.INP'//)
       CALL ENDERROR
       RETURN
-  140 FORMAT(' Material Count=',I2,' (MUST be at Least 2)')
-  150 FORMAT(' Problem Identification'/
-     2 1X,78('-')/1X,16A4,A2/1X,16A4,A2/1X,78('-'))
-  160 FORMAT(1X,78('-')/
+  150 FORMAT(' Material Count=',I2,' (MUST be at Least 1)')
+  160 FORMAT(' Problem Identification'/
+     2 1X,78('-')/1X,17A4/1X,17A4/1X,78('-'))
+  170 FORMAT(1X,78('-')/
      1 ' Requested Composition (Input Parameters)'/1X,78('-')/
      2 '     ZA MF  MT'/1X,78('-'))
-  170 FORMAT(I7,I3,I4,11A1,' Grams')
-  180 FORMAT(I7,I3,I4,11A1,' Atoms')
-  190 FORMAT(I7,I3,I4,11A1,
+  180 FORMAT(I7,I3,I4,11A1,' Grams')
+  190 FORMAT(I7,I3,I4,11A1,' Atoms')
+  200 FORMAT(I7,I3,I4,11A1,
      1 ' (ERROR in Data - All MUST be Positive)')
-  200 FORMAT(1X,78('-')/I7,I3,I4,11A1,' Grams'/1X,78('-')/
+  210 FORMAT(1X,78('-')/I7,I3,I4,11A1,' Grams'/1X,78('-')/
      1 ' Processing ENDF Input Data'/1X,78('-')/
-     2 '     ZA  MAT MF  MT     Kelvin    Q-Value Points AMU-Weight',
-     3 ' Atoms/b-cm *'/39X,'eV'/1X,78('-'))
-  210 FORMAT(1X,78('-')/I7,I3,I4,11A1,' Atoms'/1X,78('-')/
+     2 '     ZA  MAT MF  MT     Kelvin     Q-Value Points AMU-Weight',
+     3 ' Atoms/b-cm *'/40X,'eV'/1X,78('-'))
+  220 FORMAT(1X,78('-')/I7,I3,I4,11A1,' Atoms'/1X,78('-')/
      1 ' Processing ENDF Input Data'/1X,78('-')/
-     2 '     ZA  MAT MF  MT     Kelvin    Q-Value Points AMU-Weight',
-     3 ' Atoms/b-cm *'/39X,'eV'/1X,78('-'))
-  220 FORMAT(///' Over 10 Materials in Composition - ',
+     2 '     ZA  MAT MF  MT     Kelvin     Q-Value Points AMU-Weight',
+     3 ' Atoms/b-cm *'/40X,'eV'/1X,78('-'))
+  230 FORMAT(///' Over 10 Materials in Composition - ',
      1 'Execution Terminated.')
       END
       SUBROUTINE GETIT
@@ -756,32 +772,39 @@ C
 c-----------------------------------------------------------------------
 C-----INITIALIZE ERROR FLAG OFF.
       IGOOF=0
-C-----INITIALIZE POINT COUNTS AND ENDF/B FORMAT VERSION
+C-----INITIALIZE INPUT DATA PARAMETERS.
       DO 10 IMAT=1,NMAT
-      NPTAB(IMAT)=0
-   10 IVERSE(IMAT)=6
-C-----INITIALIZE ATOMS AND GRAMS
-      ATOMBC = 0.0d0
-      DENOUT = 0.0d0
+      NPTAB(IMAT)   = 0
+      MATGET(IMAT)  = 0
+      IVERSE(IMAT)  = 6
+      QVALUE1(IMAT) = 0.0d0
+      QVALUE2(IMAT) = 0.0d0
+      TEMPK(IMAT)   = 0.0d0
+      ATOM10(IMAT)  = 0.0d0
+      AWRE(IMAT)    = 0.0d0
+   10 CONTINUE
+C-----INITIALIZE OUTPUT DATA PARAMETERS.
+      ATOMBC        = 0.0d0
+      DENOUT        = 0.0d0
 C-----SKIP ENDF/B TAPE LABEL.
       CALL SKIP1
 c-----------------------------------------------------------------------
 C
-C     FIND NEXT REQUESTED SECTION.
+C     FIND NEXT REQUESTED SECTION Based on ZA
 C
 c-----------------------------------------------------------------------
 C-----READ SECTION HEAD LINE OR END LINE (SEND,FEND,MEND,TEND)
    20 CALL CONTI
-      IF(MTH.GT.0) GO TO 30
-      IF(MATH.lt.0) go to 170
+      IF(MTH.GT.0) GO TO 30   ! Skip to section (MT>0) or TEND
+      IF(MATH.lt.0) go to 120 ! TEND?
       go to 20
 C-----SECTION HEAD LINE. IF NOT ONE OF THE REQUESTED ZA SKIP ENTIRE MAT.
    30 IZA=ZA
       DO 40 IMAT=1,NMAT
-      IF(IZA.eq.IZAGET(IMAT)) go to 60
+      IF(IZA.eq.IZAGET(IMAT)) go to 50
    40 CONTINUE
 C-----SKIP MATERIAL.
-   50 CALL SKIPM
+      CALL SKIPM
       GO TO 20
 c-----------------------------------------------------------------------
 C
@@ -789,67 +812,81 @@ C     REQUESTED ZA FOUND. LOCATE FILE 3 OR 23 DATA - WHICHEVER WAS
 C     REQUESTED.
 C
 c-----------------------------------------------------------------------
-C-----FOR NEUTRONS READ FILE 1 TO DEFINE TEMPERATURE
-   60 IF(MFOUT.NE.3) GO TO 70
-      IF(MFH.NE.1) GO TO 70
+c-----Allow more than 1 request with same ZA - define MAT for ALL
+   50 DO I=1,NMAT
+      IF(IZA.eq.IZAGET(I)) then
+c-----Only define and add DENSITY & AWRE
+      IF(MATGET(I).le.0) then
+C-----DEFINE ATOMIC WEIGHT RATIO IN ATOMIC MASS UNITS
+C-----(INSTEAD OF ENDF/B CONVENTION OF NEUTRON MASS UNITS).
+      AWRE(I)=1.008665d0*AWRIN
+      IF(MYTYPE.EQ.0) THEN
+C-----INPUT IS GRAMS - DERIVE ATOMS
+      ATOM10(I)=0.60247d0*DENSE(I)/AWRE(I)
+      ELSE
+C-----INPUT IS ATOMS - DERIVE GRAMS
+      ATOM10(I)= DENSE(I)
+      DENSE(I) = AWRE(I)*ATOM10(I)/0.60247d0
+      ENDIF
+      ATOMBC = ATOMBC + ATOM10(IMAT)
+      DENOUT = DENOUT + DENSE(IMAT)
+      endif
+      MATGET(I) = MATH
+      endif
+      ENDDO
+C-----FOR NEUTRONS READ FILE 1 TO DEFINE TEMPERATURE & ENDF Format
+      IF(MFOUT.NE.3) GO TO 60
+      IF(MFH.NE.1) GO TO 60
       CALL FILE1IN(IMAT)
-      GO TO 80
-   70 IF(MFH.lt.MFOUT) go to 80
-      IF(MFH.eq.MFOUT) go to 100
-      go to 50
+c-----Allow more than 1 request with same ZA - design MAT for ALL
+      DO I=1,NMAT
+      IF(IZA.eq.IZAGET(I)) then
+      IVERSE(I) = IVERSE(IMAT)
+      TEMPK(I)  = TEMPK(IMAT)
+      ENDIF
+      ENDDO
+      CALL SKIPF
+      go to 20
+c-----Not MF=1 - Position to requested MFOUT
+   60 IF(MFH.lt.MFOUT) go to 70
+      IF(MFH.eq.MFOUT) go to 80
+C-----SKIP MATERIAL.
+      CALL SKIPM
+      GO TO 20
 C-----SKIP FILE.
-   80 CALL SKIPF
-C-----POSITION TO NEXT SECTION IN EVALUATION.
-   90 CALL CONTI
-      IF(MTH.gt.0) go to 60
-      IF(MATH.lt.0) go to 170
-      IF(MATH.eq.0) go to 20
-      go to 90
+   70 CALL SKIPF
+      go to 20
 c-----------------------------------------------------------------------
 C
 C     FILE 3 OR 23 FOUND. LOCATE REQUIRED REACTION.
 C
 c-----------------------------------------------------------------------
 C-----CHECK FOR REQUESTED ZA, MT.
-  100 DO 110 IMAT=1,NMAT
-      IF(IZAGET(IMAT).NE.IZA.OR.MTGET(IMAT).NE.MTH) GO TO 110
-      IF(NPTAB(IMAT).LE.0) GO TO 140
-  110 CONTINUE
-C-----SECTION NOT REQUESTED. SKIP IT.
-  120 CALL SKIPS
-C-----POSITION TO BEGINNING OF NEXT SECTION.
-  130 CALL CONTI
-      IF(MTH.gt.0) go to 100
-      IF(MFH.le.0) go to 50
-      go to 130
+   80 DO 90 IMAT=1,NMAT
+      IF(IZAGET(IMAT).NE.IZA.OR.MTGET(IMAT).NE.MTH) GO TO 90
+      IF(NPTAB(IMAT).LE.0) GO TO 100
+   90 CONTINUE
+C-----SECTION NOT REQUESTED - or Already Found = Skip it.
+      CALL SKIPS
+      go to 20
 C-----SECTION REQUESTED. READ AND CHECK IT.
-  140 CALL CARDI(QVALUE1(IMAT),QVALUE2(IMAT),L1,L2,N1,N2)
+  100 CALL CARDI(QVALUE1(IMAT),QVALUE2(IMAT),L1,L2,N1,N2)
+c-----Allow more than 1 request with same ZA - design MAT for ALL
       CALL TERPI(NBT,INT,N1)
 c-----2019/1/3 - Additional Interpolation Law Tests
       CALL TERPTEST(NBT,INT,N1,N2,3) ! MUST be INT = 2
       NPTAB(IMAT)=N2
-C-----DEFINE ATOMIC WEIGHT RATIO IN ATOMIC MASS UNITS
-C-----(INSTEAD OF ENDF/B CONVENTION OF NEUTRON MASS UNITS).
-      AWRE(IMAT)=1.008665d0*AWRIN
-      IF(MYTYPE.EQ.0) THEN
-C-----INPUT IS GRAMS - DERIVE ATOMS
-      ATOM10(IMAT)=0.60247d0*DENSE(IMAT)/AWRE(IMAT)
-      ELSE
-C-----INPUT IS ATOMS - DERIVE GRAMS
-      ATOM10(IMAT)= DENSE(IMAT)
-      DENSE(IMAT) = AWRE(IMAT)*ATOM10(IMAT)/0.60247d0
-      ENDIF
-      ATOMBC = ATOMBC + ATOM10(IMAT)
-      DENOUT = DENOUT + DENSE(IMAT)
       CALL OUT9(TEMPK (IMAT),FIELD6(1,1))
       CALL OUT9(QVALUE2(IMAT),FIELD6(1,2))
       CALL OUT9(AWRE  (IMAT),FIELD6(1,3))
       CALL OUT9(ATOM10(IMAT),FIELD6(1,4))
-      WRITE(OUTP,230) IZAGET(IMAT),MATH,MFH,MTGET(IMAT),
-     1 ((FIELD6(M,I),M=1,11),I=1,2),N2,((FIELD6(M,I),M=1,11),I=3,4)
-      WRITE(*   ,230) IZAGET(IMAT),MATH,MFH,MTGET(IMAT),
-     1 ((FIELD6(M,I),M=1,11),I=1,2),N2,((FIELD6(M,I),M=1,11),I=3,4)
       MATGET(IMAT)=MATH
+      WRITE(OUTP,210) IZAGET(IMAT),MATGET(IMAT),MFOUT,MTGET(IMAT),
+     1 ((FIELD6(M,I),M=1,11),I=1,2),NPTAB(IMAT),
+     2 ((FIELD6(M,I),M=1,11),I=3,4)
+      WRITE(*   ,210) IZAGET(IMAT),MATGET(IMAT),MFOUT,MTGET(IMAT),
+     1 ((FIELD6(M,I),M=1,11),I=1,2),NPTAB(IMAT),
+     2 ((FIELD6(M,I),M=1,11),I=3,4)
 c-----2019/3/1 - Save MA, MF, MT
       call maxie1(MATH,MFH,MTH)
 C-----READ REACTION DATA.
@@ -860,45 +897,100 @@ C     DETERMINE IF THERE ARE ANYMORE SECTIONS FROM CURRENT MATERIAL
 C     OR ANY MORE SECTIONS FROM ANY OTHER MATERIAL.
 C
 c-----------------------------------------------------------------------
-      DO 150 I=1,NMAT
-      IF(IZAGET(I).NE.IZAGET(IMAT)) GO TO 150
-      IF(NPTAB(I).LE.0) GO TO 120
-  150 CONTINUE
-      DO 160 I=1,NMAT
-      IF(NPTAB(I).LE.0) GO TO 50
-  160 CONTINUE
+      DO 110 I=1,NMAT
+      IF(NPTAB(I).LE.0) THEN
+      CALL SKIPS
+      go to 20
+      ENDIF
+  110 CONTINUE
 c-----------------------------------------------------------------------
 C
-C     ALL SECTIONS READ. TERMINATE IF ANY ERROR IN EVALUATED DATA.
+C     ALL ENDF DATA READ. TERMINATE IF ANY ERROR IN EVALUATED DATA.
 C     IF DATA IS O.K. DEFINE AVERAGE ATOMIC WEIGHT RATIO BASED ON
 C     DENSITY AND ATOMS
 C
 c-----------------------------------------------------------------------
-      IF(IGOOF.NE.0) GO TO 200
+      IF(IGOOF.NE.0) GO TO 140
       AWROUT=0.60247d0*DENOUT/ATOMBC
       RETURN
 c-----------------------------------------------------------------------
 C
-C     ERROR MESSAGE SECTION. ANY OF THE FOLLOWING CONDITIONS WILL
-C     CAUSE THE PROGRAM TO ABORT.
+C     TEND = Check Data.
 C
 c-----------------------------------------------------------------------
-C-----CANNOT LOCATE ALL SECTIONS TO BE MIXED.
-  170 DO 180 IMAT=1,NMAT
-      IF(NPTAB(IMAT).LE.0) WRITE(OUTP,220) IZAGET(IMAT)
-      IF(NPTAB(IMAT).LE.0) WRITE(*   ,220) IZAGET(IMAT)
-  180 CONTINUE
-      WRITE(OUTP,210)
-      WRITE(*   ,210)
-  190 CALL ENDERROR
-C-----TERMINATED DUE TO ERROR IN EVALUATED DATA.
-  200 WRITE(OUTP,240)
-      WRITE(*   ,240)
-      GO TO 190
-  210 FORMAT(1X,78('-')/' Execution Terminated'///)
-  220 FORMAT(I7,9X,' Cannot Locate ZA')
-  230 FORMAT(I7,I5,I3,I4,22A1,I7,22A1)
-  240 FORMAT(1X,78('-')/' Execution Terminated due to ERROR in',
+c
+C     CANNOT LOCATE ALL DATA TO BE MIXED.
+c
+  120 IGOOF  = 0
+      IFOUND = 0
+      DO 130 IMAT=1,NMAT
+      IF(NPTAB(IMAT).GT.0) then
+      IFOUND = IFOUND + 1                       ! Count those found
+      go to 130
+      ELSE
+      CALL OUT9(TEMPK (IMAT),FIELD6(1,1))       ! Data not found
+      CALL OUT9(QVALUE2(IMAT),FIELD6(1,2))
+      CALL OUT9(AWRE  (IMAT),FIELD6(1,3))
+      CALL OUT9(ATOM10(IMAT),FIELD6(1,4))
+      WRITE(OUTP,210) IZAGET(IMAT),MATGET(IMAT),MFOUT,MTGET(IMAT),
+     1 ((FIELD6(M,I),M=1,11),I=1,2),NPTAB(IMAT),
+     2 ((FIELD6(M,I),M=1,11),I=3,4)
+      WRITE(*   ,210) IZAGET(IMAT),MATGET(IMAT),MFOUT,MTGET(IMAT),
+     1 ((FIELD6(M,I),M=1,11),I=1,2),NPTAB(IMAT),
+     2 ((FIELD6(M,I),M=1,11),I=3,4)
+      if(MATGET(IMAT).le.0) then
+c-----Missing ZA
+      WRITE(OUTP,190) IZAGET(IMAT),IZAGET(IMAT)
+      WRITE(*   ,190) IZAGET(IMAT),IZAGET(IMAT)
+      IGOOF = IGOOF + 1
+      else
+c-----Missing MF/MT
+      WRITE(OUTP,200) IZAGET(IMAT),MATGET(IMAT),IZAGET(IMAT),MFOUT,
+     1 MTGET(IMAT)
+      WRITE(*   ,200) IZAGET(IMAT),MATGET(IMAT),IZAGET(IMAT),MFOUT,
+     1 MTGET(IMAT)
+      endif
+      endif
+  130 CONTINUE
+c
+c     TERMINATE IF ANY ZA MISSING
+c
+      if(IGOOF.gt.0) then
+      WRITE(OUTP,170)
+      WRITE(*   ,170)
+      CALL ENDERROR
+      endif
+c-----All ZA found - If any data found, use it
+      if(IFOUND.gt.0) go to 150
+c
+C     Terminate if NO DATA FOUND.
+c
+      WRITE(OUTP,180)
+      WRITE(*   ,180)
+      CALL ENDERROR
+c
+C     TERMINATED DUE TO ERROR IN EVALUATED DAT (IGOOF)
+c
+  140 WRITE(OUTP,220)
+      WRITE(*   ,220)
+      CALL ENDERROR
+c
+c     Use the data that was found
+c
+  150 AWROUT=0.60247d0*DENOUT/ATOMBC
+      if(IFOUND.lt.NMAT) then
+      write(outp,160)
+      write(*   ,160)
+      endif
+      RETURN
+  160 format(1x,78('-')/' WARNING - Output includes ONLY data found')
+  170 format(1x,78('-')/' ERROR - Missing ZA - Check ENDF Data')
+  180 FORMAT(1X,78('-')/' ERROR - NO data found to MIX')
+  190 FORMAT(I7,9X,   ' ERROR - ENDF Data Does not include ZA=',I7)
+  200 FORMAT(I7,I5,4X,' WARNING - ZA=',I7,' Does not include',
+     1 ' MF/MT=',i2'/',i3)
+  210 FORMAT(I7,I5,I3,I4,11A1,1x,11A,I7,22A1)
+  220 FORMAT(1X,78('-')/' Execution Terminated due to ERROR in',
      1 ' Evaluated Data')
       END
       SUBROUTINE FILE1IN(IMAT)
@@ -956,7 +1048,8 @@ C-----READ NEXT PAGE.
       CALL POINTI(XTAB(1,ITYPE),YTAB(1,ITYPE),IHIGH)
 C-----CONVERT CROSS SECTION TO MACROSCOPIC FORM.
       DO 10 I=1,IHIGH
-   10 YTAB(I,ITYPE)=FACTOR*YTAB(I,ITYPE)
+      YTAB(I,ITYPE)=FACTOR*YTAB(I,ITYPE)
+   10 CONTINUE
 C-----IF OVER ONE PAGE OF DATA MOVE IT TO SCRATCH FILE.
       IF(N2IN.LE.NPAGE) GO TO 20
       IF(NPT.EQ.1) REWIND NSCR
@@ -1017,22 +1110,26 @@ c
 c-----------------------------------------------------------------------
       call maxie3(1)
 c-----2019/3/3 - Flag to extend to XMAXIMUM as = 0.
-      do IMAT=1,NMAT
+c-----2020/6/14 - First first read data (NPTAB > 0)
+      IMFIRST = 0
+      do 10 IMAT=1,NMAT
       IXTEND(IMAT) = 0
+      if(NPTAB(IMAT).le.0) go to 10
+      if(IMFIRST.le.0) IMFIRST = IMAT          ! Define FIRST real data
       if(XMAXIE(IMAT).lt.XMAXIMUM) then
       if(YMAXIE(IMAT).gt.0.0d0) IXTEND(IMAT) = 1
       endif
-      enddo
+   10 continue
 c-----------------------------------------------------------------------
 c
 c     Process ENDF Output MIX
 c
 c-----------------------------------------------------------------------
-      write(outp,10)
-      write(*   ,10)
-   10 format(1x,78('-')/' Processing ENDF Output MIX'/1X,78('-')/
-     2 '     ZA  MAT MF  MT     Kelvin    Q-Value Points AMU-Weight',
-     3 ' Atoms/b-cm *'/39X,'eV')
+      write(outp,20)
+      write(*   ,20)
+   20 format(1x,78('-')/' Processing ENDF Output MIX'/1X,78('-')/
+     2 '     ZA  MAT MF  MT     Kelvin     Q-Value Points AMU-Weight',
+     3 ' Atoms/b-cm *'/40X,'eV')
 c-----------------------------------------------------------------------
 C
 C     INITIALIZE INDICES AND DEFINE FIRST VALUES.
@@ -1043,30 +1140,34 @@ c-----------------------------------------------------------------------
       IXYHI(IUSEN)=0
       IPTN=0
       NSCR=ISCR(IUSEN)
-      DO 20 IMAT=1,NMAT
+      DO 30 IMAT=1,NMAT
       IPTAB(IMAT)=1
-   20 CALL OPAG10(1,IUSE(IMAT),XA(IMAT),YA(IMAT))
+      if(NPTAB(IMAT).le.0) go to 30
+      CALL OPAG10(1,IUSE(IMAT),XA(IMAT),YA(IMAT))
+   30 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     SELECT LOWEST ENERGY.
 C
 c-----------------------------------------------------------------------
-   30 XLAST=XNOW
-      XNOW=XA(1)
-      DO 40 IMAT=2,NMAT
+   40 XLAST=XNOW
+      XNOW=XA(IMFIRST)
+      DO 50 IMAT=1,NMAT
+      if(NPTAB(IMAT).le.0) go to 50
       IF(XA(IMAT).LT.XNOW) XNOW=XA(IMAT)
-   40 CONTINUE
+   50 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     INTERPOLATE TO REQUIRED VALUES. ADVANCE TO NEXT INTERVAL
 C     IF CURRENT ONE HAS BEEN USED UP.
 C
 c-----------------------------------------------------------------------
-      DO 90 IMAT=1,NMAT
-      IF(XA(IMAT).gt.XNOW) go to 60
+      DO 100 IMAT=1,NMAT
+      if(NPTAB(IMAT).le.0) go to 100
+      IF(XA(IMAT).gt.XNOW) go to 70
       YB(IMAT)=YA(IMAT)
       IPTAB(IMAT)=IPTAB(IMAT)+1
-      IF(IPTAB(IMAT).LE.NPTAB(IMAT)) GO TO 50
+      IF(IPTAB(IMAT).LE.NPTAB(IMAT)) GO TO 60
 C-----2019/3/3 - EXTEND TO JUMP AT END (ONLY ONCE) OR MAXIMUM ENERGY
       if(IXTEND(IMAT).ne.0) then
       XA(IMAT) = XMAXIE(IMAT)     ! Jump at end
@@ -1076,25 +1177,25 @@ C-----2019/3/3 - EXTEND TO JUMP AT END (ONLY ONCE) OR MAXIMUM ENERGY
       endif
       YA(IMAT)=0.0d0              ! Both have cross section = 0
 c-----2019/2/17 - Do not set YB(IMAT) = 0
-      GO TO 90
-   50 CALL OPAG10(IPTAB(IMAT),IUSE(IMAT),XA(IMAT),YA(IMAT))
-      GO TO 90
+      GO TO 100
+   60 CALL OPAG10(IPTAB(IMAT),IUSE(IMAT),XA(IMAT),YA(IMAT))
+      GO TO 100
 c-----05/10/10 - corrected - was IPTAB(1), not IPTAB(IMAT)
-   60 IF(IPTAB(IMAT).GT.1) GO TO 70
+   70 IF(IPTAB(IMAT).GT.1) GO TO 80
       YB(IMAT)=0.0d0
-      GO TO 90
-   70 IF(XA(IMAT).GT.XLAST) GO TO 80
+      GO TO 100
+   80 IF(XA(IMAT).GT.XLAST) GO TO 90
       YB(IMAT)=YA(IMAT)
-      GO TO 90
-   80 YB(IMAT)=((XNOW-XLAST)*YA(IMAT)+(XA(IMAT)-XNOW)*YB(IMAT))/
+      GO TO 100
+   90 YB(IMAT)=((XNOW-XLAST)*YA(IMAT)+(XA(IMAT)-XNOW)*YB(IMAT))/
      1 (XA(IMAT)-XLAST)
-   90 CONTINUE
+  100 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     IF PAGE IS FULL UNLOAD IT TO SCRATCH.
 C
 c-----------------------------------------------------------------------
-      IF(IPTN.LT.NPAGE) GO TO 100
+      IF(IPTN.LT.NPAGE) GO TO 110
       IF(NPTAB(IUSEN).EQ.0) REWIND NSCR
       CALL ODUMP(NSCR,XTAB(1,IUSEN),YTAB(1,IUSEN),NPAGE)
       NPTAB(IUSEN)=NPTAB(IUSEN)+IPTN
@@ -1105,21 +1206,22 @@ C     ADD CONTRIBUTIONS TOGETHER TO DEFINE NEXT COMBINED POINT.
 C     CHECK ENERGY ORDER.
 C
 c-----------------------------------------------------------------------
-  100 IPTN=IPTN+1
+  110 IPTN=IPTN+1
       IMTHRU=0
       SUM=0.0d0
-      DO 110 IMAT=1,NMAT
+      DO 120 IMAT=1,NMAT
+      if(NPTAB(IMAT).le.0) go to 120
       SUM=SUM+YB(IMAT)
       IF(IPTAB(IMAT).LE.NPTAB(IMAT)) IMTHRU=1
-  110 CONTINUE
+  120 CONTINUE
       XTAB(IPTN,IUSEN)=XNOW
       YTAB(IPTN,IUSEN)=SUM
-      IF(XNOW.GE.XLAST) GO TO 120
+      IF(XNOW.GE.XLAST) GO TO 130
       II=IPTN+NPTAB(IUSEN)
       CALL OUT9(XNOW,FIELD6(1,1))
-      WRITE(OUTP,140) II,(FIELD6(M,1),M=1,11)
-      WRITE(*   ,140) II,(FIELD6(M,1),M=1,11)
-  120 IF(IMTHRU.GT.0) GO TO 30
+      WRITE(OUTP,150) II,(FIELD6(M,1),M=1,11)
+      WRITE(*   ,150) II,(FIELD6(M,1),M=1,11)
+  130 IF(IMTHRU.GT.0) GO TO 40
 c-----------------------------------------------------------------------
 C
 C     END OF TABLE. IF DATA IS NOT CORE RESIDENT MOVE LAST PAGE
@@ -1129,16 +1231,16 @@ C
 c-----------------------------------------------------------------------
       NPTAB(IUSEN)=NPTAB(IUSEN)+IPTN
       IXYLOW(IUSEN)=0
-      IF(NPTAB(IUSEN).GT.NPAGE) GO TO 130
+      IF(NPTAB(IUSEN).GT.NPAGE) GO TO 140
       IXYHI(IUSEN)=NPTAB(IUSEN)
       RETURN
-  130 CALL ODUMP(NSCR,XTAB(1,IUSEN),YTAB(1,IUSEN),NPAGE)
+  140 CALL ODUMP(NSCR,XTAB(1,IUSEN),YTAB(1,IUSEN),NPAGE)
       IXYHI(IUSEN)=NPAGE
       END FILE NSCR
       REWIND NSCR
       CALL IDUMP(NSCR,XTAB(1,IUSEN),YTAB(1,IUSEN),NPAGE)
       RETURN
-  140 FORMAT(16X,' Mixed Energy NOT in Ascending Energy Order',
+  150 FORMAT(16X,' Mixed Energy NOT in Ascending Energy Order',
      1 I6,11A1)
       END
       SUBROUTINE OUTIT
@@ -1189,7 +1291,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program MIXER (VERSION 2019-1) ************',
+     1 ' ***************** Program MIXER (VERSION 2021-1) ************',
      2 ' ----------------------------------------                     ',
      3 ' Composition                                                  ',
      4 ' ----------------------------------------                     ',
@@ -1208,8 +1310,19 @@ C
 C     HOLLERITH (MF=1, MT=451) OUTPUT.
 C
 c-----------------------------------------------------------------------
-      CALL OUT9(TEMPK(1) ,FIELD6(1,1))
-      CALL OUT9(QVALUE2(1),FIELD6(1,2))
+c-----2020/6/12 - Use lowest defined Q-Values & Temperature
+      QVALOUT1 = 1.0d12
+      QVALOUT2 = 1.0d12
+      TEMPKOUT = 1.0d12
+      do i=1,nmat
+      if(NPTAB(i).gt.0) then
+      if(QVALUE1(i).lt.QVALOUT1) QVALOUT1 = QVALUE1(i)
+      if(QVALUE2(i).lt.QVALOUT2) QVALOUT2 = QVALUE2(i)
+      if(TEMPK  (i).lt.TEMPKOUT) TEMPKOUT = TEMPK  (i)
+      endif
+      enddo
+      CALL OUT9(TEMPKOUT ,FIELD6(1,1))
+      CALL OUT9(QVALOUT2 ,FIELD6(1,2))
       CALL OUT9(AWROUT   ,FIELD6(1,3))
       CALL OUT9(ATOMBC   ,FIELD6(1,4))
       WRITE(OUTP,50) IZAOUT,MATOUT,MFOUT,MTOUT,
@@ -1226,8 +1339,9 @@ C-----PRINT FRACTIONS.
       FRACTG(I)=DENSE(I) /DENOUT
       WRITE(OUTP,70) IZAGET(I),MATGET(I),MFOUT,MTGET(I),
      1 FRACTA(I),FRACTG(I)
-   10 WRITE(*   ,70) IZAGET(I),MATGET(I),MFOUT,MTGET(I),
+      WRITE(*   ,70) IZAGET(I),MATGET(I),MFOUT,MTGET(I),
      1 FRACTA(I),FRACTG(I)
+   10 CONTINUE
       SUMA=1.0d0
       SUMG=1.0d0
       WRITE(OUTP,80) IZAOUT,MATOUT,MFOUT,MTOUT,SUMA,SUMG
@@ -1266,7 +1380,7 @@ c-----------------------------------------------------------------------
 c-----2019/2/17 - Added ESMALL = upper energy limit
 c-----2019/3/1 - Define Maximum Tabulated Cross Section
       CALL CARDO(XMASS,XMAXIMUM,IZERO,IZERO,NSUB,NFOR)
-      CALL CARDO(TEMPK(1),ZERO,LDRV,IZERO,NWD,ITWO)
+      CALL CARDO(TEMPKOUT,ZERO,LDRV,IZERO,NWD,ITWO)
       CALL HOLLYO(PROGDOC1(1,1))
       CALL HOLLYO(TITLE( 1))
       CALL HOLLYO(TITLE(18))
@@ -1283,7 +1397,8 @@ c-----2019/3/1 - Define Maximum Tabulated Cross Section
       CALL INTOUT(MTGET(LMAT) ,PROGDOC1(14,7),3)
       CALL OUT9(FRACTA(LMAT)  ,PROGDOC1(18,7))
       CALL OUT9(FRACTG(LMAT)  ,PROGDOC1(31,7))
-   20 CALL HOLLYO(PROGDOC1(1,7))
+      CALL HOLLYO(PROGDOC1(1,7))
+   20 CONTINUE
       CALL HOLLYO(PROGDOC1(1,6))
 C-----COMPOSITE
       SUMA=1.0d0
@@ -1313,11 +1428,12 @@ C
 C     CROSS SECTIONS (MF=3 OR 23).
 C
 c-----------------------------------------------------------------------
+c-----Use
 C-----WRITE DATA TABLE.
       MFH=MFOUT
       MTH=MTOUT
       CALL CARDO(ZAOUT,ARWMIX,IZERO,IZERO,IZERO,IZERO)
-      CALL CARDO(QVALUE1(1),QVALUE2(1),IZERO,IZERO,IONE,KPT)
+      CALL CARDO(QVALOUT1  ,QVALOUT2  ,IZERO,IZERO,IONE,KPT)
       NBTX(1)=KPT
       CALL TERPO(NBTX,INTX,1)
 C-----DEFINE NORMALIZATION FOR BARNS/ATOM BASED ON EQUIVALENT
@@ -1331,15 +1447,17 @@ C-----LOAD AND OUTPUT POINTS ONE PAGE AT A TIME.
       DO 30 L3=LPT,LPTP2
       LX=LX+1
       CALL OPAG10(L3,IUSEN,XTAB(LX,1),YTAB(LX,1))
-   30 YTAB(LX,1)=FACTOR*YTAB(LX,1)
-   40 CALL POINTO(XTAB,YTAB,LX)
+      YTAB(LX,1)=FACTOR*YTAB(LX,1)
+   30 CONTINUE
+      CALL POINTO(XTAB,YTAB,LX)
+   40 CONTINUE
 C-----OUTPUT SEND, FEND, MEND AND TEND RECORDS.
       CALL OUTS(MATOUT,MFOUT)
       CALL OUTF(MATOUT)
       CALL OUTM
       CALL OUTT
       RETURN
-   50 FORMAT(1X,78('-')/I7,I5,I3,I4,22A1,I7,22A1/1X,78('-')/
+   50 FORMAT(1X,78('-')/I7,I5,I3,I4,11A1,1x,11A1,I7,22A1/1X,78('-')/
      2 ' * - Note b-cm = 1.0E-24 Cubic Centimeters'/1X,78('-'))
    60 FORMAT(' Atom and Gram Fractions'/1X,78('-')/
      1 '     ZA  MAT MF  MT     Atom        Gram'/
@@ -1433,7 +1551,8 @@ C=======================================================================
       DATA DIGITS/'0','1','2','3','4','5','6','7','8','9'/
 C-----INITIALIZE TO BLANK
       DO 10 I=1,LENGTH
-   10 FIELD(I)=' '
+      FIELD(I)=' '
+   10 CONTINUE
 C-----FILL IN LAST DIGIT TO FIRST
       II=INT
       DO 20 I=LENGTH,1,-1
@@ -1490,7 +1609,8 @@ C-----DEFINE UNIT NUMBER AND INDICES TO PAGED ARRAYS (EACH CONSTITUENT
 C-----CROSS SECTION WILL BE PUT ON A DIFFERENT SCRATCH FILE).
       DO 20 I=1,NMAT
       ISCR(I)=I+11
-   20 IUSE(I)=I
+      IUSE(I)=I
+   20 CONTINUE
       ISCR(11)=22
       IUSEN=11
       OPEN(OTAPE,FILE=NAMEOUT,STATUS='UNKNOWN')
@@ -1502,7 +1622,8 @@ C-----CONSTITUENTS
    40 DO 50 I=1,NMAT
       NSCR=ISCR(I)
       FILSCR1=FILSCR(I)
-   50 CALL SCRATCH1(NSCR,FILSCR1)
+      CALL SCRATCH1(NSCR,FILSCR1)
+   50 CONTINUE
 C-----COMBINED FILE
       CALL SCRATCH1(ISCR(11),'MIXER.000   ')
       RETURN

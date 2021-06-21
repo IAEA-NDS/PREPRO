@@ -13,7 +13,7 @@ C     PROGRAM SPECTRA
 C     ===============
 C     An extension of LINEAR to linearize ALl MF=5 spectra.
 C     2012/05/28 - Added MF=15 neutron induced, photon spectra.
-C     2019/01/03 - MF=6 Still NOT Implemented
+C     2021/01/26 - MF=6 Still NOT Implemented
 C
 C     First released in 2010 - Earlier below dates refer to LINEAR.
 C
@@ -154,6 +154,8 @@ C                                 *Corrected END Histogram linearized -
 C                                  Previously deleted last point - ERROR
 C                                  to assume this has Y=0 - now keep
 C                                  point, but insure Y = 0.
+C     VERS. 2020-1 (Mar. 2020)    *Added Target Isomer State
+C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -241,7 +243,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM SPECTRA (2019-1) ****************
+C     ***************** PROGRAM SPECTRA (2021-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-10 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -758,14 +760,14 @@ c-----End of Run - Normal
       GO TO 80  ! CANNOT GET TO HERE
    90 FORMAT(2X,78('-')/
      1 '  ENDF/B Tape Label'/2X,78('-')/2X,16A4,A2,I4/2X,78('-')/
-     2 '    Material  MAT  MF  MT  ENDF/B  Kelvin or  Q-Value  ',
+     2 '    Material    MAT  MF  MT  ENDF/B  Kelvin or  Q-Value  ',
      3 '   Points Points'/
-     3 '                           Format  Incident E (eV)     ',
+     3 '                             Format  Incident E (eV)     ',
      4 '       In    Out'/
      4 2X,78('-'))
-  100 FORMAT(2X,78('-')/46X,'Tape Totals',2I7/2X,78('-'))
+  100 FORMAT(2X,78('-')/48X,'Tape Totals',2I7/2X,78('-'))
   110 FORMAT('  Linearize ENDF/B Spectra',
-     1 ' (SPECTRA 2019-1)'/2X,78('-'))
+     1 ' (SPECTRA 2021-1)'/2X,78('-'))
   120 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -785,6 +787,8 @@ C     ENDF/B-IV = N1 > 0, N2 = 0,LINE COUNT (POSITIVE)
 C     ENDF/B-V  = N1 = N2 = 0
 C     ENDF/B-VI =      N2 = VERSION NUMBER (6 OR MORE)
 C
+C     First line has already been read.
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 PROGDOC1
@@ -795,6 +799,7 @@ C=======================================================================
       COMMON/HOLFMT/FMTHOL
       COMMON/PARAMS/XCMIN
       COMMON/TEMPO/TEMP3,IVERSE
+      COMMON/LISOCOM/LISO
       DIMENSION FMTTAB(4),PROGDOC(8),PROGDOC1(66,8)
       EQUIVALENCE (PROGDOC(1),PROGDOC1(1,1))
 C-----ENDF/B VERSION
@@ -810,7 +815,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' **************** Program SPECTRA (VERSION 2019-1) ***********',
+     1 ' **************** Program SPECTRA (VERSION 2021-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',
@@ -823,24 +828,35 @@ C-----FILL IN REMAINDER OF FIRST LINE.
       PROGDOC1(64,1) = '*'
       PROGDOC1(65,1) = '*'
       PROGDOC1(66,1) = '*'
+c
+c     Read Second Line
+c
 C-----HEAD LINE OF SECTION HAS BEEN READ AND WRITTEN. READ NEXT LINE
 C-----AND DETERMINE IF THIS IS THE ENDF/B-IV, V OR VI FORMAT.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
+      LISOX = L2            ! Save potrential isoter number
 C-----CHECK FOR ENDF/B-IV.
 C-----IV N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF/B-IV. READ THIRD LINE.
       N2X=N2
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Third Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=5
 C-----CHECK FOR ENDF/B-V FORMAT.
       IF(N2X.LE.0) GO TO 10
 C-----ENDF/B-VI FORMAT. READ FOURTH LINE.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Fourth Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
+      LISO = LISOX
 C-----DEFINE TEMPERATURE OF FILE 3 CROSS SECTIONS.
       TEMP3=C1
 C-----SET DERIVED MATERIAL FLAG.
@@ -855,7 +871,8 @@ C-----FOR VARIABLE ACCURACY, 4 LINE TITLE + ERROR LAW
       IF(MAXER3.GT.1) N1OUT=N1+6+MAXER3
       CALL CARDO(C1,C2,L1,L2,N1OUT,N2)
       DO 20 N=1,N1
-   20 CALL COPY1
+      CALL COPY1
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ADD COMMENTS TO DOCUMENT WHAT WAS DONE TO DATA.
@@ -882,7 +899,8 @@ C-----WRITE FOUR COMMENT LINES PLUS ENERGY DEPENDENT ERROR LAW.
       PERCNT=100.0d0*ER3(I)
       CALL OUT9(ENER3(I),PROGDOC1( 2,8))
       CALL OUT9(PERCNT  ,PROGDOC1(14,8))
-   40 CALL HOLLYO(PROGDOC1(1,8))
+      CALL HOLLYO(PROGDOC1(1,8))
+   40 CONTINUE
 C-----COPY TO END OF SECTION.
    50 CALL COPYS
       RETURN
@@ -1264,7 +1282,8 @@ c-----2019/12/3 - Additional Interpolation Law Tests
       CALL TERPO(NBT5,INT5,NR5)
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IE5=1,NE5
-   10 CALL FILEX
+      CALL FILEX
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1311,7 +1330,8 @@ c-----2019/12/3 - Additional Interpolation Law Tests
       NG5 = NF5
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IT5=1,NT5
-   10 CALL FILE5F
+      CALL FILE5F
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1355,7 +1375,8 @@ C-----WRITE TAB2 INTERPOLATION LAW
       CALL TERPO(NBT5,INT5,NR5)
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IT5=1,NT5
-   10 CALL FILE5F
+      CALL FILE5F
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1404,7 +1425,8 @@ C-----WRITE TAB2 INTERPOLATION LAW
       CALL TERPO(NBT5,INT5,NR5)
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IT5=1,NT5
-   10 CALL FILE5F
+      CALL FILE5F
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1453,7 +1475,8 @@ C-----INSURE ALL BWATT ARE POSITIVE
       CALL NOZERO(EBWATT,BWATT,NF5)
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IT5=1,NT5
-   10 CALL FILE5F
+      CALL FILE5F
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1510,7 +1533,8 @@ C-----WRITE TAB2 INTERPOLATION LAW
       CALL TERPO(NBT5,INT5,NR5)
 C-----LOOP OVER INCIDENT ENERGIES
       DO 10 IT5=1,NT5
-   10 CALL FILE5F
+      CALL FILE5F
+   10 CONTINUE
 c-----Save last incident energy
       if(C2.gt.0.0d0) then
       CALL MAXIE1(MATH,MFH,MTH)
@@ -1535,11 +1559,13 @@ C=======================================================================
       COMMON/PARAMS/XCMIN
       COMMON/TEMPO/TEMP3,IVERSE
       COMMON/WHATZA/IZA
-      CHARACTER*1 ZABCD(10)
-      CALL ZAHOL(IZA,ZABCD)
+      COMMON/LISOCOM/LISO
+      CHARACTER*1 ZABCD(12)
+c-----2020/3/21 - Added Target Isomer State
+      CALL ZAHOLM(IZA,LISO,ZABCD)
       WRITE(*,10) ZABCD,MATH,MFH,MTH
       WRITE(3,10) ZABCD,MATH,MFH,MTH
-   10 FORMAT(2X,10A1,I5,2I4,'   WARNING - MF=6 NOT YET IMPLEMENTED',
+   10 FORMAT(2X,12A1,I5,2I4,'   WARNING - MF=6 NOT YET IMPLEMENTED',
      1 ' - Section Copied')
       CALL COPYS
       RETURN
@@ -1554,7 +1580,6 @@ C     BE ON SCRATCH FILE (ISCR)
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      CHARACTER*1 ZABCD
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/NBTINT/NBT(100),INT(100)
@@ -1572,7 +1597,6 @@ C=======================================================================
       COMMON/CON5COM/U5,EFL,EFH,LF5,IMSMOOTH
       COMMON/ENRGYCOM/EMIN,EMAX,ETHERMAL
       INCLUDE 'spectra.h'
-      DIMENSION ZABCD(10)
       DATA ZERO/0.0D+00/
       DATA HALF/5.0D-01/
 c-----------------------------------------------------------------------
@@ -1792,7 +1816,7 @@ C-----LINEAR ENERGY.
 C-----LOG ENERGY.
   150 XN2P1=DSQRT(XN2*XN2P2)
 C-----ROUND MIDPOINT.
-  160 CALL INCORE9(XN2P1)
+  160 CALL INCORE10(XN2P1)
 c-----------------------------------------------------------------------
 C
 C     SMALL ENERGY INTERVAL CONVERGENCE TESTS.
@@ -1921,8 +1945,9 @@ C----- FILE 5 PARAMETERS
       COMMON/PARAMS5E/ETM(1000),TM(1000)
       COMMON/EGRIDCOM/EGRID(2000),NGRID
       COMMON/ENRGYCOM/EMIN,EMAX,ETHERMAL
+      COMMON/LISOCOM/LISO
       INCLUDE 'spectra.h'
-      DIMENSION ZABCD(10)
+      DIMENSION ZABCD(12)
       DATA ZERO/0.0D+00/
       DATA HALF/5.0D-01/
 c-----------------------------------------------------------------------
@@ -2057,7 +2082,8 @@ C-----ASCENDING ORDER).
    90 CONTINUE
       IF(NBT(N1).EQ.N2IN) GO TO 110
   100 IZA = C1H
-      CALL ZAHOL(IZA,ZABCD)
+c-----2020/3/21 - Added Target Isomer State
+      CALL ZAHOLM(IZA,LISO,ZABCD)
       WRITE(OUTP,330) ZABCD,MATH,MFH,MTH,N2IN,(NBT(I),INT(I),I=1,N1)
       WRITE(*   ,330) ZABCD,MATH,MFH,MTH,N2IN,(NBT(I),INT(I),I=1,N1)
       CALL ENDERROR
@@ -2257,7 +2283,7 @@ C-----LINEAR ENERGY.
 C-----LOG ENERGY.
   260 XN2P1=DSQRT(XN2*XN2P2)
 C-----ROUND MIDPOINT.
-  270 CALL INCORE9(XN2P1)
+  270 CALL INCORE10(XN2P1)
 c-----------------------------------------------------------------------
 C
 C     SMALL ENERGY INTERVAL CONVERGENCE TESTS.
@@ -2356,7 +2382,7 @@ C-----PRINT ERROR MESSAGE IF INTERPOLATION LAW = 6 IS USED WITH A
 C-----REACTION WITH A NEGATIVE Q-VALUE.
       IF(IM6.GT.0.AND.Q.LT.0.0d0) WRITE(OUTP,340)
       RETURN
-  330 FORMAT(2X,10A1,I5,I4,I4/
+  330 FORMAT(2X,12A1,I5,I4,I4/
      1 '  Error in Interpolation Law---Execution Terminated'/
      2 '  N2 =',I6/'   NBT  INT'/(I6,I5))
   340 FORMAT(19X,'WARNING - the Above Section Uses Interpolation Law 6'/
@@ -2599,7 +2625,8 @@ C-----ALL INDICES.
       DO 190 LLL=NP1P1,N2CORE
       LL=LL+1
       XOUT(LL)=XOUT(LLL)
-  190 YOUT(LL)=YOUT(LLL)
+      YOUT(LL)=YOUT(LLL)
+  190 CONTINUE
       ITHIN1=ITHIN1-NPAGE
       N2CORE=N2CORE-NPAGE
       N2P1=N2CORE+1
@@ -2730,8 +2757,9 @@ C=======================================================================
       COMMON/TEMPO/TEMP3,IVERSE
       COMMON/HOLFMT/FMTHOL
       COMMON/FIELDC/FIELD(11,6)
+      COMMON/LISOCOM/LISO
       INCLUDE 'spectra.h'
-      DIMENSION NBTO(1),INTO(1),ZABCD(10)
+      DIMENSION NBTO(1),INTO(1),ZABCD(12)
       DATA INTO/2/
 c-----------------------------------------------------------------------
 C
@@ -2744,7 +2772,8 @@ C-----OUTPUT TAB1 LEAD LINE (SECTION HEAD LINE OUTPUT IN MAIN)
 C-----OUTPUT INTERPOLATION LAW.
       NBTO(1)=N2TOT
       CALL TERPO(NBTO,INTO,1)
-      CALL ZAHOL(IZA,ZABCD)
+c-----2020/3/21 - Added Target Isomer State
+      CALL ZAHOLM(IZA,LISO,ZABCD)
 c-----------------------------------------------------------------------
 C
 C     DEFINE TEMPERATURE. FOR ENDF/B-V AND EARLIER VERSIONS C1 OF THE
@@ -2844,11 +2873,11 @@ C-----PRINT WARNING IF CROSS SECTION IS NOT POSITIVE AT ANY ENERGY.
       IF(IMPLUS.LE.0) WRITE(OUTP,150)
       IF(IMPLUS.LE.0) WRITE(*   ,150)
       RETURN
-  120 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,2(1X,11A1),2I7)
-  130 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,24X,2I7)
-  140 FORMAT(19X,'WARNING - Above Spectra Negative at',I6,
+  120 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,2(1X,11A1),2I7)
+  130 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,24X,2I7)
+  140 FORMAT(21X,'WARNING - Above Spectra Negative at',I6,
      1 ' Energies')
-  150 FORMAT(19X,'WARNING - Above Spectra NOT',
+  150 FORMAT(21X,'WARNING - Above Spectra NOT',
      1 ' Positive at Any Energy')
       END
       SUBROUTINE READIN
@@ -3303,7 +3332,7 @@ C-----SAVE CURRENT MAT, MF AND MT.
   130 MATNOW=MATH
       MFNOW=MFH
       RETURN
-  140 FORMAT(2X,78('-')/46X,' MAT Totals',2I7/2X,78('-'))
+  140 FORMAT(2X,78('-')/48X,' MAT Totals',2I7/2X,78('-'))
       END
       SUBROUTINE ERROK3(E)
 C=======================================================================
@@ -3419,14 +3448,15 @@ C-----INCREMENT FOR 100 PER ENERGY DECADE
       EGRID(1) = ELOW
       NGRID    = 1
 C-----DEFINE GROUPS UP TO MAXIMUM ENERGY
-      DO 10 I=1,2000
+      DO 20 I=1,2000
       IF(ENOW.le.EGRID(1)) go to 10
       NGRID = NGRID + 1
       EGRID(NGRID)=ENOW
-      IF(EGRID(NGRID).ge.EHIGH) go to 20
+      IF(EGRID(NGRID).ge.EHIGH) go to 30
    10 ENOW=ENOW*DE
+   20 CONTINUE
 C-----DEFINE END OF GROUP AT MAXIMUM ENERGY
-   20 EGRID(NGRID)=EHIGH
+   30 EGRID(NGRID)=EHIGH
       RETURN
       END
 c-----------------------------------------------------------------------
