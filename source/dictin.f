@@ -80,7 +80,7 @@ C                                  2) 99999 on section end, MT=0
 C                                  3)     0 on MF = 0
 C     VERS. 2017-1 (May  2017)    *Updated based on user feedback.
 C     VERS. 2018-1 (Jan. 2018)    *Added on-line output for ALL ENDERROR
-C     VERS. 2019-1 (June 2019)    *Identical to 2018-1.
+C     VERS. 2020-1 (Feb. 2020)    *Identical to 2018-1.
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -527,7 +527,8 @@ C-----COPY COMMENT LINES.
       ICARD=ICARD+1
       NOSEQ=NXTSEQ(NOSEQ)
       WRITE(OTAPE,440) CARD5,MAT,MF,MT,NOSEQ
-  230 OCARD=OCARD+1
+      OCARD=OCARD+1
+  230 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ADD 1 DOCUMENTATION LINE.
@@ -535,7 +536,7 @@ C
 c-----------------------------------------------------------------------
       NOSEQ=NXTSEQ(NOSEQ)
       WRITE(OTAPE,240) MAT,MF,MT,NOSEQ
-  240 FORMAT(' **************** Program DICTIN (VERSION 2019-1) ',
+  240 FORMAT(' **************** Program DICTIN (VERSION 2020-1) ',
      1       '****************',I4,I2,I3,I5)
       OCARD=OCARD+1
 C-----IF THERE IS AN OLD REACTION INDEX READ THE FIRST ENTRY TO
@@ -581,7 +582,8 @@ C-----INCREMENT MF/MT=1/451 LINE COUNT FOR ADDED DOCUMENTATION LINE
      1 NCARD(J),MOD
   310 WRITE(OTAPE,450) MFTAB(J),MTTAB(J),NCARD(J),MOD,
      1 MAT,MF,MT,NOSEQ
-  320 OCARD=OCARD+1
+      OCARD=OCARD+1
+  320 CONTINUE
       NDEX=ITOP+1
 C-----WRITE SECTION END (SEND) LINE.
 C-----2015-2: Corrected Sequence Number.
@@ -634,7 +636,7 @@ c-----------------------------------------------------------------------
   450 FORMAT(22X,4I11,I4,I2,I3,I5)
   460 FORMAT(22X,2I11,11X,I11,I4,I2,I3,I5)
   470 FORMAT(///'Over ',I5,' Sections---Execution Terminated')
-  480 FORMAT(' Create New Section Index (DICTIN 2019-1)'/1X,60('-'))
+  480 FORMAT(' Create New Section Index (DICTIN 2020-1)'/1X,60('-'))
   490 FORMAT(1X,60('-')/
      1 ' First Pass. Reading ENDF/B Data'/1X,60('-')/
      2 '  MAT   Messages'/1X,60('-'))

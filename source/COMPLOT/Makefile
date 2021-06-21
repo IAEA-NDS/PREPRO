@@ -11,14 +11,14 @@ ifeq ($(PREFIX),)
 	PREFIX := /usr/local
 endif
 
-FFLAGS = -O2 -std=legacy
-CFLAGS = -fPIC
-LIBS   = -lX11
+FFLAGS = -O0 -w -static-libgfortran
+CFLAGS = -w 
+LIBS   = -lXt -lX11
 LIBDIR = -L/usr/X11/lib
 CC     = gcc -I/usr/X11/include
 FC     = gfortran
 
-FSUB1= complot.f endfio.f scratchb.f timer.f seconds.f screen.f
+FSUB1= complot.f endfio.f scratchb.f screen.f
 
 CSUBS= dash.c
 
@@ -32,21 +32,18 @@ all: complot comhard comhard1
 complot: $(OBJ)
 	$(FC) -o complot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
 
-comhard: complot.o endfio.o scratchb.o timer.o seconds.o saveps.o
-	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps.o
+comhard: complot.o endfio.o scratchb.o saveps.o
+	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o saveps.o
 
-comhard1: complot.o endfio.o scratchb.o timer.o seconds.o saveps1.o
-	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o timer.o \
-        seconds.o saveps1.o
+comhard1: complot.o endfio.o scratchb.o  saveps1.o
+	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o saveps1.o
 
 .PHONY: install
 install: complot comhard comhard1
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp $^ $(DESTDIR)$(PREFIX)/bin
+	mv $^ $(DESTDIR)$(PREFIX)/bin
 
 .PHONY: clean
 clean:
-	rm -f complot comhard comhard1
-	rm -f complot.o dash.o endfio.o saveps.o \
-	    saveps1.o scratchb.o screen.o seconds.o timer.o
+	rm -f *.o
+#

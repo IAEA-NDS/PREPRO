@@ -31,13 +31,13 @@ C                                 *ADDED STANDARD ALLOWABLE ERROR OPTION
 C                                  (CURRENTLY 0.1 PER-CENT).
 C     VERSION 83-2 (OCTOBER 1983) IMPROVED BASED ON USER COMMENTS.
 C     VERSION 84-1 (APRIL 1984)   IMPROVED BASED ON USER COMMENTS.
-C     VERSION 84-2 (JUNE 1984)   *UPDATED FOR ENDF/B-VI FORMATS.
+C     VERSION 84-2 (JUNE 1984)   *UPDATED FOR ENDF/B-6 FORMATS.
 C                                *SPECIAL I/O ROUTINES TO GUARANTEE
 C                                 ACCURACY OF ENERGY.
 C                                *DOUBLE PRECISION TREATMENT OF ENERGY
 C                                 (REQUIRED FOR NARROW RESONANCES).
 C     VERSION 85-1 (AUGUST 1985) *FORTRAN-77/H VERSION
-C     VERSION 86-1 (JANUARY 1986)*ENDF/B-VI FORMAT
+C     VERSION 86-1 (JANUARY 1986)*ENDF/B-6 FORMAT
 C     VERSION 87-1 (JANUARY 1987)*DOUBLE PRECISION TREATMENT OF CROSS
 C                                 SECTION
 C     VERSION 88-1 (JULY 1988)   *OPTION...INTERNALLY DEFINE ALL I/O
@@ -114,7 +114,7 @@ C     VERS. 2004-1 (JAN. 2004)    *GENERAL UPDATE BASED ON USER FEEDBACK
 C     VERS. 2005-1 (JAN. 2005)    *ALWAYS KEEP ORIGINAL TABULATED
 C                                  NU-BAR POINTS.
 C     VERS. 2006-1 (FEB. 2006)    *CORRECTED INT=6 NEAR THRESHOLD
-C                                 *NO SUBDIVIDE BELOW MINIMUM XCMIN
+C                                 *NO SUBDIVIDE BELOW MINIMUM XCLOW
 C     VERS. 2007-1 (JAN. 2007)    *CHECKED AGAINST ALL ENDF/B-VII.
 C                                 *INCREASED PAGE SIZE FROM 60,000 TO
 C                                  600,000 POINTS
@@ -152,6 +152,15 @@ C                                  if not, print WARNING messages.
 C                                 *Corrected END Histogram linearized -
 C                                  Previously assumed Y = 0 and deleted
 C                                  now whatever the value it is included
+C     VERS. 2020-1 (Dec. 2020)    *Major Re-write of Convergence
+C                                 *Replaced INCORE9 by INCORE10.
+C                                 *Added Target Isomer Flag
+C                                 *Keep iterating toward MAX & MIN
+C     VERS. 2021-1 (Mar. 2021)    *Complete re-write of convergence.
+C                                 *Optionlly add MF/MT=1/451 comments
+C                                 *Updated from FORTRAN 2018
+C                                 *Minimum Cross Section is no longer
+C                                  an input option = set to 1.0d-30.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -205,7 +214,7 @@ C     ENDF/B FORMAT
 C     -------------
 C     THIS PROGRAM ONLY USES THE ENDF/B BCD OR CARD IMAGE FORMAT (AS
 C     OPPOSED TO THE BINARY FORMAT) AND CAN HANDLE DATA IN ANY VERSION
-C     OF THE ENDF/B FORMAT (I.E., ENDF/B-I, II,III, IV, V OR VI FORMAT).
+C     OF THE ENDF/B FORMAT (I.E., ENDF/B-1, 2, 3, 4, 5, 6 FORMAT).
 C
 C     IT IS ASSUMED THAT THE DATA IS CORRECTLY CODED IN THE ENDF/B
 C     FORMAT AND NO ERROR CHECKING IS PERFORMED. IN PARTICULAR IT IS
@@ -239,7 +248,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM LINEAR (2019-1) ****************
+C     ***************** PROGRAM LINEAR (2021-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-30 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -687,7 +696,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 C
 C     IN ENDF/B-V USE  MT=452, 455, 456 AND 465, 466 (SPONTANEOUS)
-C     IN ENDF/B-VI USE MT=452, 455, 456
+C     IN ENDF/B-6 USE MT=452, 455, 456
 C     THE SPONTANEOUS DATA BY DEFINITION IS NOT ENERGY DEPENDENT -
 C     SO IT SHOULD ONLY BE COPIED - NEED ONLY PROCESS MT=452, 455,
 C     456 HERE (MT=465, 466 WILL BE COPIED).
@@ -711,7 +720,7 @@ C-----THIS MATERIAL HAS BEEN PROCESSED.
       IF(MFH.gt.1) go to 30
       IF(MTH.lt.451) go to 50
       IF(MTH.gt.451) go to 30
-C-----ADD COMMENTS.
+C-----2020/12/11 - Optionally Add Comments.
       CALL FILE1
       GO TO 10
 C-----NEUTRON INTERACTION CROSS SECTIONS?
@@ -753,7 +762,8 @@ C
 c-----------------------------------------------------------------------
    60 NS = N1H
       DO 70 IS=1,NS
-   70 CALL FILEX
+      CALL FILEX
+   70 CONTINUE
 C-----ADD SEND LINE.
       CALL OUTS(MATH,MFH)
       GO TO 10
@@ -779,12 +789,12 @@ C-----END OF RUN - NORMAL
       GO TO 90   ! CANNOT GET TO HERE.
   100 FORMAT(2X,78('-')/
      1 '  ENDF/B Tape Label'/2X,78('-')/2X,16A4,A2,I4/2X,78('-')/
-     2 '    Material  MAT  MF  MT  ENDF/B',6X,'Kelvin',5X,'Q-Value',
-     3 '   Points   Points'/26X,' Format',22X,'eV','       In      Out'/
-     4 2X,78('-'))
-  110 FORMAT(2X,78('-')/46X,'Tape Totals',2I9/2X,78('-'))
+     2 '    Material    MAT  MF  MT  ENDF/B',6X,'Kelvin',5X,'Q-Value',
+     3 '   Points   Points'/28X,' Format',22X,'eV',
+     4'       In      Out'/2X,78('-'))
+  110 FORMAT(2X,78('-')/48X,'Tape Totals',2I9/2X,78('-'))
   120 FORMAT('  Linearize ENDF/B Cross Sections',
-     1 ' (LINEAR 2019-1)'/2X,78('-'))
+     1 ' (LINEAR 2021-1)'/2X,78('-'))
   130 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -800,9 +810,11 @@ C
 C     DEFINE FORMAT TO BE ENDF/B-IV, V OR VI.
 C
 C     THE ENDF/B FORMAT CAN BE DETERMINED FROM THE SECOND LINE.
-C     ENDF/B-IV = N1 > 0, N2 = 0,LINE COUNT (POSITIVE)
-C     ENDF/B-V  = N1 = N2 = 0
-C     ENDF/B-VI =      N2 = VERSION NUMBER (6 OR MORE)
+C     ENDF/B-4  = N1 > 0, N2 = 0,LINE COUNT (POSITIVE)
+C     ENDF/B-5  = N1 = N2 = 0
+C     ENDF/B-6  =      N2 = VERSION NUMBER (6 OR MORE)
+C
+C     First line has already been read.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
@@ -810,14 +822,16 @@ C=======================================================================
       CHARACTER*4 FMTTAB,FMTHOL
       CHARACTER*66 PROGDOC
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/HOLFMT/FMTHOL
-      COMMON/PARAMS/XCMIN
+      COMMON/LISCOM/LISO
+      COMMON/COMCOM/NOCOMENT
       COMMON/TEMPO/TEMP3,IVERSE
-      DIMENSION FMTTAB(4),PROGDOC(8),PROGDOC1(66,8)
+      DIMENSION FMTTAB(3),PROGDOC(8),PROGDOC1(66,8)
       EQUIVALENCE (PROGDOC(1),PROGDOC1(1,1))
 C-----ENDF/B VERSION
-      DATA FMTTAB/'IV  ','V   ','VI  ','VII '/
+      DATA FMTTAB/'4   ','5   ','6   '/
 c-----------------------------------------------------------------------
 c
 C     DOCUMENTATION TO ADD TO ENDF/B OUTPUT - EACH LINE IS 66
@@ -829,7 +843,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LINEAR (VERSION 2019-1) ***********',
+     1 ' ***************** Program LINEAR (VERSION 2021-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',
@@ -842,39 +856,60 @@ C-----FILL IN REMAINDER OF FIRST LINE.
       PROGDOC1(64,1) = '*'
       PROGDOC1(65,1) = '*'
       PROGDOC1(66,1) = '*'
+c
+c     Read Second Line
+c
 C-----HEAD LINE OF SECTION HAS BEEN READ AND WRITTEN. READ NEXT LINE
-C-----AND DETERMINE IF THIS IS THE ENDF/B-IV, V OR VI FORMAT.
+C-----AND DETERMINE IF THIS IS THE ENDF/B-4, 5, 6 FORMAT.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
+      LISOX =L2            ! Save potential target isomer number
 C-----CHECK FOR ENDF/B-IV.
-C-----IV N1 > 0, N2 = 0
+C-----4: N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF/B-IV. READ THIRD LINE.
       N2X=N2
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Third Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=5
 C-----CHECK FOR ENDF/B-V FORMAT.
       IF(N2X.LE.0) GO TO 10
-C-----ENDF/B-VI FORMAT. READ FOURTH LINE.
+C-----ENDF/B-6 FORMAT. READ FOURTH LINE.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Fourth Line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
+      LISO   = LISOX
 C-----DEFINE TEMPERATURE OF FILE 3 CROSS SECTIONS.
       TEMP3=C1
 C-----SET DERIVED MATERIAL FLAG.
       L1=1
 C-----DEFINE ENDF/B FORMAT NUMBER.
    10 FMTHOL=FMTTAB(IVERSE-3)
+c-----------------------------------------------------------------------
+C
+C     2020/12/11 - Optionally Add Comments
+C
+c-----------------------------------------------------------------------
 C-----INCREASE COMMENT LINE COUNT AND COPY TO END OF HOLLERITH.
 C-----ALWAYS OUTPUT 1) PROGRAM I.D., 2) MINIMUM CROSS SECTION
 C-----FOR CONSTANT ACCURACY, 3) ACCURACY
 C-----FOR VARIABLE ACCURACY, 4 LINE TITLE + ERROR LAW
+      N1OUT = N1
+      if(NOCOMENT.eq.0) then
       IF(MAXER3.LE.1) N1OUT=N1+3
       IF(MAXER3.GT.1) N1OUT=N1+6+MAXER3
+      endif
       CALL CARDO(C1,C2,L1,L2,N1OUT,N2)
       DO 20 N=1,N1
-   20 CALL COPY1
+      CALL COPY1
+   20 CONTINUE
+      if(NOCOMENT.ne.0) go to 50
 c-----------------------------------------------------------------------
 C
 C     ADD COMMENTS TO DOCUMENT WHAT WAS DONE TO DATA.
@@ -883,7 +918,7 @@ c-----------------------------------------------------------------------
 C-----OUTPUT PROGRAM NAME AND VERSION I.D.
       CALL HOLLYO(PROGDOC1(1,1))
 C-----OUTPUT MINIMUM DATA OF INTEREST.
-      CALL OUT9(XCMIN,PROGDOC1(27,2))
+      CALL OUT9(XCLOW,PROGDOC1(27,2))
       CALL HOLLYO(PROGDOC1(1,2))
 C-----CONSTANT OR ENERGY DEPENDENT ERROR LAW
       IF(MAXER3.GT.1) GO TO 30
@@ -901,7 +936,8 @@ C-----WRITE FOUR COMMENT LINES PLUS ENERGY DEPENDENT ERROR LAW.
       PERCNT=100.0d0*ER3(I)
       CALL OUT9(ENER3(I),PROGDOC1( 2,8))
       CALL OUT9(PERCNT  ,PROGDOC1(14,8))
-   40 CALL HOLLYO(PROGDOC1(1,8))
+      CALL HOLLYO(PROGDOC1(1,8))
+   40 CONTINUE
 C-----COPY TO END OF SECTION.
    50 CALL COPYS
       RETURN
@@ -923,15 +959,17 @@ C=======================================================================
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/TEMPO/TEMP3,IVERSE
       COMMON/PAGER/NPAGE,NPAGE2,NP1P1,NP2M1
       COMMON/WHATZA/IZA
       COMMON/HOLFMT/FMTHOL
+      COMMON/LISCOM/LISO
 c-----11/30/2012 - added /SLIM/ for NOTHIN
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
       INCLUDE 'linear.h'
-      DIMENSION ZABCD(10),LAMBDA(66,50)
+      DIMENSION ZABCD(12),LAMBDA(66,50)
       DATA EMIN/1.0D-05/
       DATA EMAX/2.0D+07/
       DATA HALF/5.0D-01/
@@ -954,7 +992,8 @@ C-----FOR DELAYED NU-BAR COPY LIST RECORD WITH DECAY CONSTANTS.
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       CALL CARDO(C1,C2,L1,L2,N1,N2)
       DO 10 I=1,N1,6
-   10 CALL COPY1
+      CALL COPY1
+   10 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     PROCESS TABULATED DATA.
@@ -976,12 +1015,13 @@ C-----FOR DELAYED NU-BAR SAVE LIST RECORD WITH DECAY CONSTANTS.
    30 IF(MTH.NE.455) GO TO 50
       CALL CARDI(C1L,C2L,L1L,L2L,N1L,N2L)
 C-----STORAGE ALLOWS UP TO 300 DECAY CONSTANTS (50 LINES).
-      IF(N1L.GT.300) GO TO 160
+      IF(N1L.GT.300) GO TO 170
       II=0
       DO 40 I=1,N1L,6
       II=II+1
-   40 CALL HOLLYI(LAMBDA(1,II))
-C-----IN ENDF/B-VI FORMAT AND LATER CHECK FOR SPONTANEOUS NU-BAR.
+      CALL HOLLYI(LAMBDA(1,II))
+   40 CONTINUE
+C-----IN ENDF/B-6 FORMAT AND LATER CHECK FOR SPONTANEOUS NU-BAR.
    50 CALL CARDI(C1,C2,L1,L2,N1,N2)
       IF(IVERSE.LT.6.OR.N1.NE.1) GO TO 80
 c-----------------------------------------------------------------------
@@ -996,16 +1036,18 @@ C-----FOR DELAYED NU-BAR OUTPUT LIST RECORD WITH DECAY CONSTANTS.
       II=0
       DO 60 I=1,N1L,6
       II=II+1
-   60 CALL HOLLYO(LAMBDA(1,II))
+      CALL HOLLYO(LAMBDA(1,II))
+   60 CONTINUE
 C-----OUTPUT LIST RECORD WITH 1 POLYNOMIAL COEFFICIENT (1 LINE).
    70 CALL CARDO(C1,C2,L1,L2,N1,N2)
       CALL COPY1
 C-----COPY TO END OF SECTION.
       CALL COPYS
 C-----IDENTIFY DATA AS SPONTANEOUS.
-      CALL ZAHOL(IZA,ZABCD)
-      WRITE(OUTP,190) ZABCD,MATH,MFH,MTH,FMTHOL
-      WRITE(*   ,190) ZABCD,MATH,MFH,MTH,FMTHOL
+c-----2020/3/21` - Added Target isomer flag
+      CALL ZAHOLM(IZA,LISO,ZABCD)
+      WRITE(OUTP,200) ZABCD,MATH,MFH,MTH,FMTHOL
+      WRITE(*   ,200) ZABCD,MATH,MFH,MTH,FMTHOL
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -1022,7 +1064,8 @@ C-----FOR DELAYED NU-BAR OUTPUT LIST RECORD WITH DECAY CONSTANTS.
       II=0
       DO 90 I=1,N1L,6
       II=II+1
-   90 CALL HOLLYO(LAMBDA(1,II))
+      CALL HOLLYO(LAMBDA(1,II))
+   90 CONTINUE
 C-----READ POLYNOMIAL COEFFICIENTS - NOTE, FIRST LINE OF LIST RECORD
 C-----HAS ALREADY BEEN READ (TO DETERMINE WHETHER OR NOT DATA IS FOR
 C-----SPONTANEOUS FISSION).
@@ -1040,7 +1083,7 @@ c-----------------------------------------------------------------------
       XOUT(2)=EMAX
       YOUT(1)=POLYNU(XOUT(1),XIN,N1)
       YOUT(2)=POLYNU(XOUT(2),XIN,N1)
-      GO TO 170
+      GO TO 180
 c-----------------------------------------------------------------------
 C
 C     GENERAL CASE REQUIRES ENERGY DEPENDENT TABLE.
@@ -1059,7 +1102,7 @@ C-----DEFINE END OF ENERGY DECADE - OR UPPER ENERGY LIMIT.
       IF(EBASE.GT.EMAX) EBASE=EMAX
       YBASE=POLYNU(EBASE,XIN,N1)
 C-----TEST FOR MEMORY OVERFLOW.
-  130 IF(N2TOT.GE.NPAGE2) GO TO 160
+  130 IF(N2TOT.GE.NPAGE2) GO TO 170
 C-----START FROM END OF ENERGY DECADE.
       N2M1=N2TOT
       N2TOT=N2TOT+1
@@ -1067,40 +1110,77 @@ C-----START FROM END OF ENERGY DECADE.
       YOUT(N2TOT)=YBASE
 C-----INTERVAL HALF TO CONVERGENCE.
   140 XMID=HALF*(XOUT(N2M1)+XOUT(N2TOT))
-      CALL INCORE9(XMID)
+      CALL INCORE10(XMID)
       YMID=POLYNU(XMID,XIN,N1)
-      YLIN=HALF*(YOUT(N2M1)+YOUT(N2TOT))
-C-----CHECK FOR CONVERGENCE.
+c-----------------------------------------------------------------------
+c
+c     Convergence Test
+c
+c-----------------------------------------------------------------------
       IF(KERR3.NE.0) CALL ERROK3(XMID)
-      IF(DABS(YMID-YLIN).LE.DABS(YMID*ERRXC3)) GO TO 150
-C-----NO CONVERGENCE.
-      XOUT(N2TOT)=XMID
+C
+C     Do not sub-divide beyond 10 digits
+C
+      if(XMID.le.XOUT(N2M1).or.
+     1   XMID.ge.XOUT(N2TOT)) go to 160
+C
+C     DO NOT SUB-DIVIDE INTERVALS WITHIN WHICH THE ABSOLUTE VALUE OF
+C     THE CROSS SECTION IS LESS THAN THE MINIMUM CROSS SECTION OF
+C     INTEREST.
+C
+      if(DABS(YOUT(N2M1)) .le.XCLOW.and.
+     1   DABS(YOUT(N2TOT)).le.XCLOW) go to 160
+c
+c     Toward min or max
+c
+c-----Keep iterating toward MAXIMUM
+      IF(YMID.gt.YOUT(N2M1).and.YMID.gt.YOUT(N2TOT)) then
+      IF(DABS(YMID-YLIN).LE.DABS(YMID*ERMINMAX)) GO TO 160
+      go to 150
+      endif
+c-----Keep iterating toward MINIMUM
+      IF(YMID.lt.YOUT(N2M1).and.YMID.lt.YOUT(N2TOT)) then
+      IF(DABS(YMID-YLIN).LE.DABS(YMID*ERMINMAX)) GO TO 160
+      go to 150
+      endif
+c
+c     Linearly Interpolate
+c
+      YLIN=HALF*(YOUT(N2M1)+YOUT(N2TOT))
+      IF(DABS(YMID-YLIN).LE.DABS(YMID*ERRXC3)) GO TO 160
+c
+C     NO CONVERGENCE.
+c
+  150 XOUT(N2TOT)=XMID
       YOUT(N2TOT)=YMID
       GO TO 140
-C-----CONVERGENCE. IF NOT END OF DECADE CONTINUE IN SAME DECADE.
-  150 IF(XOUT(N2TOT).LT.EBASE) GO TO 130
+c
+C     CONVERGENCE. IF NOT END OF DECADE CONTINUE IN SAME DECADE.
+c
+  160 IF(XOUT(N2TOT).LT.EBASE) GO TO 130
 C-----END OF DECADE. CONTINUE UP TO MAXIMUM ENERGY (20 MEV).
       IF(XOUT(N2TOT).LT.EMAX) GO TO 120
-      GO TO 170
+      GO TO 180
 c-----------------------------------------------------------------------
 C
 C     TABLE OVERFLOW - PRINT ERROR MESSAGE AND TERMINATE.
 C
 c-----------------------------------------------------------------------
-  160 CALL ZAHOL(IZA,ZABCD)
-      WRITE(OUTP,180) ZABCD,MATH,MFH,MTH,FMTHOL
-      WRITE(*   ,180) ZABCD,MATH,MFH,MTH,FMTHOL
+c-----2020/3/21` - Added Target isomer flag
+  170 CALL ZAHOLM(IZA,LISO,ZABCD)
+      WRITE(OUTP,190) ZABCD,MATH,MFH,MTH,FMTHOL
+      WRITE(*   ,190) ZABCD,MATH,MFH,MTH,FMTHOL
       CALL ENDERROR
 c-----------------------------------------------------------------------
 C
 C     OUTPUT LINEARLY INTERPOLABLE TABLE.
 C
 c-----------------------------------------------------------------------
-  170 CALL COPOUT
+  180 CALL COPOUT
       RETURN
-  180 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,' Table Overflow - Execution',
+  190 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,' Table Overflow - Execution',
      1 ' Terminated')
-  190 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,24X,'Spontaneous')
+  200 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,24X,'Spontaneous')
       END
       REAL*8 FUNCTION POLYNU(E,CN,N)
 C=======================================================================
@@ -1118,7 +1198,8 @@ C=======================================================================
       EPOWER=ONED
       DO 10 I=1,N
       SUM=SUM+CN(I)*EPOWER
-   10 EPOWER=EPOWER*E
+      EPOWER=EPOWER*E
+   10 CONTINUE
       POLYNU=SUM
       RETURN
       END
@@ -1139,8 +1220,8 @@ C=======================================================================
       COMMON/STARTE/ESTART
       COMMON/WHATZA/IZA
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
-      COMMON/PARAMS/XCMIN
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/LASTE/ELAST
       COMMON/PAGER/NPAGE,NPAGE2,NP1P1,NP2M1
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
@@ -1232,14 +1313,14 @@ C
 c-----------------------------------------------------------------------
 C-----SET UP LOOP OVER INTERPOLATION RANGES.
    40 NR2=KSTART   ! 10/05/18 - CHANGED TO SKIP = 0 NEAR START
-      DO 210 IR=1,N1
+      DO 220 IR=1,N1
 C-----DEFINE POINTS IN INTERPOLATION RANGE AND TYPE OF INTERPOLATION.
       NR1=NR2+1
       NR2=NBT(IR)
 C-----IF START IS ABOVE THIS RANGE, SKIP RANGE.
       IF(KSTART.GT.NR2) THEN
       NR2 = KSTART
-      GO TO 210
+      GO TO 220
       ENDIF
       INTYPE=INT(IR)
 C-----HISTOGRAM OR LINEAR-LINEAR DOES NOT REQUIRE FURTHER SUBDIVISION.
@@ -1274,7 +1355,7 @@ C-----ELIMINATE DUPLICATE POINTS.
    60 CONTINUE
 c-----2019/6/30 - Keep last point of Histogram - previoudly ERROR to
 c-----            assume Y = 0 - now whatever it is is output.
-      GO TO 210
+      GO TO 220
 c-----------------------------------------------------------------------
 C
 C     FOR LINEAR-LINEAR INTERPOLATION JUST COPY POINTS TO OUTPUT ARRAY.
@@ -1310,14 +1391,14 @@ C-----AND UNLOAD ONE PAGE OF POINTS TO SCRATCH.
       XOUT(N2CORE)=XEND
       YOUT(N2CORE)=YEND
    90 CONTINUE
-      GO TO 210
+      GO TO 220
 c-----------------------------------------------------------------------
 C
 C     NON-LINEAR INTERPOLATION LAW REQUIRES SUB-DIVISION. SET UP LOOP
 C     OVER POINTS IN CURRENT INTERPOLATION REGION.
 C
 c-----------------------------------------------------------------------
-  100 DO 200 NPT=NR1,NR2
+  100 DO 210 NPT=NR1,NR2
 C-----INITIALIZE TO RANGE NOT SAVED
       IMSAVED=0
 C-----DEFINE UPPER ENERGY LIMIT OF INTERVAL.
@@ -1350,7 +1431,7 @@ C-----DEFINE ENERGY AND CROSS SECTION AT TWO ENDS OF INTERVAL.
       XN2=XOUT(N2CORE)
       YN2=YOUT(N2CORE)
 C-----DO NOT SUBDIVIDE IF CROSS SECTION IS CONSTANT.
-      IF(YN2.EQ.YN2P2) GO TO 180
+      IF(YN2.EQ.YN2P2) GO TO 190
 c-----------------------------------------------------------------------
 C
 C     DO NOT SUB-DIVIDE INTERVALS WITHIN WHICH THE ABSOLUTE VALUE OF
@@ -1358,7 +1439,8 @@ C     THE CROSS SECTION IS LESS THAN THE MINIMUM CROSS SECTION OF
 C     INTEREST.
 C
 c-----------------------------------------------------------------------
-      IF(DABS(YN2).LE.XCMIN.AND.DABS(YN2P2).LE.XCMIN) GO TO 180
+      IF(DABS(YN2)  .LE.XCLOW.and.
+     1   DABS(YN2P2).LE.XCLOW) GO TO 190
 c-----------------------------------------------------------------------
 C
 C     DEFINE ENERGY AT MIDDLE OF INTERVAL.
@@ -1372,7 +1454,7 @@ C-----LINEAR ENERGY.
 C-----LOG ENERGY.
   150 XN2P1=DSQRT(XN2*XN2P2)
 C-----ROUND MIDPOINT.
-  160 CALL INCORE9(XN2P1)
+  160 CALL INCORE10(XN2P1)
 c-----------------------------------------------------------------------
 C
 C     SMALL ENERGY INTERVAL CONVERGENCE TESTS.
@@ -1380,35 +1462,59 @@ C
 c-----------------------------------------------------------------------
 C-----IF ENERGY AT MIDDLE OF INTERVAL IS LESS THAN ALLOWABLE ENERGY
 C-----SPACING ONLY KEEP THE TWO ENDS OF THE INTERVAL.
-      IF(XN2P1.LE.XN2.OR.XN2P1.GE.XN2P2) GO TO 180
-C-----06/02/09 - ADDED SMALL CROSS SECTION TEST
+      IF(XN2P1.LE.XN2.OR.XN2P1.GE.XN2P2) GO TO 190
 c-----------------------------------------------------------------------
 C
 C     SMALL CROSS SECTION CONVERGENCE TESTS.
 C
 c-----------------------------------------------------------------------
-C-----IF CROSS SECTION AT BOTH ENDS IS LESS THAN XCMIN ONLY KEEP
+C-----IF CROSS SECTION AT BOTH ENDS IS LESS THAN XCLOW ONLY KEEP
 C-----KEEP THE TWO ENDS OF THE INTERVAL.
-      IF(DABS(YN2).LT.XCMIN.AND.DABS(YN2P2).LT.XCMIN) GO TO 180
+      IF(DABS(YN2)  .LT.XCLOW.and.
+     1   DABS(YN2P2).LT.XCLOW) GO TO 190
 c-----------------------------------------------------------------------
 C
 C     DEFINE CROSS SECTION AT MIDDLE OF INTERVAL BY INTERPOLATION LAW
 C     AND LINEAR-LINEAR INTERPOLATION.
 C
+c     2020/12/9 - Keep midpoint if iterating toward MIN or MAX
+c
 c-----------------------------------------------------------------------
       YN2P1 =TERPIT(XN2P1,XN2,XN2P2,YN2,YN2P2,INTYPE)
-      YAPROX=TERPIT(XN2P1,XN2,XN2P2,YN2,YN2P2,2)
 C-----DEFINE ALLOWABLE ERROR.
       IF(KERR3.NE.0) CALL ERROK3(XN2P1)
+c-----------------------------------------------------------------------
+c
+c     Converegence Test
+c
+c-----------------------------------------------------------------------
+c-----220/12/9
+c
+c     Toward min or max
+c
+c-----Keep iterating toward MAXIMUM
+      IF(YN2P1.gt.YN2.and.YN2P1.gt.YN2P2) then
+      IF(DABS(YN2P1-YAPROX).LE.DABS(YN2P1*ERRXC3)) GO TO 180
+      go to 170
+      endif
+c-----Keep iterating toward MINIMUM
+      IF(YN2P1.lt.YN2.and.YN2P1.lt.YN2P2) then
+      IF(DABS(YN2P1-YAPROX).LE.DABS(YN2P1*ERRXC3)) GO TO 180
+      go to 170
+      endif
+c
+c     Linearly Interpolate
+c
 C-----TEST FOR CONVERGENCE. IF CONVERGENCE KEEP MIDPOINT OF INTERVAL
 C-----IN ORDER TO ALLOW ACCURATE BACKWARD THINNING BEFORE OUTPUT.
-      IF(DABS(YN2P1-YAPROX).LE.DABS(YN2P1*ERRXC3)) GO TO 170
+      YAPROX=TERPIT(XN2P1,XN2,XN2P2,YN2,YN2P2,2)
+      IF(DABS(YN2P1-YAPROX).LE.DABS(YN2P1*ERRXC3)) GO TO 180
 c-----------------------------------------------------------------------
 C
 C     NO CONVERGENCE. SHORTEN INTERVAL.
 C
 c-----------------------------------------------------------------------
-      XN2P2=XN2P1
+  170 XN2P2=XN2P1
       YN2P2=YN2P1
       GO TO 140
 c-----------------------------------------------------------------------
@@ -1417,7 +1523,7 @@ C     CONVERGENCE. KEEP INTERVAL MIDPOINT IF BACKWARD THINNING WILL BE
 C     PERFORMED. OTHERWISE ONLY KEEP ENDS OF INTERVAL.
 C
 c-----------------------------------------------------------------------
-  170 IF(NOTHIN.GT.0) GO TO 180
+  180 IF(NOTHIN.GT.0) GO TO 190
 C-----CORE SPACE FOR TWO MORE POINTS REQUIRED. IF NO ROOM IN CORE, THIN
 C-----AND UNLOAD ONE PAGE OF POINTS TO SCRATCH.
       IF(N2CORE.GE.NP2M1) CALL THINIT
@@ -1429,10 +1535,10 @@ C-----KEEP INTERVAL MIDPOINT AND ENDPOINT.
       N2CORE=N2P2
       N2P1=N2CORE+1
       N2P2=N2P1+1
-      GO TO 190
+      GO TO 200
 C-----CORE SPACE FOR ONE MORE POINT REQUIRED. IF NO ROOM IN CORE, THIN
 C-----AND UNLOAD ONE PAGE OF POINTS TO SCRATCH.
-  180 IF(N2CORE.GE.NPAGE2) CALL THINIT
+  190 IF(N2CORE.GE.NPAGE2) CALL THINIT
 C-----MIDPOINT OF INTERVAL IS NOT REQUIRED. ONLY KEEP ENDPOINT OF
 C-----INTERVAL.
       XOUT(N2P1)=XN2P2
@@ -1442,15 +1548,15 @@ C-----INTERVAL.
       N2P2=N2P1+1
 C-----IF NOT END OF CURRENT INTERVAL CONTINUE. OTHERWISE
 C-----MOVE TO NEXT INTERVAL.
-  190 IF(XOUT(N2CORE).LT.XEND) GO TO 130
+  200 IF(XOUT(N2CORE).LT.XEND) GO TO 130
 C-----IF RANGE SAVED, RESTORE POINT AND RESET FLAG
-      IF(IMSAVED.LE.0) GO TO 200
+      IF(IMSAVED.LE.0) GO TO 210
       IMSAVED=0
       XEND=XSAVE
       YEND=YSAVE
       GO TO 110
-  200 CONTINUE
   210 CONTINUE
+  220 CONTINUE
 C-----EACH OF SECTION. SET END OF SECTION FLAG AND SET UP LINEARIZED,
 C-----THINNED SECTION TO READ.
       MTEND=1
@@ -1460,12 +1566,12 @@ C-----OUTPUT SECTION TO LINEARIZED FILE.
 C-----PRINT ERROR MESSAGE IF INTERPOLATION LAW = 6 IS USED WITH A
 C-----REACTION WITH A NEGATIVE Q-VALUE.
       IF(IM6.GT.0.AND.Q.LT.0.0d0) then
-      WRITE(OUTP,220)
+      WRITE(OUTP,230)
 c-----2018/12/30 - Added online output.
-      WRITE(*   ,220)
+      WRITE(*   ,230)
       ENDIF
       RETURN
-  220 FORMAT(
+  230 FORMAT(
      1 ' WARNING - the Above Section Uses Interpolation Law 6'/
      2 ' but, Has a Negative Q-Value? Results Will be Unreliable.')
       END
@@ -1496,7 +1602,8 @@ C=======================================================================
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
       COMMON/PAGER/NPAGE,NPAGE2,NP1P1,NP2M1
       COMMON/IWATCH/MONITR
@@ -1701,7 +1808,8 @@ C-----ALL INDICES.
       DO 190 LLL=NP1P1,N2CORE
       LL=LL+1
       XOUT(LL)=XOUT(LLL)
-  190 YOUT(LL)=YOUT(LLL)
+      YOUT(LL)=YOUT(LLL)
+  190 CONTINUE
       ITHIN1=ITHIN1-NPAGE
       N2CORE=N2CORE-NPAGE
       N2P1=N2CORE+1
@@ -1833,9 +1941,10 @@ C=======================================================================
       COMMON/FLAGS/MINUS3,IMPLUS
       COMMON/TEMPO/TEMP3,IVERSE
       COMMON/HOLFMT/FMTHOL
+      COMMON/LISCOM/LISO
       COMMON/FIELDC/FIELD(11,6)
       INCLUDE 'linear.h'
-      DIMENSION NBTO(1),INTO(1),ZABCD(10)
+      DIMENSION NBTO(1),INTO(1),ZABCD(12)
       DATA INTO/2/
 c-----------------------------------------------------------------------
 C
@@ -1848,13 +1957,14 @@ C-----OUTPUT TAB1 LEAD LINE (SECTION HEAD LINE OUTPUT IN MAIN)
 C-----OUTPUT INTERPOLATION LAW.
       NBTO(1)=N2TOT
       CALL TERPO(NBTO,INTO,1)
-      CALL ZAHOL(IZA,ZABCD)
+c-----2020/3/20 - Added Target Isomer Flag
+      CALL ZAHOLM(IZA,LISO,ZABCD)
 c-----------------------------------------------------------------------
 C
 C     DEFINE TEMPERATURE. FOR ENDF/B-V AND EARLIER VERSIONS C1 OF THE
 C     TAB1 LEAD LINE IS EITHER THE TEMPERATURE (L2=0) OR THE Q-VALUE
 C     CORRESPONDING TO THE REACTION WITH MT=L2. IN THE LATTER CASE
-C     ASSUME THE SAME TEMPERATURE AS FOR THE TOTAL. FOR THE ENDF/B-VI
+C     ASSUME THE SAME TEMPERATURE AS FOR THE TOTAL. FOR THE ENDF/B-6
 C     FORMAT THE TEMPERATURE OF THE FILE 3 CROSS SECTIONS HAS ALREADY
 C     BEEN DEFINE FROM FILE 1 (TEMP3).
 C
@@ -1864,9 +1974,9 @@ C-----FOR PHOTON DATA OMIT TEMPERATURE AND Q FROM OUTPUT REPORT
       WRITE(OUTP,110) ZABCD,MATH,MFH,MTH,FMTHOL,N2IN,N2TOT
       WRITE(*   ,110) ZABCD,MATH,MFH,MTH,FMTHOL,N2IN,N2TOT
       GO TO 50
-C-----TEST FOR ENDF/B-VI FORMAT.
+C-----TEST FOR ENDF/B-6 FORMAT.
    10 IF(IVERSE.LT.6) GO TO 20
-C-----ENDF/B-VI FORMAT. USE TEMPERATURE FROM FILE 1.
+C-----ENDF/B-6 FORMAT. USE TEMPERATURE FROM FILE 1.
       TEMP=TEMP3
       GO TO 40
 C-----NOT ENDF/B-VI. USE C1 FIELD OR TEMPERATURE FROM TOTAL CROSS
@@ -1923,11 +2033,11 @@ C-----PRINT WARNING IF CROSS SECTION IS NOT POSITIVE AT ANY ENERGY.
       IF(IMPLUS.LE.0) WRITE(OUTP,130)
       IF(IMPLUS.LE.0) WRITE(*   ,130)
       RETURN
-  100 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,2(1X,11A1),2I9)
-  110 FORMAT(2X,10A1,I5,I4,I4,3X,A2,3X,24X,2I9)
-  120 FORMAT(19X,'WARNING - Above Cross Section Negative at',I6,
+  100 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,2(1X,11A1),2I9)
+  110 FORMAT(2X,12A1,I5,I4,I4,3X,A2,3X,24X,2I9)
+  120 FORMAT(21X,'WARNING - Above Cross Section Negative at',I6,
      1 ' Energies')
-  130 FORMAT(19X,'WARNING - Above Cross Sections NOT',
+  130 FORMAT(21X,'WARNING - Above Cross Sections NOT',
      1 ' Positive at Any Energy')
       END
       SUBROUTINE READIN
@@ -1945,17 +2055,18 @@ C=======================================================================
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MFMIN(101),MTMIN(101),
      1 MATMAX(101),MFMAX(101),MTMAX(101)
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
       COMMON/IWATCH/MONITR
-      COMMON/PARAMS/XCMIN
+      COMMON/COMCOM/NOCOMENT
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
       COMMON/FIELDC/FIELD(11,6)
       COMMON/NAMEX/NAMEIN,NAMEOUT
       DIMENSION MESS1(2),MESS2(2)
-C-----DEFINE STANDARD OPTION FOR ALLOWABLE ERROR (CURRENTLY 0.1 PERCENT)
+C-----DEFINE DEFAULT OPTION FOR ALLOWABLE ERROR (CURRENTLY 0.1 PERCENT)
       DATA ERRMIN/1.0D-03/
-C-----DEFINE DEFAULT OPTION FOR LOWEST CROSS SECTION OF INTEREST.
-      DATA XCLOW /1.0D-30/
+C-----2021/3/22 - Minimum Cross Sectiom is no longer an input option.
+      DATA XCINP /1.0D-30/
 C-----DEFINE LABELS TO INDICATE RETRIEVAL BY ZA OR MAT.
       DATA MESS1/' MAT','  ZA'/
 C-----DEFINE LABELS TO INDICATE WHETHER MONITOR MODE IS OFF OR ON.
@@ -1972,61 +2083,62 @@ C
 c-----------------------------------------------------------------------
       IF(ISTAT1.EQ.1) GO TO 20
       READ(INP,10,END=20,ERR=20)
-     1 MODGET,MONITR,(FIELD(KK,1),KK=1,11),NOTHIN
-   10 FORMAT(2I11,11A1,I11)
+     1 MODGET,MONITR,(FIELD(KK,1),KK=1,11),NOTHIN,NOCOMENT
+   10 FORMAT(2I11,11A1,2I11)
       GO TO 30
 C-----DEFINE DEFAULT VALUES
-   20 ISTAT1 = 1
-      MODGET = 0
-      MONITR = 0
-      XCMIN  = 0.0d0
-      NOTHIN = 1
+   20 ISTAT1   = 1
+      MODGET   = 0
+      MONITR   = 0
+c-----2020/12/26 - Changed from 0.
+      XCLOW    = XCINP
+      NOTHIN   = 1
+      NOCOMENT = 0
       GO TO 40
 C-----CONVERT MINIMUM CROSS SECTION FROM CHARACTER TO FLOATING POINT.
-   30 CALL IN9(XCMIN,FIELD(1,1))
+   30 CALL IN9(XCLOW,FIELD(1,1))
+c-----2021/3/22 - No longer an input option
+      XCLOW = XCINP
    40 IF(MODGET.LE.0) MODGET=0
       IF(MODGET.GT.0) MODGET=1
       IF(MONITR.LE.0) MONITR=0
       IF(MONITR.GT.0) MONITR=1
       IF(NOTHIN.LE.0) NOTHIN=0
       IF(NOTHIN.GT.0) NOTHIN=1
-      WRITE(OUTP,330) MESS1(MODGET+1),MESS2(MONITR+1)
-      WRITE(*   ,330) MESS1(MODGET+1),MESS2(MONITR+1)
-      IF(XCMIN.LE.0.0d0) GO TO 50
-      CALL OUT9(XCMIN,FIELD(1,1))
-      WRITE(OUTP,340) (FIELD(M,1),M=1,11)
-      WRITE(*   ,340) (FIELD(M,1),M=1,11)
-      GO TO 60
-   50 XCMIN=XCLOW
-      CALL OUT9(XCMIN,FIELD(1,1))
-      WRITE(OUTP,350) (FIELD(M,1),M=1,11)
-      WRITE(*   ,350) (FIELD(M,1),M=1,11)
-   60 IF(NOTHIN.EQ.0) WRITE(OUTP,360)
-      IF(NOTHIN.GT.0) WRITE(OUTP,370)
-      IF(NOTHIN.EQ.0) WRITE(*   ,360)
-      IF(NOTHIN.GT.0) WRITE(*   ,370)
+      WRITE(OUTP,310) MESS1(MODGET+1),MESS2(MONITR+1)
+      WRITE(*   ,310) MESS1(MODGET+1),MESS2(MONITR+1)
+c-----Minimum Cross Section (no longer an input option)
+      CALL OUT9(XCLOW,FIELD(1,1))
+      WRITE(OUTP,320) (FIELD(M,1),M=1,11)
+      WRITE(*   ,320) (FIELD(M,1),M=1,11)
+      IF(NOTHIN.EQ.0) WRITE(OUTP,330)
+      IF(NOTHIN.GT.0) WRITE(OUTP,340)
+      IF(NOTHIN.EQ.0) WRITE(*   ,330)
+      IF(NOTHIN.GT.0) WRITE(*   ,340)
+      IF(NOCOMENT.NE.0) WRITE(OUTP,350)
+      IF(NOCOMENT.NE.0) WRITE(*   ,350)
 c-----------------------------------------------------------------------
 C
 C     READ FILENAMES - IF BLANK USE STANDARD FILENAMES
 C
 c-----------------------------------------------------------------------
 C-----INPUT DATA.
-      IF(ISTAT1.EQ.1) GO TO 80
-      READ(INP,70,END=80,ERR=80) NAMEIN
-   70 FORMAT(A72)
+      IF(ISTAT1.EQ.1) GO TO 60
+      READ(INP,50,END=60,ERR=60) NAMEIN
+   50 FORMAT(A72)
       IF(NAMEIN.EQ.' ') NAMEIN = 'ENDFB.IN'
 C-----OUTPUT DATA.
-      READ(INP,70,END=90,ERR=90) NAMEOUT
+      READ(INP,50,END=70,ERR=70) NAMEOUT
       IF(NAMEOUT.EQ.' ') NAMEOUT = 'ENDFB.OUT'
-      GO TO 100
+      GO TO 80
 C-----USE DEFAULT FILENAMES
-   80 NAMEIN  = 'ENDFB.IN'
-   90 NAMEOUT = 'ENDFB.OUT'
+   60 NAMEIN  = 'ENDFB.IN'
+   70 NAMEOUT = 'ENDFB.OUT'
       ISTAT1 = 1
 C-----PRINT FINAL FILENAMES
-  100 WRITE(OUTP,110) NAMEIN,NAMEOUT
-      WRITE(*   ,110) NAMEIN,NAMEOUT
-  110 FORMAT(2X,78('-')/
+   80 WRITE(OUTP,90) NAMEIN,NAMEOUT
+      WRITE(*   ,90) NAMEIN,NAMEOUT
+   90 FORMAT(2X,78('-')/
      1 '  ENDF/B Input and Output Data Filenames'/2X,A72/
      2 2X,A72)
 c-----------------------------------------------------------------------
@@ -2041,9 +2153,9 @@ C     TERMINATE IF ERROR OPENING ENDF/B DATA FILE
 C
 c-----------------------------------------------------------------------
       IF(ISTAT2.EQ.1) THEN
-      WRITE(OUTP,120) NAMEIN
-      WRITE(   *,120) NAMEIN
-  120 FORMAT(//' ERROR - Opening ENDF/B data file'/1X,A72//)
+      WRITE(OUTP,100) NAMEIN
+      WRITE(   *,100) NAMEIN
+  100 FORMAT(//' ERROR - Opening ENDF/B data file'/1X,A72//)
       CALL ENDERROR
       ENDIF
 c-----------------------------------------------------------------------
@@ -2056,17 +2168,17 @@ C     NAMELY THAT CORRESPONDING TO THE MAT OR ZA SPECIFIED FOR THE
 C     LOWER LIMIT).
 C
 c-----------------------------------------------------------------------
-      IF(MODGET.EQ.0) WRITE(OUTP,380)
-      IF(MODGET.EQ.1) WRITE(OUTP,390)
-      IF(MODGET.EQ.0) WRITE(*   ,380)
-      IF(MODGET.EQ.1) WRITE(*   ,390)
-      IF(ISTAT1.EQ.1) GO TO 140
-      READ(INP,130,END=140,ERR=140)
+      IF(MODGET.EQ.0) WRITE(OUTP,360)
+      IF(MODGET.EQ.1) WRITE(OUTP,370)
+      IF(MODGET.EQ.0) WRITE(*   ,360)
+      IF(MODGET.EQ.1) WRITE(*   ,370)
+      IF(ISTAT1.EQ.1) GO TO 120
+      READ(INP,110,END=120,ERR=120)
      1 MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),MTMAX(1)
-  130 FORMAT(I6,I2,I3,I6,I2,I3)
-      GO TO 150
+  110 FORMAT(I6,I2,I3,I6,I2,I3)
+      GO TO 130
 C-----DEFINE DEFAULT VALUES
-  140 ISTAT1    = 1
+  120 ISTAT1    = 1
       MATMIN(1) = 0
       MFMIN(1)  = 0
       MTMIN(1)  = 0
@@ -2074,38 +2186,38 @@ C-----DEFINE DEFAULT VALUES
       MFMAX(1)  = 0
       MTMAX(1)  = 0
 c-----Test and define defaults.
-  150 IF(MATMIN(1).LE.0) MATMIN(1)=0
+  130 IF(MATMIN(1).LE.0) MATMIN(1)=0
       IF(MFMIN (1).LE.0) MFMIN (1)=0
       IF(MTMIN (1).LE.0) MTMIN (1)=0
       IF(MATMIN(1).GT.0.OR.MFMIN(1).GT.0.OR.MTMIN(1).GT.0.OR.
-     1   MATMAX(1).GT.0.OR.MFMAX(1).GT.0.OR.MTMAX(1).GT.0) GO TO 160
+     1   MATMAX(1).GT.0.OR.MFMAX(1).GT.0.OR.MTMAX(1).GT.0) GO TO 140
       MATMAX(1)=9999
       MFMAX (1)=99
       MTMAX (1)=999
       MODGET=0
-      WRITE(OUTP,410) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(OUTP,390) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      WRITE(*   ,410) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(*   ,390) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
       NMATZA=2
-      GO TO 190
-  160 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
+      GO TO 170
+  140 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
       IF(MATMAX(1).LE.0.AND.MODGET.EQ.0) MATMAX(1)=9999
       IF(MATMAX(1).LE.0.AND.MODGET.NE.0) MATMAX(1)=999999
       IF(MFMAX(1).LE.0) MFMAX(1)=99
       IF(MTMAX(1).LE.0) MTMAX(1)=999
-      WRITE(OUTP,400) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(OUTP,380) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      WRITE(*   ,400) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(*   ,380) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      DO 170 NMATZA=2,101
-      IF(ISTAT1.EQ.1) GO TO 190
-      READ(INP,130,END=180,ERR=180)
+      DO 150 NMATZA=2,101
+      IF(ISTAT1.EQ.1) GO TO 170
+      READ(INP,110,END=160,ERR=160)
      1 MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      2 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
       IF(MATMIN(NMATZA).LE.0.AND.MFMIN (NMATZA).LE.0.AND.
      1    MTMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0.AND.
-     2    MFMAX(NMATZA).LE.0.AND.MTMAX (NMATZA).LE.0) GO TO 190
+     2    MFMAX(NMATZA).LE.0.AND.MTMAX (NMATZA).LE.0) GO TO 170
 c-----Test and define defaults.
       IF(MATMIN(NMATZA).LE.0) MATMIN(NMATZA)=0
       IF(MFMIN (NMATZA).LE.0) MFMIN (NMATZA)=0
@@ -2115,14 +2227,14 @@ c-----Test and define defaults.
       IF(MATMAX(NMATZA).LE.0.AND.MODGET.NE.0) MATMAX(NMATZA)=999999
       IF(MFMAX(NMATZA).LE.0) MFMAX(NMATZA)=99
       IF(MTMAX(NMATZA).LE.0) MTMAX(NMATZA)=999
-      WRITE(OUTP,400) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
+      WRITE(OUTP,380) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      1 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
-      WRITE(*   ,400) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
+      WRITE(*   ,380) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      1 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
-  170 CONTINUE
-      GO TO 290
-  180 ISTAT1 = 1
-  190 NMATZA=NMATZA-1
+  150 CONTINUE
+      GO TO 270
+  160 ISTAT1 = 1
+  170 NMATZA=NMATZA-1
 c-----------------------------------------------------------------------
 C
 C     READ AND LIST DATA ERROR LAW. ENERGIES MUST BE IN ASCENDING
@@ -2132,62 +2244,65 @@ C     (CURRENTLY 0.1 PER-CENT). ENERGIES MUST BE IN ASCENDING ENERGY
 C     ORDER. IF ANY ERROR IS NOT POSITIVE USE STANDARD OPTION.
 C
 c-----------------------------------------------------------------------
-      IF(ISTAT1.EQ.1) GO TO 210
+      IF(ISTAT1.EQ.1) GO TO 190
 c-----2017/5/6 - Changed all floating point to character
-      READ(INP,200,END=210,ERR=210) ((FIELD(j,k),j=1,11),k=1,2)
-  200 FORMAT(22A1)
+      READ(INP,180,END=190,ERR=190) ((FIELD(j,k),j=1,11),k=1,2)
+  180 FORMAT(22A1)
       CALL IN9(ENER3(1),FIELD(1,1))
       CALL IN9(ER3  (1),FIELD(1,2))
 c-----2017/5/6 - Changed all floating point to character
-      GO TO 220
-  210 ISTAT1   = 1
+      GO TO 200
+  190 ISTAT1   = 1
       ENER3(1) = 0.0d0
       ER3(1)   = 0.0d0
-  220 CALL OUT9(ENER3(1),FIELD(1,1))
-      IF(ER3(1).LE.0.0d0) GO TO 230
+  200 CALL OUT9(ENER3(1),FIELD(1,1))
+      IF(ER3(1).LE.0.0d0) GO TO 210
       PERCNT=100.0d0*ER3(1)
       CALL OUT9(ER3(1),FIELD(1,2))
-      WRITE(OUTP,460) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,460) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      GO TO 240
-  230 ER3(1)=ERRMIN
+      WRITE(OUTP,440) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,440) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      GO TO 220
+  210 ER3(1)=ERRMIN
       PERCNT=100.0d0*ERRMIN
       CALL OUT9(ER3(1),FIELD(1,2))
-      WRITE(OUTP,470) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,470) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      IF(ENER3(1).GT.0.0d0) GO TO 240
+      WRITE(OUTP,450) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,450) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      IF(ENER3(1).GT.0.0d0) GO TO 220
       MAXER3=2
-      GO TO 280
-  240 DO 270 MAXER3=2,21
-      IF(ISTAT1.EQ.1) GO TO 280
+      GO TO 260
+  220 DO 250 MAXER3=2,21
+      IF(ISTAT1.EQ.1) GO TO 260
 c-----2017/5/6 - Changed all floating point to character
-      READ(INP,200,END=210,ERR=210) ((FIELD(j,k),j=1,11),k=1,2)
+      READ(INP,180,END=190,ERR=190) ((FIELD(j,k),j=1,11),k=1,2)
       CALL IN9(ENER3(MAXER3),FIELD(1,1))
       CALL IN9(ER3  (MAXER3),FIELD(1,2))
 c-----2017/5/6 - Changed all floating point to character
-      IF(ENER3(MAXER3).LE.0.0d0.AND.ER3(MAXER3).LE.0.0d0) GO TO 280
+      IF(ENER3(MAXER3).LE.0.0d0.AND.ER3(MAXER3).LE.0.0d0) GO TO 260
       CALL OUT9(ENER3(MAXER3),FIELD(1,1))
-      IF(ER3(MAXER3).LE.0.0d0) GO TO 250
+      IF(ER3(MAXER3).LE.0.0d0) GO TO 230
       PERCNT=100.0d0*ER3(MAXER3)
       CALL OUT9(ER3(MAXER3),FIELD(1,2))
-      WRITE(OUTP,430) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,430) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      GO TO 260
-  250 ER3(MAXER3)=ERRMIN
+      WRITE(OUTP,410) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,410) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      GO TO 240
+  230 ER3(MAXER3)=ERRMIN
       PERCNT=100.0d0*ERRMIN
       CALL OUT9(ER3(MAXER3),FIELD(1,2))
-      WRITE(OUTP,440) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-      WRITE(*   ,440) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
-  260 IF(ENER3(MAXER3).LT.ENER3(MAXER3-1)) GO TO 320
-  270 CONTINUE
-      GO TO 300
+      WRITE(OUTP,420) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+      WRITE(*   ,420) ((FIELD(M,I),M=1,11),I=1,2),PERCNT
+  240 IF(ENER3(MAXER3).LT.ENER3(MAXER3-1)) GO TO 300
+  250 CONTINUE
+      GO TO 280
 C-----DEFINE SIZE OF ERROR LAW (MAXER3), TYPE OF ERROR LAW (KERR3=0 -
 C-----CONSTANT, =1 - ENERGY DEPENDENT). INITIALIZE ERROR LAW INDICES
 C-----AND CONSTANT VALUE.
-  280 MAXER3=MAXER3-1
+  260 MAXER3=MAXER3-1
       KERR3=0
       IF(MAXER3.GT.1) KERR3=1
-      ERRXC3=ER3(1)
+c-----2020/12/29 - changed (1) to MAXER3
+      ERRXC3=ER3(MAXER3)
+c-----2020/12/31 - ALL uncertainty parameters
+      CALL SETERROR(1) ! 1 = LINEAR
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -2195,44 +2310,44 @@ C     ERROR MESSAGE SECTION. PRINT ERROR IN INPUT MESSAGE AND TERMINATE.
 C
 c-----------------------------------------------------------------------
 C-----OVER 100 MAT OR ZA RANGES.
-  290 WRITE(OUTP,420)
-      WRITE(*   ,420)
+  270 WRITE(OUTP,400)
+      WRITE(*   ,400)
       CALL ENDERROR
 C-----OVER 20 ENTRIES IN ERROR LAW.
-  300 WRITE(OUTP,450)
-      WRITE(*   ,450)
-  310 CALL ENDERROR
+  280 WRITE(OUTP,430)
+      WRITE(*   ,430)
+  290 CALL ENDERROR
 C-----ERROR LAW ENERGIES NOT IN ASCENDING ORDER.
-  320 WRITE(OUTP,480)
-      WRITE(*   ,480)
-      GO TO 310
-  330 FORMAT(
+  300 WRITE(OUTP,460)
+      WRITE(*   ,460)
+      GO TO 290
+  310 FORMAT(
      1 '  Retrieval Criteria-----------',7X,A4/
      1 '  Monitor Mode-----------------',7X,A4)
-  340 FORMAT('  Minimum Cross Section--------',11A1)
-  350 FORMAT('  Minimum Cross Section--------',11A1,
-     1 ' (Default Option)')
-  360 FORMAT('  Keep Evaluated Data Points---         No')
-  370 FORMAT('  Keep Evaluated Data Points---        Yes')
-  380 FORMAT(2X,78('-')/'  Requested Ranges'/2X,78('-')/
+  320 FORMAT('  Minimum Cross Section--------',11A1,
+     1 ' (No longer an Input Option)')
+  330 FORMAT('  Keep Evaluated Data Points---         No')
+  340 FORMAT('  Keep Evaluated Data Points---        Yes')
+  350 FORMAT('  Add Comments to MF/MT=1/451--         No')
+  360 FORMAT(2X,78('-')/'  Requested Ranges'/2X,78('-')/
      1 '       Minimum       Maximum   '/
      2 '     MAT MF  MT    MAT MF  MT'/2X,78('-'))
-  390 FORMAT(2X,78('-')/'  Requested Ranges'/2X,78('-')/
+  370 FORMAT(2X,78('-')/'  Requested Ranges'/2X,78('-')/
      1 '       Minimum       Maximum   '/
      2 '      ZA MF  MT     ZA MF  MT'/2X,78('-'))
-  400 FORMAT(2X,I6,I3,I4,I7,I3,I4)
-  410 FORMAT(2X,I6,I3,I4,I7,I3,I4,' (Default Option)')
-  420 FORMAT('  Over 100 Ranges----Execution Terminated')
-  430 FORMAT(1X,11A1,1X,11A1,F11.4)
-  440 FORMAT(1X,11A1,1X,11A1,F11.4,' (Default Option)')
-  450 FORMAT('  Over 20 Ranges----Execution Terminated')
-  460 FORMAT(2X,78('-')/'  Allowable Uncertainty'/2X,78('-')/
+  380 FORMAT(2X,I6,I3,I4,I7,I3,I4)
+  390 FORMAT(2X,I6,I3,I4,I7,I3,I4,' (Default Option)')
+  400 FORMAT('  Over 100 Ranges----Execution Terminated')
+  410 FORMAT(1X,11A1,1X,11A1,F11.4)
+  420 FORMAT(1X,11A1,1X,11A1,F11.4,' (Default Option)')
+  430 FORMAT('  Over 20 Ranges----Execution Terminated')
+  440 FORMAT(2X,78('-')/'  Allowable Uncertainty'/2X,78('-')/
      1 6X,'Energy',1X,'Uncertainty',3X,'per-cent'/2X,78('-')/
      2 1X,11A1,1X,11A1,F11.4)
-  470 FORMAT(2X,78('-')/'  Allowable Uncertainty'/2X,78('-')/
+  450 FORMAT(2X,78('-')/'  Allowable Uncertainty'/2X,78('-')/
      1 6X,'Energy',1X,'Uncertainty',3X,'per-cent'/2X,78('-')/
      2 1X,11A1,1X,11A1,F11.4,' (Default Option)')
-  480 FORMAT('  Energies MUST be in Ascending Order----',
+  460 FORMAT('  Energies MUST be in Ascending Order----',
      1 'Execution Terminated')
       END
       SUBROUTINE NEXTMT
@@ -2366,7 +2481,7 @@ C-----INITIALIZE SEQUENCE NUMBER AND POINT COUNTS FOR NEW MAT.
       MATOUT=0
 C-----BLANK OUTPUT ENDF/B FORMAT I.D., INITIALIZE TO ENDF/B-V FORMAT AND
 C-----FILE 3 TEMPERATURE TO ZERO.
-      FMTHOL='VI  '
+      FMTHOL='6   '
       IVERSE=6
       TEMP3=0.0d0
 c-----Initialize MT table for new MAT
@@ -2375,7 +2490,7 @@ C-----SAVE CURRENT MAT, MF AND MT.
   130 MATNOW=MATH
       MFNOW=MFH
       RETURN
-  140 FORMAT(2X,78('-')/46X,' MAT Totals',2I9/2X,78('-'))
+  140 FORMAT(2X,78('-')/48X,' MAT Totals',2I9/2X,78('-'))
       END
       SUBROUTINE ERROK3(E)
 C=======================================================================
@@ -2387,7 +2502,8 @@ C     VS. ERROR).
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
+      COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
+      COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
 C-----INITIALIZE INDEX TO INTERPOLATION TABLE.
       DATA MINER3/2/
 C-----ENERGY DEPENDENT. WITHIN ENERGY RANGE OF ERROR LAW USE LINEAR
