@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 c=======================================================================
 c
 c     Program ENDF2C
@@ -30,6 +21,8 @@ C             2017-1 May  2017 * Updated based on user feedbsck
 C             2018-1 Jan. 2018 * Added on-line output for ALL ENDERROR
 C             2019-1 June 2019 * Added /UNITS/ to allow correct output
 C                                at end = output either o.k. or error.
+C             2020-1 Feb. 2020 * Identical to 2019-1.
+C             2021-1 Jan. 2021 * Updated for FOTRAN 2018
 C
 c     Purpose
 c     ==================================================================
@@ -104,7 +97,7 @@ c     allows data users to determine the pedigree of the data they are
 c     using, by reading these comments. This code documents what is has
 c     done by adding the following 2 comment lines.
 c
-c ***************** Program ENDF2C (Version 2019-1) ***************
+c ***************** Program ENDF2C (Version 2021-1) ***************
 c      Convert ENDF Data to Standard FORTRAN, C and C++ Format
 c
 c     WARNING - This documentation is IMPORTANT to data users and it
@@ -163,7 +156,7 @@ c-----------------------------------------------------------------------
       write(*,10)
       write(3,10)
    10 format(//
-     1 ' ',13('*'),'**** Program ENDF2C (Version 2019-1) ***',
+     1 ' ',13('*'),'**** Program ENDF2C (Version 2021-1) ***',
      2 12('*')/5(' '),
      3 ' Convert ENDF Data to Standard FORTRAN, C and C++ Format',
      4 5(' ')/1x,71('-')/' ENDF Tape Label (TPID)'/1x,71('-'))
@@ -302,7 +295,7 @@ c
 c     Loop over UP TO next 3 lines = fewer for earlier ENDF versions.
 c
 c-----------------------------------------------------------------------
-      do 50 iline=1,3
+      do 60 iline=1,3
       read (10,10) LINE66,MAT,MF,MT
    10 format(66A1,i4,i2,i3,i5)
 c-----Convert C1 and C2 fields
@@ -320,21 +313,22 @@ c-----Based on which card read
       if(N1A.le.0.or.N2A.ne.0) go to 50
       IVERSE = 4                              ! IV Format
       NWD    = N1A
-      go to 60
+      go to 70
    30 N1B = N1IN
       if(N2A.gt.0) go to 50
       IVERSE = 5                              ! V  Format
       NWD    = N1B
-      go to 60
+      go to 70
    40 N1C = N1IN
       IVERSE = 6                              ! VI Format
       NWD    = N1C
-      go to 60
+      go to 70
    50 write(11,10) LINE66,MAT,MF,MT,NOSEQ   ! Copy line = no change.
+   60 CONTINUE
 c-----Output updated comment count
-   60 NWDOUT = NWD + 2
-      write(11,70) LINE44,NWDOUT,LINE11,MAT,MF,MT,NOSEQ ! New count
-   70 format(44A1,i11,11A1,i4,i2,i3,i5)
+   70 NWDOUT = NWD + 2
+      write(11,80) LINE44,NWDOUT,LINE11,MAT,MF,MT,NOSEQ ! New count
+   80 format(44A1,i11,11A1,i4,i2,i3,i5)
 c-----------------------------------------------------------------------
 c
 c     Copy comments = insure first 22 coilumns are blank.
@@ -351,13 +345,13 @@ c     Add comments + new sequence numbers
 c
 c-----------------------------------------------------------------------
       NOSEQ = NXTSEQ(NOSEQ)
-      write(11,80) MAT,MF,MT,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
       write(11,90) MAT,MF,MT,NOSEQ
-   80 format(
-     1 ' ',13('*'),'**** Program ENDF2C (Version 2019-1) ***',
+      NOSEQ = NXTSEQ(NOSEQ)
+      write(11,100) MAT,MF,MT,NOSEQ
+   90 format(
+     1 ' ',13('*'),'**** Program ENDF2C (Version 2021-1) ***',
      2 12('*'),i4,i2,i3,i5)
-   90 format(5(' '),
+  100 format(5(' '),
      1 'Convert ENDF Data to Standard FORTRAN, C and C++ Format',
      2 6(' '),i4,i2,i3,i5)
 c-----------------------------------------------------------------------
@@ -365,16 +359,16 @@ c
 c     Copy to SEND
 c
 c-----------------------------------------------------------------------
-  100 read (10,110) MTDICT,MAT,MF,MT
-  110 format(22x,44A1,i4,i2,i3,i5)
+  110 read (10,120) MTDICT,MAT,MF,MT
+  120 format(22x,44A1,i4,i2,i3,i5)
       if(MT.gt.0) then
       NOSEQ = NXTSEQ(NOSEQ)
-      write(11,110) MTDICT,MAT,MF,MT,NOSEQ
-      go to 100
+      write(11,120) MTDICT,MAT,MF,MT,NOSEQ
+      go to 110
       endif
       NOSEQ = 99999                     ! SEND line
-      write(11,120) MAT,MF,MT,NOSEQ
-  120 format(66x,i4,i2,i3,i5)
+      write(11,130) MAT,MF,MT,NOSEQ
+  130 format(66x,i4,i2,i3,i5)
       NOSEQ = 0                         ! Initialize for next line
       return
       end

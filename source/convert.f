@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM CONVERT
@@ -75,7 +66,8 @@ C                                 *Added ERROR stop
 C     VERS. 2015-1 (Jan.  2015)   *Replaced ALL 3 way IF Statements
 C     VERS. 2017-1 (May   2017)   *Updated based on user feedback.
 C     VERS. 2018-1 (Jan.  2018)   *Added on-line output for ALL ENDERROR
-C     VERS. 2019-1 (June  2019)   *Identical to 2018-1.
+C     VERS. 2020-1 (Feb.  2020)   *Identical to 2018-1.
+C     VERS. 2021-1 (jAN.  2021)   *Updated for FORTRAN 2018
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -426,7 +418,8 @@ C-----INITIALIZE ALL KEYWORDS TO OFF.
       TURNON(I)=0
 C-----INITIALIZE COUNTS OF LINES ON/OFF FOR EACH KEYWORD.
       MODIFY(1,I)=0
-   20 MODIFY(2,I)=0
+      MODIFY(2,I)=0
+   20 CONTINUE
 C-----INITIALIZE FLAGS TO DEACTIVATE PROGRAM LINE AND TO INCLUDE PROGRAM
 C-----I.D. IN COLUMNS 73-80.
       IPROG=0
@@ -479,12 +472,14 @@ C-----CHECK FOR KEYWORD NOID.
       go to 100
 C-----CANNOT RECOGNIZE INPUT KEYWORD. PRINT MESSAGE.
    60 DO 70 K=1,10
-   70 DUMFLD(K)=' '
+      DUMFLD(K)=' '
+   70 CONTINUE
       LFILL=0
       DO 80 LUSE=LNOW,72
       IF(KEYIN(LUSE).EQ.' ') GO TO 90
       LFILL=LFILL+1
-   80 DUMFLD(LFILL)=KEYIN(LUSE)
+      DUMFLD(LFILL)=KEYIN(LUSE)
+   80 CONTINUE
       LUSE=72
    90 WRITE(OUTP,530) LFIELD,(DUMFLD(K),K=1,10)
       WRITE(*   ,530) LFIELD,(DUMFLD(K),K=1,10)
@@ -607,7 +602,8 @@ C-----ONLY OUTPUT UP TO LAST NON-BLANK CHARACTER.
   260 KMAX=72
       DO 270 K=1,72
       IF(LINE1(KMAX).NE.' ') GO TO 280
-  270 KMAX=KMAX-1
+      KMAX=KMAX-1
+  270 CONTINUE
       KMAX=1
   280 WRITE(OTAPE,460) (LINE1(K),K=1,KMAX)
 C-----PROCESS ALL PROGRAM CONTINUATION LINES (COLUMN 6 NOT BLANK).
@@ -689,7 +685,8 @@ C-----ONLY OUTPUT UP TO LAST NON-BLANK CHARACTER.
   400 KMAX=72
       DO 410 K=1,72
       IF(LINE1(KMAX).NE.' ') GO TO 420
-  410 KMAX=KMAX-1
+      KMAX=KMAX-1
+  410 CONTINUE
       KMAX=1
   420 WRITE(OTAPE,460) (LINE1(K),K=1,KMAX)
       GO TO 300
@@ -710,8 +707,9 @@ C-----PRINT SUMMARY OF CHANGES.
       IF(TURNON(N).EQ.1) FLAG=ON
       WRITE(OUTP,610) (KEYWRD(J,N),J=1,10),MODIFY(1,N),MODIFY(2,N),
      1 FLAG
-  450 WRITE(*   ,610) (KEYWRD(J,N),J=1,10),MODIFY(1,N),MODIFY(2,N),
+      WRITE(*   ,610) (KEYWRD(J,N),J=1,10),MODIFY(1,N),MODIFY(2,N),
      1 FLAG
+  450 CONTINUE
       FLAG=OFF
       IF(IPROG.EQ.1) FLAG=ON
       WRITE(OUTP,620) PROGRM,FLAG
@@ -725,7 +723,7 @@ C-----END OF RUN. PRINT LINE COUNT.
       WRITE(*   ,630) ILINE
       CALL ENDIT
   460 FORMAT(80A1)
-  470 FORMAT(' Convert FORTRAN Programs (CONVERT 2019-1)'/2X,78('='))
+  470 FORMAT(' Convert FORTRAN Programs (CONVERT 2021-1)'/2X,78('='))
   480 FORMAT('  Input Keyword    Comments'/2X,78('='))
   490 FORMAT(2X,78('=')/'  Required Modifications'/2X,78('=')/
      1 '  Keyword    Comments'/2X,78('='))

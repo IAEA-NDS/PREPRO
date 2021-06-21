@@ -24,3 +24,7 @@ mixer
 virgin
 evalplot
 complot
+evalhard1
+mv PLOT0001.ps evalhard1.ps
+comhard1
+mv PLOT0001.ps comhard1.ps

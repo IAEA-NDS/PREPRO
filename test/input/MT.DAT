@@ -2,7 +2,7 @@
    2   2   2   2 Elastic                                 *MT Numbers
    3   3   3   3 Nonelastic                              *
    4   4   4   4 Inelastic                               *Format
-   5   5   0   0 (n,remainder)                           *Columns
+   5   5   0   0 (n,anything)                            *Columns
   10  10   0   0 Total Continuum                         *
   11  11   0   0 (n,2n) d                                * 1- 4 ENDF/B-V
    0   0   6  15       MeV (n,2n) Level                  *      MT Limit
@@ -154,23 +154,27 @@
  457 457 457 457 Radioactive Decay                       *
  458 458 458 458 Fission Energy Release                  *
  459 459 459 459 Cumulative Fission Product Yield        *
+ 460 460   0   0 Deleted Fission Photons                 *
    0   0 465 465 Delayed ]n\{- (Spontaneous)             *
    0   0 466 466 Prompt ]n\{- (Spontaneous)              *
+ 500 500   0   0 Total Charged Particle Stopping Power   *
  501 501 501 501 Total                                   *
  502 502 502 502 Coherent                                *
  504 504 504 504 Incoherent                              *
  505 505   0   0 Imaginary Anomalous                     *
  506 506   0   0 Real Anomalous                          *
  515 515 515 515 Pair Production (Electron)              *
- 516 516 516 516 Pair Production (Total)                 *
+ 516 516 516 516 Pair Production                         *
  517 517 517 517 Pair Production (Nuclear)               *
    0   0 532 532 (]g,n)                                  *
    0   0 533 533 Total Photonuclear                      *
  522 522 602 602 Total Ionization                        *
- 525 525   0   0 Electron Large Angle Scatter            *DEFINED BY RED
- 526 526   0   0 Electron Scatter                        *
- 527 527   0   0 Electron Bremsstrahlung                 *
- 528 528   0   0 Electron Excitation                     *
+ 523 523   0   0 Total Excitation                        *
+ 525 525   0   0 Large Angle Scatter                     *DEFINED BY RED
+ 526 526   0   0 Scatter                                 *
+ 527 527   0   0 Bremsstrahlung                          *
+ 528 528   0   0 Excitation                              *
+ 533 533   0   0 Atomic Relaxation                       *
  534 534   0   0 K (1s1/2) Subshell                      *
  535 535   0   0 L1 (2s1/2) Subshell                     *
  536 536   0   0 L2 (2p1/2) Subshell                     *
@@ -211,15 +215,23 @@
  571 571   0   0 Q2 (7p1/2) Subshell                     *
  572 572   0   0 Q3 (7p3/2) Subshell                     *
  600 600   0   0 (n,p') Ground                           *
- 601 649 700 719       MeV (n,p') Level                  *
+ 601 648 700 719       MeV (n,p') Level                  *
+ 649 649   0   0 (n,p') Continuum                        *
  650 650   0   0 (n,d') Ground                           *
- 651 699 720 739       MeV (n,d') Level                  *
+ 651 698 720 739       MeV (n,d') Level                  *
+ 699 699   0   0 (n,d') Continuum                        *
  700 700   0   0 (n,t') Ground                           *
- 701 749 740 759       MeV (n,t') Level                  *
+ 701 748 740 759       MeV (n,t') Level                  *
+ 749 749   0   0 (n,t') Continuum                        *
  750 750   0   0 (n,He-3') Ground                        *
- 751 799 760 779       MeV (n,He-3') Level               *
+ 751 798 760 779       MeV (n,He-3') Level               *
+ 799 799   0   0 (n,He-3') Conyinuum                     *
  800 800   0   0 (n,]a') Ground                          *
- 801 849 780 799       MeV (n,]a') Level                 *
+ 801 848 780 799       MeV (n,]a') Level                 *
+ 849 849   0   0 (n,]a') Continuum                       *
  851 870   0   0 Covariance Data                         *
+ 875 875   0   0 (n,2n) Ground                           *
+ 876 890   0   0       MeV (n,2n) Level                  *
+ 891 891   0   0 (n,2n) Continuum                        *
    0   0   0   0 (THIS LINE TERMINATES INPUT...0 IN COLUMNS 1 - 16)
  

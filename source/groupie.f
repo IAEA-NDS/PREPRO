@@ -1,13 +1,4 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
-C=======================================================================
+c====================================================================
 C
 C     PROGRAM GROUPIE
 C     ===============
@@ -244,6 +235,36 @@ C                                 Self-Shielding Always Outputs,
 C                                 1) LSSF   = 0 = Output cross sections
 C                                 2) INTUNR = 2 = Interpolation law
 C                                *Added ZAzzzaaa to filenames.
+C     VERS. 2020-1 (Aug. 2020)   *Major re-write to update for new URR
+C                                 self-shielding, MF/MT=2/152 and 2/153.
+C                                *Corrected BOTH ends of unresolved
+C                                 for MF/MT=2/152 and 2/153 output.
+C                                *Unresolved extrapolation ONLY to
+C                                 groups completely inside the URR +
+C                                 per ends for MF/MT=2/152 & 153 output.
+C                                *Small shielding < 0.1 % = accuracy
+C                                 of reconstructed data.
+C                                *Forced no self-shielding at upper end
+C                                 of unresolved = match high energy
+C                                 tabulated.
+C                                *Corrected PLOTTAB output if no URR
+C                                 fit - it was outputting EMPTY tables
+C                                 for original and fit moments, which
+C                                 in this case did not exist.
+C                                *Only 2 band, Method#2 [sigt + <sigt>]
+C                                 alloed for multi-band calculation.
+C                                *WARNING - if input Requested MF range
+C                                 prevents unresolved region calculation
+C                                *Added Target Isomer Flag
+C                                *Correct MULTBAND.LST output format.
+C     VERS. 2021-1 (Jan. 2021)   *Updated for FORTRAN 2018
+C
+C     2020-1 Acknowledgment
+C     =====================
+C     I Thank Jean-Christophe Sublet (NDS, IAEA, Vienna, Austria) for
+C     reporting the ERROR in GROUPIE (2019-1) that led to the update in
+C     GROUPIE (2020-1) to correctly define the PLOTTAB output, whether
+C     or not Unresolved Resonance Region (URR) fit was performed.
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -348,9 +369,9 @@ C     BY THE ADDITION OF THREE COMMENT CARDS AT THE END OF EACH
 C     HOLLERITH SECTION TO DESCRIBE THE GROUP STRUCTURE AND WEIGHTING
 C     SPECTRUM, E.G.
 C
-C     ********************** PROGRAM GROUPIE (2019-1) ***************
+C     ********************** PROGRAM GROUPIE (2021-1) ***************
 C     UNSHIELDED GROUP AVERAGES USING   69 GROUPS (WIMS)
-C     MAXWELLIAN, 1/E AND FISSION WEIGHTING SPECTRUM
+C     MAXWELLIAN, 1/E, FISSION TO CONSTANT WEIGHTING SPECTRUM
 C
 C     THE ORDER OF ALL SIMILAR COMMENTS (FROM LINEAR, RECENT AND SIGMA1)
 C     REPRESENTS A COMPLETE HISTORY OF ALL OPERATIONS PERFORMED ON
@@ -417,7 +438,7 @@ C     STRUCTURE WHERE THE ENERGIES ARE IN EV AND ARE IN INCREASING
 C     ENERGY ORDER. THE MAXIMUM NUMBER OF GROUPS IS 20,000.
 C
 C     THE USER MAY INPUT AN ARBITRARY GROUP STRUCTURE OR THE USER MAY
-C     USE USE ONE OF THE SEVEN BUILT-IN GROUP STRUCTURES.
+C     USE USE ONE OF THE BUILT-IN GROUP STRUCTURES.
 C     (0) 175 GROUP (TART STRUCTURE)
 C     (1)  50 GROUP (ORNL STRUCTURE)
 C     (2) 126 GROUP (ORNL STRUCTURE)
@@ -465,14 +486,15 @@ C     IS LINEARLY INTERPOLABLE BETWEEN TABULATED POINTS. THEREFORE THE
 C     USER SHOULD USE ENOUGH POINTS TO INSURE AN ADEQUATE REPRESENTATION
 C     OF THE SPECTRUM BETWEEN TABULATED DATA POINTS.
 C
-C     THE PRESENT VERSION OF THE CODE HAS THREE BULIT-IN WEIGHTING
+C     THE PRESENT VERSION OF THE CODE HAS THREE BUILT-IN WEIGHTING
 C     SPECTRA,
 C
 C     (1) CONSTANT
 C     (2) 1/E
 C     (3) MAXWELLIAN = E*EXP(-E/KT)/KT                (0.0 TO 4*KT)
-C         1/E        = C1/E                           (4*KT TO 67 KEV)
-C         FISSION    = C2*EXP(-E/WA)*SINH(SQRT(E*WB)) (ABOVE 67 KEV)
+C         1/E        = C1/E                           (4*KT TO 67 KeV)
+C         FISSION    = C2*EXP(-E/WA)*SINH(SQRT(E*WB)) (67 KeV, 10 MeV)
+C         CONSTANT   = Equal to Fission at 10 MeV     (above 10 MeV)
 C
 C         KT     = 0.253 EV (293 KELVIN)
 C         WA     = 9.65D+5
@@ -764,7 +786,7 @@ C        2       1-11      I11    MATERIAL ZA
 C               12-22      I11    NUMBER GROUPS
 C               23-33      I11    NUMBER OF BANDS
 C               34-44     E11.4   TEMPERATURE (KELVIN)
-C               45-55    1X,10A1  HOLLERITH DESCRIPTION OF ZA
+C               45-57    1X,12A1  HOLLERITH DESCRIPTION OF ZA
 C        3       1-11     E11.4   ENERGY (EV) - GROUP BOUNDARY.
 C               12-22     E11.4   TOTAL      (FIRST BAND)
 C               23-33     E11.4   ELASTIC
@@ -918,9 +940,10 @@ C       1   34-44    I11   NUMBER OF POINTS USED TO DESCRIBE ENERGY
 C                          DEPENDENT WEIGHTING SPECTRUM S(E).
 C                          = 0 or 1 - Flat (Constant)
 C                          = -1     - 1/E at ALL energies
-C                          = -2     - MAXWELLIAN - UP TO 0.1 EV
-C                                     1/E        - 0.1 EV TO 67 KEV
-C                                     FISSION    - ABOVE 67 KEV
+C                          = -2     - MAXWELLIAN - UP TO 0.1 eV
+C                                     1/E        - 0.1 eV TO 67 KeV
+C                                     FISSION    - 67 KeV to 10 MeV
+c                                     CONSTANT   - Above 10 MeV
 C                          = > 1    - Read input table
 C 2005/01/20---------------ADDED OPTION TO ALLOW TEMPERATURE OF THE
 C                          MAXWELLIAN TO BE CHANGED - SEE INPUT LINE 4,
@@ -1152,7 +1175,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ELPAS2/EGB,TMPK
       COMMON/PAGER/NPAGE,NPAGM1
       COMMON/COPI/MFIELD(3)
@@ -1163,6 +1186,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/VERSES/TEMP3,IVERSE
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/LOGCOM/MYLOG(8)
+      COMMON/LISCOM/LISO
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
 c-----2016/5/21 - Increased NBT and INT dimension from 20 to 100
@@ -1195,7 +1219,8 @@ C-----DEFINE MINIMUM ACCEPTABLE SPECTRUM AND CROSS SECTION VALUES AND
 C-----INITIALIZE POINT COUNTS FOR ALL REACTIONS.
       DO 10 ISECT=1,5
       OKMIN(ISECT)=0.0d0
-   10 NPTTOT(ISECT)=0
+      NPTTOT(ISECT)=0
+   10 CONTINUE
 C-----INITIALIZE COUNT OF SECTIONS
       DO I=1,8
       MYLOG(I) = 0
@@ -1214,6 +1239,13 @@ C-----Initialize Resonance Region Boundaries.
       URES2 = 0.0d0
       LSSF  = 0
       ICOMP = 0
+      LISO  = 0
+c-----2020/8/5 - Initialize ends of URR, inside URR
+      do k=1,2
+      do j=1,5
+      XCURRLIM(k,j) = 0.0d0
+      enddo
+      enddo
 c-----------------------------------------------------------------------
 C
 C     READ AND CHECK ALL INPUT PARAMETERS AND COPY TAPE LABEL.
@@ -1273,18 +1305,21 @@ C-----DEFINE TEMPERATURE FROM FIRST SECTION OF EACH MAT.
       IF(IZA.EQ.LASTZA) GO TO 60
       LASTZA=IZA
 C-----DEFINE CHEMICAL SYMBOL FOR THIS MAT.
-      CALL ZAHOL(IZA,ZABCD)
+c-----2020/3/21 - Add isomeric flag
+      CALL ZAHOLM(IZA,LISO,ZABCD)
 C-----SET FLAG TO INDICATE NEW MAT...SELECT TEMPERATURE FROM FIRST
 C-----SECTION USED, WHEN NEXT CARD IS READ.
    60 MPASS=0
 C-----INITIALIZE POINT COUNTS FOR NEXT MATERIAL.
       DO 70 ISECT=2,5
       NPTUSE(ISECT)=0
-   70 NPTAB(ISECT)=0
+      NPTAB(ISECT)=0
+   70 CONTINUE
       NPTUSE(1)=0
 C-----INITIALIZE MINIMUM VALUES CROSS SECTIONS READ.
       DO 80 I=1,5
-   80 REDMIN(I)=2.0d0*OKMIN(I)
+      REDMIN(I)=2.0d0*OKMIN(I)
+   80 CONTINUE
 C-----SET FLAG TO INDICATE IF SELF-SHIELDING CALCULATION MUST BE
 C-----PERFORMED AND HAS NOT YET BEEN DONE ( 0 -YES, 1 -NO).
       IMDONE=0
@@ -1431,12 +1466,12 @@ c-----Resolved region
       CALL OUT9G( RES2,FIELDX(1,2))
       WRITE(3,230) ZABCD,((FIELDX(k,kk),k=1,11),kk=1,2)
       WRITE(*,230) ZABCD,((FIELDX(k,kk),k=1,11),kk=1,2)
-  230 format(1x,78('-')/' Resonance Region for ',10A1/
+  230 format(1x,78('-')/' Resonance Region for ',12A1/
      1 ' Resolved Resonance Region.....',11A1,' to ',11A1, ' eV')
       else
       WRITE(3,240) ZABCD
       WRITE(*,240) ZABCD
-  240 format(1x,78('-')/' Resonance Region for ',10A1/
+  240 format(1x,78('-')/' Resonance Region for ',12A1/
      1 ' Resolved Resonance Region..... NONE')
       endif
 c-----Unresolved
@@ -1523,7 +1558,8 @@ C-----FISSION.
   360 CONTINUE
 C-----INCREMENT POINT COUNTS FOR ENTIRE FILE.
       DO 370 I=1,5
-  370 NPTTOT(I)=NPTTOT(I)+NPTUSE(I)
+      NPTTOT(I)=NPTTOT(I)+NPTUSE(I)
+  370 CONTINUE
 C-----BRANCH BACK TO START NEXT MATERIAL.
       GO TO 20
 c-----------------------------------------------------------------------
@@ -1567,8 +1603,10 @@ C-----LIST MAXIMUM ERROR VS. SIGMA0 FOR THE ENTIRE FILE.
       WRITE(OUTP,600)
       DO 470 I=1,25
       DO 460 NB=1,NBMAX
-  460 ERLIB(I,NB)=100.0d0*ERLIB(I,NB)
-  470 WRITE(OUTP,610) I,(ERLIB(I,J),J=1,NBMAX)
+      ERLIB(I,NB)=100.0d0*ERLIB(I,NB)
+  460 CONTINUE
+      WRITE(OUTP,610) I,(ERLIB(I,J),J=1,NBMAX)
+  470 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     PRINT SUMMARY OF TYPES OF CONVERGENCE FOR MULTI-BAND PARAMETERS
@@ -1629,12 +1667,12 @@ c-----2019/3/9 - Final WARNING if inconsitent maximum tabulated energy
      1 ' Elastic, Capture or Fission.'/
      3 ' This Will Always be Zero Unless Unshielded Output is',
      4 ' Requested.'/1X,78('-'))
-  570 FORMAT(10A1,I5,I3,2X,A1,11A1,5I8)
+  570 FORMAT(12A1,I5,I3,2X,A1,11A1,5I8)
   580 FORMAT(1X,78('-')/' ENDF/B Tape Label'/1X,78('-')/1X,16A4,A2,I4/
-     1 1X,78('-')/' Isotope    MAT MF Fmt Kelvin   ',
-     2 '   Total Elastic Capture Fission   Other'/13X,'     ',14X,
+     1 1X,78('-')/' Isotope      MAT MF Fmt Kelvin   ',
+     2 '   Total Elastic Capture Fission   Other'/15X,'     ',14X,
      3 '  Points  Points  Points  Points  Points'/1X,78('-'))
-  590 FORMAT(1X,78('-')/25X,'Totals ',5I8)
+  590 FORMAT(1X,78('-')/27X,'Totals ',5I8)
   600 FORMAT(///8X,'Maximum per-cent Error vs. Sigma-0 for Entire',
      1 ' FILE'/1X,78('-')/' Index *    1 Band  *  2 Bands  ',
      2 '*  3 Bands  *  4 Bands  *  5 Bands'/1X,78('-'))
@@ -1666,6 +1704,8 @@ C     ENDF/B-4  = N1 > 0, N2 = 0, CARD COUNT (POSITIVE)
 C     ENDF/B-5  = N1 = N2 = 0
 C     ENDF/B-6         N2 = VERSION NUMBER (6 OR MORE)
 C
+C     Firsr line has been read
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 PROGDOC1
@@ -1678,6 +1718,7 @@ C=======================================================================
       COMMON/HOLFMT/FMTHOL
       COMMON/SPIM/IMSP
       COMMON/VERSES/TEMP3,IVERSE
+      COMMON/LISCOM/LISO
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
       DIMENSION FMTTAB(4),PROGDOC(6),PROGDOC1(66,6)
@@ -1694,9 +1735,9 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program GROUPIE (VERSION 2019-1)***********',
+     1 ' ***************** Program GROUPIE (VERSION 2021-1)***********',
      2 ' Unshielded Group Averages Using 12345 Groups                 ',
-     3 ' Weighting Spectrum: Maxwellian, 1/E and Fission Spectrum     ',
+     3 ' Weighting Spectrum: Maxwellian,1/E,Fission,Constant Spectrum ',
      4 ' Weighting Spectrum: 1/E Spectrum                             ',
      5 ' Weighting Spectrum: Flat (Constant) Spectrum                 ',
      6 ' Weighting Spectrum: Input Spectrum                           '/
@@ -1714,14 +1755,21 @@ C-----FILL IN REMAINDER OF FIRST LINE.
 C-----HEAD CARD OF SECTION HAS BEEN READ. WRITE IT AND READ NEXT CARD
 C-----AND DETERMINE IF THIS IS THE ENDF/B-IV, V OR VI FORMAT.
       CALL CONTOG
+c
+c     Read Second line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=4
+      LISOX = L2          ! Save potential target isomer state number
 C-----CHECK FOR ENDF/B-IV.
 C-----IV N1 > 0, N2 = 0
       IF(N1.GT.0.AND.N2.EQ.0) GO TO 10
 C-----NOT ENDF/B-IV. READ THIRD CARD.
       N2IN=N2
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Third line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=5
 C-----CHECK FOR ENDF/B-V FORMAT.
@@ -1729,10 +1777,14 @@ C-----CHECK FOR ENDF/B-V FORMAT.
       N1IN = N1
 C-----ENDF/B-VI FORMAT. READ FOURTH CARD.
       CALL CARDO(C1,C2,L1,L2,N1,N2)
+c
+c     Read Third line
+c
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       IVERSE=6
       TEMP3=C1
       INPART = N1IN/10
+      LISO    = LISOX
 C-----SET DERIVED MATERIAL FLAG.
       L1=1
 C-----DEFINE ENDF/B FORMAT NUMBER.
@@ -1743,7 +1795,8 @@ C-----INCREASE COMMENT CARD COUNT AND COPY TO END OF HOLLERITH.
       N1P3=N1+3
       CALL CARDO(C1,C2,L1,L2,N1P3,N2)
       DO 20 N=1,N1
-   20 CALL COPY1G
+      CALL COPY1G
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     ADD THREE COMMENT LINES.
@@ -1799,10 +1852,10 @@ c-----GROUPIE/SIGMA1 Differ
 C-----HEAD RECORD ALREADY READ. DEFINE NUMBER OF ISOTOPES.
       NIS=N1H
 C-----DO LOOP OVER ALL ISOTOPES
-      DO 210 IS=1,NIS
+      DO 270 IS=1,NIS
       CALL CARDIO(C1H,C2H,L1H,LFW,NER,N2H)
 C-----DO LOOP OVER ALL ENERGY RANGES
-      DO 200 JER=1,NER
+      DO 260 JER=1,NER
       CALL CARDIO(EL,EH,LRU,LRF,N1H,N2H)
 c-----------------------------------------------------------------------
 c
@@ -1832,7 +1885,7 @@ C
 c-----------------------------------------------------------------------
 C-----COPY SECTION WITH NO RESONANCE PARAMETERS.
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,N2H)
-      GO TO 200
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     Resolved.
@@ -1879,15 +1932,15 @@ C-----------------------------------------------------------------------
       IF(LRF.EQ.1.OR.          ! Single Level Breit-Wigner
      1   LRF.EQ.2.OR.          ! Multi-Level  Breit-Wigner
      2   LRF.EQ.3) GO TO 50    ! Reich=Moore
-      IF(LRF.EQ.4) GO TO 70    ! Adler-Adler
-      IF(LRF.EQ.7) GO TO 100   ! New Reich-Moore
+      IF(LRF.EQ.4) GO TO 80    ! Adler-Adler
+      IF(LRF.EQ.7) GO TO 130   ! New Reich-Moore
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 220
-   40 IF(LRU.NE.2) GO TO 220   ! Unresolved?
-      IF(LRF.EQ.1) GO TO 120   ! Energy Independent Widths
-      IF(LRF.EQ.2) GO TO 180   ! Energy   Dependent Widths
+      GO TO 280
+   40 IF(LRU.NE.2) GO TO 280   ! Unresolved?
+      IF(LRF.EQ.1) GO TO 150   ! Energy Independent Widths
+      IF(LRF.EQ.2) GO TO 220   ! Energy   Dependent Widths
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 220
+      GO TO 280
 C-----------------------------------------------------------------------
 C
 C     BREIT-WIGNER (SINGLE OR MULTI-LEVEL) OR REICH-MOORE FORMALISM
@@ -1896,43 +1949,49 @@ C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
    50 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----LOOP OVER ALL L STATES
-      DO 60 ILS=1,NLS
+      DO 70 ILS=1,NLS
 C-----READ NEXT CARD.
       CALL CARDIO(C1H,C2H,L1H,L2H,NRS6,NRS)
 C-----COPY RESONANCE PARAMETERS.
       DO 60 IRS=1,NRS
-   60 CALL COPY1G
-      GO TO 200
+      CALL COPY1G
+   60 CONTINUE
+   70 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     ADLER-ADLER FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
-   70 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
+   80 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
 C-----READ BACKGROUND CORRECTIONS.
       CALL CARDIO(C1H,C2H,L1H,L2H,NX6,N2H)
 C-----COPY BACKGROUND CORRECTION CONSTANTS.
-      DO 80 I=1,NX6,6
-   80 CALL COPY1G
+      DO 90 I=1,NX6,6
+      CALL COPY1G
+   90 CONTINUE
 C-----LOOP OVER L STATES
-      DO 90 I=1,NLS
+      DO 120 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
 C-----LOOP OVER J STATES
-      DO 90 J=1,NJS
+      DO 110 J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,NLJ)
 C-----COPY ALL RESONANCE DATA
-      DO 90 K=1,NLJ
+      DO 100 K=1,NLJ
       CALL COPY1G
-   90 CALL COPY1G
-      GO TO 200
+      CALL COPY1G
+  100 CONTINUE
+  110 CONTINUE
+  120 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     NEW REICH-MOORE FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----DEFINE NUMBER OF J STATES
-  100 CALL CARDIO(C1,C2,L1,L2,NJS,N2)
+  130 CALL CARDIO(C1,C2,L1,L2,NJS,N2)
 C-----DEFINE NUMBER OF PARTICLE-PAIRS
       CALL CARDIO(C1,C2,L1,L2,NPP12,N2)
 C-----COPY PARTICLE-PAIR DATA
@@ -1940,7 +1999,7 @@ C-----COPY PARTICLE-PAIR DATA
       CALL COPY1G
       ENDDO
 C-----LOOP OVER J STATES
-      DO 110 IJ=1,NJS
+      DO 140 IJ=1,NJS
 C-----J, PARITY, AND NUMBER OF CHANNELS
       CALL CARDIO(C1,C2,L1,L2,NCH6,N2)
 C-----COPY CHANNEL DATA
@@ -1953,15 +2012,15 @@ C-----COPY RESONANCE PARAMETERS
       DO N=1,NRS
       CALL COPY1G
       ENDDO
-  110 CONTINUE
-      GO TO 200
+  140 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     UNRESOLVED WITH ENERGY INDEPENDENT WIDTHS (LRF = 1)
 C
 C-----------------------------------------------------------------------
 C-----TEST IF FISSION WIDTHS GIVEN
-  120 IF(LFW.gt.0) go to 140
+  150 IF(LFW.gt.0) go to 180
 c-----------------------------------------------------------------------
 C
 C     Case A: FISSION WIDTHS NOT GIVEN (LFW = 0/ LRF = 1)
@@ -1970,31 +2029,36 @@ c-----------------------------------------------------------------------
       CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
       LSSF = L1H
 C-----LOOP OVER ALL L-STATES
-      DO 130 ILS=1,NLS
+      DO 170 ILS=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,N1H,NJS)
-      DO 130 N=1,NJS
-  130 CALL COPY1G
-      GO TO 200
+      DO 160 N=1,NJS
+      CALL COPY1G
+  160 CONTINUE
+  170 CONTINUE
+      GO TO 260
 c-----------------------------------------------------------------------
 C
 C     Case B: FISSION WIDTHS GIVEN (LFW = 1/ LRF = 1)
 C
 c-----------------------------------------------------------------------
-  140 CALL CARDIO(C1H,C2H,L1H,L2H,NE,NLS)
+  180 CALL CARDIO(C1H,C2H,L1H,L2H,NE,NLS)
       LSSF = L1H
 C-----COPY FISSION WIDTH ENERGY POINTS
-      DO 150 I=1,NE,6
-  150 CALL COPY1G
+      DO 190 I=1,NE,6
+      CALL COPY1G
+  190 CONTINUE
 C-----LOOP OVER L-STATES
-      DO 170 I=1,NLS
+      DO 210 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
 C-----LOOP OVER J STATES
-      DO 170 J=1,NJS
+      DO J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,NEP6,N2H)
-      DO 160 K=1,NEP6,6
-  160 CALL COPY1G
-  170 CONTINUE
-      GO TO 200
+      DO 200 K=1,NEP6,6
+      CALL COPY1G
+  200 CONTINUE
+      ENDDO
+  210 CONTINUE
+      GO TO 260
 C-----------------------------------------------------------------------
 C
 C     Case C: UNRESOLVED WITH ALL ENERGY DEPENDENT WIDTHS (LRF = 2)
@@ -2002,20 +2066,23 @@ C             Independent of LFW
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT CARD.
-  180 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
+  220 CALL CARDIO(C1H,C2H,L1H,L2H,NLS,N2H)
       LSSF = L1H
 C-----DO LOOP OVER L-STATES
-      DO 190 I=1,NLS
+      DO 250 I=1,NLS
       CALL CARDIO(C1H,C2H,L1H,L2H,NJS,N2H)
-      DO 190 J=1,NJS
+      DO 240 J=1,NJS
       CALL CARDIO(C1H,C2H,L1H,L2H,NE6P6,N2H)
 C-----COPY NUMBER OF DEGREES OF FREEDOM AND PARAMETERS.
-      DO 190 K=1,NE6P6,6
-  190 CALL COPY1G
+      DO 230 K=1,NE6P6,6
+      CALL COPY1G
+  230 CONTINUE
+  240 CONTINUE
+  250 CONTINUE
 C-----END OF ENERGY RANGE LOOP
-  200 CONTINUE
+  260 CONTINUE
 C-----END OF ISOTOPE LOOP
-  210 CONTINUE
+  270 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     FINISHED O.K.
@@ -2029,9 +2096,9 @@ C
 C     ERROR.
 C
 C-----------------------------------------------------------------------
-  220 WRITE(3,230)
-      WRITE(*,230)
-  230 FORMAT(1x,78('=')/
+  280 WRITE(3,290)
+      WRITE(*,290)
+  290 FORMAT(1x,78('=')/
      1 ' ERROR - Reading MF/MT=2/151 Resonance Parameters.'/
      1 '         Execution Terminated.'/1x,78('='))
       CALL ENDERROR
@@ -2087,7 +2154,7 @@ C=======================================================================
       INCLUDE 'groupie.h'
 C-----PRINT TITLE FOR WEIGHTING SPECTRUM.
       IF(ITYPE.EQ.1) then
-      WRITE(OUTP,120)
+      WRITE(OUTP,140)
 c-----2019/3/9 - Save mat/mf/mt
       CALL MAXIE1(   0,  0,  0)
       else
@@ -2102,14 +2169,56 @@ C-----INITIALIZE LAST ENERGY FOR ASCENDING ENERGY TEST.
       ELAST=0.0d0
 C-----SET UP LOOP OVER PAGES.
       N2X=NPTAB(ITYPE)
-      DO 70 NPT=1,N2X,NPAGE
+      DO 90 NPT=1,N2X,NPAGE
 C-----READ NEXT PAGE.
       NNPT=NPT+NPAGM1
       IF(NNPT.GT.N2X) NNPT=N2X
       IHIGH=NNPT-NPT+1
       CALL POINTI(XPAGE(1,ITYPE),YPAGE(1,ITYPE),IHIGH)
-c-----2019/3/9 - Save maximum tabulated energy and value
-      CALL MAXIE2(XPAGE(IHIGH,ITYPE),YPAGE(IHIGH,ITYPE))
+c-----------------------------------------------------------------------
+c
+c     If there is a URR, Save Cross Section Values at ends of URR
+c     Insure something is selected (allow fo NJOY shift)
+c
+c-----------------------------------------------------------------------
+c-----Only MF=3 (neutrons) with unresolved resonance region (URES2 > 0)
+      if(MFH.ne.3.or.URES2.le.0.0d0) go to 20
+c-----Only self-shielded reactions: total, elastic, capture & fission
+      iurr = 0
+      if(MTH.eq.  1) iurr = 2         ! Note, the order
+      if(MTH.eq.  2) iurr = 3         !       fission last
+      if(MTH.eq.102) iurr = 4
+      if(MTH.eq. 18) iurr = 5
+      if(iurr.le.0) go to 20           ! skip all others
+c
+c     Search for ends of URR = URES1 to URES2
+c
+      do 10 k=1,IHIGH
+      if(XPAGE(k,itype).lt.URES1) go to 10  ! Skip to start
+c
+c     keep last value at start (allow for RRR/URR discontinuity)
+c
+      if(XPAGE(k,itype).eq.URES1) then
+      XCURRLIM(1,iurr) = YPAGE(k,itype)
+      endif
+c-----if none at start, save first above start (allow for NJOY shift)
+      if(XPAGE(k,itype).gt.URES1.and.
+     1   XCURRLIM(1,iurr).le.0.0d0) then
+      XCURRLIM(1,iurr) = YPAGE(k,itype)
+      endif
+c
+c     keep first value at end
+c
+      if(XPAGE(k,itype).lt.URES2) go to 10
+      XCURRLIM(2,iurr) = YPAGE(k,itype)
+      go to 20                             ! Finished when value defined
+   10 continue
+c-----------------------------------------------------------------------
+c
+c     2019/3/9 - Save maximum tabulated energy and value
+c
+c-----------------------------------------------------------------------
+   20 CALL MAXIE2(XPAGE(IHIGH,ITYPE),YPAGE(IHIGH,ITYPE))
 c-----------------------------------------------------------------------
 c
 c     Define ICOMP for URR Treatment
@@ -2120,8 +2229,8 @@ c     4) MT =  51 to  91 = Competition
 c     5) MT = 103 to 107 = Absorption
 c
 c-----------------------------------------------------------------------
-      IF(NPT.ne.1.or.MFH.ne.3) go to 10
-      if(XPAGE(1,ITYPE).ge.URES2) go to 10
+      IF(NPT.ne.1.or.MFH.ne.3) go to 30
+      if(XPAGE(1,ITYPE).ge.URES2) go to 30
       if(MTH.ge.51.and.MTH.le.91) then    ! Competition
       ICOMP = MTH
       if(MTH.gt.51) ICOMP = 4             ! More than 1 level = use MT=4
@@ -2135,62 +2244,64 @@ C     CHECK FOR MINIMUM ALLOWABLE VALUE.
 C
 c-----------------------------------------------------------------------
 C-----(ALLOW MU-BAR, XI AND ETA TO BE NEGATIVE).
-   10 IF(MTH.GE.251.AND.MTH.LE.253) GO TO 30
-      DO 20 I=1,IHIGH
+   30 IF(MTH.GE.251.AND.MTH.LE.253) GO TO 50
+      DO 40 I=1,IHIGH
 C-----IGNORE POINTS OUTSIDE MULTIGROUP ENERGY RANGE.
-      IF(XPAGE(I,ITYPE).LT.EGROUP(    1)) GO TO 20
-      IF(XPAGE(I,ITYPE).GT.EGROUP(NGRP1)) GO TO 20
+      IF(XPAGE(I,ITYPE).LT.EGROUP(    1)) GO TO 40
+      IF(XPAGE(I,ITYPE).GT.EGROUP(NGRP1)) GO TO 40
       IF(YPAGE(I,ITYPE).LT.REDMIN(NTYPE)) REDMIN(NTYPE)=YPAGE(I,ITYPE)
-   20 CONTINUE
+   40 CONTINUE
 C-----PRINT WEIGHTING SPECTRUM.
-   30 IF(ITYPE.NE.1) GO TO 60
-      DO 50 I=1,IHIGH,3
+   50 IF(ITYPE.NE.1) GO TO 80
+      DO 70 I=1,IHIGH,3
       II=I+2
       IF(II.GT.IHIGH) II=IHIGH
       J=0
-      DO 40 III=I,II
+      DO 60 III=I,II
       J=J+1
       CALL OUT9G(XPAGE(III,1),FIELDX(1,J))
       J=J+1
-   40 CALL OUT9G(YPAGE(III,1),FIELDX(1,J))
-   50 WRITE(OUTP,130) ((FIELDX(M,JJ),M=1,11),JJ=1,J)
+      CALL OUT9G(YPAGE(III,1),FIELDX(1,J))
+   60 CONTINUE
+      WRITE(OUTP,150) ((FIELDX(M,JJ),M=1,11),JJ=1,J)
+   70 CONTINUE
 C-----IF OVER ONE PAGE OF DATA MOVE DATA TO SCRATCH FILE.
-   60 IF(N2X.LE.NPAGE) GO TO 70
+   80 IF(N2X.LE.NPAGE) GO TO 90
       IF(NPT.EQ.1) REWIND NSCR
       CALL OBLOCK(NSCR,XPAGE(1,ITYPE),YPAGE(1,ITYPE),NPAGE)
-   70 CONTINUE
+   90 CONTINUE
 C-----IS CROSS SECTION IN CORE OR ON SCRATCH.
-      IF(N2X.GT.NPAGE) GO TO 80
+      IF(N2X.GT.NPAGE) GO TO 100
 C-----IN CORE. SET INDICES TO ENTIRE TABLE.
       IXYLOW(ITYPE)=0
       IXYHI(ITYPE)=N2X
-      GO TO 90
+      GO TO 110
 C-----ON SCRATCH. LOAD FIRST PAGE AND SET INDICES TO FIRST PAGE.
-   80 END FILE NSCR
+  100 END FILE NSCR
       REWIND NSCR
       CALL IBLOCK(NSCR,XPAGE(1,ITYPE),YPAGE(1,ITYPE),NPAGE)
       IXYLOW(ITYPE)=0
       IXYHI(ITYPE)=NPAGE
 C-----IF INPUT WEIGHTING SPECTRUM IS NEGATIVE PRINT MESSAGE AND
 C-----TERMINATE.
-   90 IF(ITYPE.NE.1.OR.(REDMIN(1).GE.OKMIN(1))) GO TO 100
+  110 IF(ITYPE.NE.1.OR.(REDMIN(1).GE.OKMIN(1))) GO TO 120
       CALL OUT9G(REDMIN(1),FIELDX(1,1))
-      WRITE(OUTP,110) (FIELDX(M,1),M=1,11)
+      WRITE(OUTP,130) (FIELDX(M,1),M=1,11)
 c-----2018/1/23 - Added on-line output
-      WRITE(*   ,110) (FIELDX(M,1),M=1,11)
+      WRITE(*   ,130) (FIELDX(M,1),M=1,11)
       CALL ENDERROR
 C-----RESTORE STANDARD UNIT NUMBER.
-  100 ITAPE=ISAVE
+  120 ITAPE=ISAVE
       RETURN
-  110 FORMAT(1x,78('=')/
+  130 FORMAT(1x,78('=')/
      1 ' ERROR - Minimum Weighting Spectrum Value is',1x,11a1/
      1 '         It MUST be Positive for Calculations.'/
      2 '         Execution Terminated.'/1x,78('='))
-  120 FORMAT(1X,78('-')/' Weighting Spectrum (Linearly Interpolable)'/
+  140 FORMAT(1X,78('-')/' Weighting Spectrum (Linearly Interpolable)'/
      1 1X,78('-')/'   Energy-eV   Spectrum',2X,
      2 '  Energy-eV   Spectrum',2X,'  Energy-eV   Spectrum'/
      3 1X,78('-'))
-  130 FORMAT(1X,3(22A1,2X))
+  150 FORMAT(1X,3(22A1,2X))
       END
       SUBROUTINE GROUPU
 C=======================================================================
@@ -2235,7 +2346,8 @@ c-----------------------------------------------------------------------
       J=JP
       CALL XYPAGE(J,ISECT,XA(2),YA(2))
       IF(YA(2).gt.0.0d0) go to 20
-   10 XALAST=XA(2)
+      XALAST=XA(2)
+   10 CONTINUE
       GO TO 180
    20 IPTAB(1)=0
       J=J-1
@@ -2471,13 +2583,16 @@ C=======================================================================
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ELPAS2/EGB,TMPK
       COMMON/MINOK/OKMIN(5),REDMIN(5)
       COMMON/ZABAD/IZABAD
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/COMXTEND/MYXTEND
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
+c-----2019/11/09 - Added to initialize, in case there is no URR fit.
+      COMMON/ERANGES/e1,e2,e3
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       INCLUDE 'groupie.h'
       DIMENSION ERBIG(5),YBB(5),YCC(5)
       DATA IPASS/0/
@@ -2497,7 +2612,8 @@ C-----DEFINE SECOND HALF OF SIGMA0 TABLE TO BE RECIPROCAL OF FIRST HALF.
       II=22
       DO 10 I=2,11
       SIGMAB(II)=1.0d0/SIGMAB(I)
-   10 II=II-1
+      II=II-1
+   10 CONTINUE
 C-----DEFINE CONSTANTS FOR USE IN EXPANSION OF LOG (AS DESCRIBED ABOVE).
       F3 =2.0D+0/3.0D+0
       F5 =2.0D+0/5.0D+0
@@ -2513,11 +2629,21 @@ C-----CALCULATED PROPERLY (WARNING....DO NOT CHANGE)
       SIGMAB(23)=0.0d0
 c-----------------------------------------------------------------------
 C
+c     2019/11/09 - Added to initialize, in case there is no URR fit.
+C
+c-----------------------------------------------------------------------
+   20 NUNR1 = 0
+      NUNR2 = 0
+      e1 = 0.0d0
+      e2 = 0.0d0
+      e3 = 0.0d0
+c-----------------------------------------------------------------------
+C
 C     CANNOT PERFORM SELF-SHIELDING AND MULTIBAND CALCULATION IF
 C     TOTAL CROSS SECTION IS NOT GIVEN.
 C
 c-----------------------------------------------------------------------
-   20 IF(NPTAB(2).LE.0) RETURN
+      IF(NPTAB(2).LE.0) RETURN
 c-----------------------------------------------------------------------
 C
 C     OUTPUT IDENTIFICATION INFORMATION FOR THIS MATERIAL.
@@ -2531,11 +2657,13 @@ c
 C     INITIALIZE ERROR VECTOR FOR THIS MATERIAL.
 c
 c-----------------------------------------------------------------------
-      IF(NBMAX.LT.1) GO TO 40
-      DO 30 NB=1,NBMAX
+      IF(NBMAX.LT.1) GO TO 50
+      DO 40 NB=1,NBMAX
       DO 30 I=1,25
-   30 ERMAT(I,NB)=0.0d0
-   40 NBNEED=1
+      ERMAT(I,NB)=0.0d0
+   30 CONTINUE
+   40 CONTINUE
+   50 NBNEED=1
 c-----------------------------------------------------------------------
 C
 C     DEFINE SPECTRUM AND ALL CROSS SECTION VALUES OVER FIRST
@@ -2548,33 +2676,33 @@ C     FROM THE LOWER GROUP BOUNDARY TO THE THRESHOLD.
 C
 c-----------------------------------------------------------------------
       XB=EGROUP(1)
-      DO 90 ISECTP=1,NSECT
+      DO 100 ISECTP=1,NSECT
       KSECT=ISECTP
 C-----FIND FIRST DATA POINT ABOVE LOWER ENERGY BOUNDARY OF FIRST GROUP.
       IPTAB(KSECT)=0
-   50 IF(IPTAB(KSECT).LT.NPTAB(KSECT)) GO TO 60
+   60 IF(IPTAB(KSECT).LT.NPTAB(KSECT)) GO TO 70
       XA(KSECT)=2.0D+20
-      GO TO 90
-   60 IPTAB(KSECT)=IPTAB(KSECT)+1
+      GO TO 100
+   70 IPTAB(KSECT)=IPTAB(KSECT)+1
       CALL XYPAGE(IPTAB(KSECT),KSECT,XA(KSECT),YA(KSECT))
-      IF(XA(KSECT).gt.XB) go to 70
+      IF(XA(KSECT).gt.XB) go to 80
 C-----POINT IS STILL BELOW LOWER ENERGY LIMIT. SAVE ENERGY AND CROSS
 C-----SECTION FOR INTERPOLATION.
       XC=XA(KSECT)
       YB(KSECT)=YA(KSECT)
-      GO TO 50
+      GO TO 60
 C-----POINT IS ABOVE LOWER ENERGY LIMIT. IF THIS IS FIRST POINT
 C-----DEFINE PRECEEDING INTERVAL WITH ZERO CROSS SECTION. OTHERWISE
 C-----DEFINE CROSS SECTION AT LOWER ENERGY LIMIT BY LINEAR
 C-----INTERPOLATION BETWEEN LAST TWO POINTS.
-   70 IF(IPTAB(KSECT).GT.1) GO TO 80
+   80 IF(IPTAB(KSECT).GT.1) GO TO 90
       YA(KSECT)=0.0d0
       YB(KSECT)=0.0d0
       IPTAB(KSECT)=0
-      GO TO 90
-   80 YB(KSECT)=((XB-XC)*YA(KSECT)+(XA(KSECT)-XB)*YB(KSECT))/
+      GO TO 100
+   90 YB(KSECT)=((XB-XC)*YA(KSECT)+(XA(KSECT)-XB)*YB(KSECT))/
      1 (XA(KSECT)-XC)
-   90 CONTINUE
+  100 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     GROUP LOOP. DEFINE LOWER AND UPPER ENERGY LIMITS OF GROUP.
@@ -2586,18 +2714,21 @@ C     GROUP OR THE SAME BARNS VALUES IN EACH GROUP (SHIELD).
 C     INITIALIZE CROSS SECTION LIMITS FOR EACH REACTION (YLOW,YHIGH).
 C
 c-----------------------------------------------------------------------
-      DO 390 IGR=1,NGR
+      DO 420 IGR=1,NGR
 C-----INITIALIZE TOTAL OR ELASTIC NOT POSITIVE FLAG
       NOTPLUS = 0
       EGB=XB
       XE=EGROUP(IGR+1)
-      DO 100 L=1,25
-  100 XCNORM(L)=0.0d0
-      DO 110 KSECT=2,NSECT
+      DO 110 L=1,25
+      XCNORM(L)=0.0d0
+  110 CONTINUE
+      DO 130 KSECT=2,NSECT
       YLOW(KSECT)=YB(KSECT)
       YHIGH(KSECT)=YB(KSECT)
-      DO 110 L=1,25
-  110 XCINT(L,KSECT)=0.0d0
+      DO 120 L=1,25
+      XCINT(L,KSECT)=0.0d0
+  120 CONTINUE
+  130 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     DEFINE SIGMA-0 TO BE EITHER,
@@ -2608,16 +2739,19 @@ C     IN ALL CASES SIGMAB IS THE SIGMA-0 DIVIDED BY THE UNSHIELDED TOTAL
 C
 c-----------------------------------------------------------------------
       AVXCGP=TOTAV(IGR)
-      IF(MYSIGMA0.NE.0) GO TO 130
-      DO 120 L=2,23
-  120 SHIELD(L)=SIGMAB(L)*AVXCGP
-      GO TO 170
-  130 IF(AVXCGP.GT.0.0d0) GO TO 150
+      IF(MYSIGMA0.NE.0) GO TO 150
       DO 140 L=2,23
-  140 SIGMAB(L)=0.0d0
-      GO TO 170
-  150 DO 160 L=2,23
-  160 SIGMAB(L)=SHIELD(L)/AVXCGP
+      SHIELD(L)=SIGMAB(L)*AVXCGP
+  140 CONTINUE
+      GO TO 190
+  150 IF(AVXCGP.GT.0.0d0) GO TO 170
+      DO 160 L=2,23
+      SIGMAB(L)=0.0d0
+  160 CONTINUE
+      GO TO 190
+  170 DO 180 L=2,23
+      SIGMAB(L)=SHIELD(L)/AVXCGP
+  180 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     DEFINE BEGINNING OF NEXT INTERVAL TO BE THE SAME AS THE END OF
@@ -2627,12 +2761,12 @@ C     SECTIONS ARE LINEARLY INTERPOLABLE (THIS IS THE MINIMUM ENERGY
 C     OF XE AND THE XA ARRAY).
 C
 c-----------------------------------------------------------------------
-  170 XC=XB
+  190 XC=XB
       XB=XE
-      DO 180 KSECT=1,NSECT
+      DO 200 KSECT=1,NSECT
       YC(KSECT)=YB(KSECT)
       IF(XA(KSECT).LT.XB) XB=XA(KSECT)
-  180 CONTINUE
+  200 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     NEXT CALCULATION WILL BE INTEGRAL BETWEEN ENERGIES XC AND XB.
@@ -2644,8 +2778,8 @@ C     SECTION AND SKIP ALL EMPTY INTERVALS (ZERO LENGTH DUE TO
 C     DISCONTINUTY IN THE SPECTRUM AND/OR CROSS SECTIONS).
 C
 c-----------------------------------------------------------------------
-      DO 210 KSECT=1,NSECT
-      IF(XA(KSECT).gt.XB) go to 200
+      DO 230 KSECT=1,NSECT
+      IF(XA(KSECT).gt.XB) go to 220
 c-----------------------------------------------------------------------
 c
 C     NEXT INTEGRAL WILL EXTEND TO END OF THE ENERGY INTERVAL XC TO
@@ -2656,37 +2790,38 @@ C     XA TO 2.0D+20 EV).
 c
 c-----------------------------------------------------------------------
       YB(KSECT)=YA(KSECT)
-      IF(IPTAB(KSECT).LT.NPTAB(KSECT)) GO TO 190
+      IF(IPTAB(KSECT).LT.NPTAB(KSECT)) GO TO 210
 c-----2015/8/6 - Insert another point at end with either
 c-----           same or 0 cross section
       IF(IPTAB(KSECT).eq.NPTAB(KSECT)) then
       IPTAB(KSECT)=IPTAB(KSECT)+1
       IF(MYXTEND.LE.0) YA(KSECT) = 0.0d0
-      GO TO 210
+      GO TO 230
       ENDIF
 c-----Beyond tabulated data.
       XA(KSECT)=2.0D+20
       IF(MYXTEND.LE.0) THEN
       YA(KSECT) = 0.0d0
       YB(KSECT) = 0.0d0
-      GO TO 210           ! Cross section = 0 - skip calculation
+      GO TO 230           ! Cross section = 0 - skip calculation
       ENDIF
-      GO TO 200           ! Use extension
+      GO TO 220           ! Use extension
 c-----Next tabulated point.
-  190 IPTAB(KSECT)=IPTAB(KSECT)+1
+  210 IPTAB(KSECT)=IPTAB(KSECT)+1
       CALL XYPAGE(IPTAB(KSECT),KSECT,XA(KSECT),YA(KSECT))
-      GO TO 210
+      GO TO 230
 C-----NEXT INTEGRAL WILL ONLY BE OVER A PORTION OF THE ENERGY INTERVAL.
 C-----INTERPOLATE BETWEEN XC AND XA TO DEFINE VALUE AT XB.
-  200 YB(KSECT)=((XB-XC)*YA(KSECT)+(XA(KSECT)-XB)*YB(KSECT))/
+  220 YB(KSECT)=((XB-XC)*YA(KSECT)+(XA(KSECT)-XB)*YB(KSECT))/
      1 (XA(KSECT)-XC)
-  210 CONTINUE
+  230 CONTINUE
       DE=XB-XC
-      IF(DE.LE.0.0d0) GO TO 300
+      IF(DE.LE.0.0d0) GO TO 330
 C-----DEFINE ALL END POINTS IN SCRATCH ARRAY.
-      DO 220 KSECT=1,NSECT
+      DO 240 KSECT=1,NSECT
       YBB(KSECT)=YB(KSECT)
-  220 YCC(KSECT)=YC(KSECT)
+      YCC(KSECT)=YC(KSECT)
+  240 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     04/09/12 - SMALL TOTAL TREATMENT NO LONGER USED.
@@ -2700,13 +2835,13 @@ C
 C     KEEP TRACK OF MINIMUM AND MAXMIMUM CROSS SECTION FOR REACTIONS.
 C
 c-----------------------------------------------------------------------
-      DO 240 KSECT=2,NSECT
-      IF(YLOW(KSECT).lt.YBB(KSECT)) go to 230
-      IF(YLOW(KSECT).eq.YBB(KSECT)) go to 240
+      DO 260 KSECT=2,NSECT
+      IF(YLOW(KSECT).lt.YBB(KSECT)) go to 250
+      IF(YLOW(KSECT).eq.YBB(KSECT)) go to 260
       YLOW(KSECT)=YBB(KSECT)
-      GO TO 240
-  230 IF(YHIGH(KSECT).LT.YBB(KSECT)) YHIGH(KSECT)=YBB(KSECT)
-  240 CONTINUE
+      GO TO 260
+  250 IF(YHIGH(KSECT).LT.YBB(KSECT)) YHIGH(KSECT)=YBB(KSECT)
+  260 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     COMPUTE EFFECT OF SELF-SHIELDING FACTOR 1/(TOTAL(E)+SIGMA0)**N
@@ -2741,7 +2876,7 @@ C-----DEFINE COMPONENTS OF SPECTRUM (AVERAGE AND CHANGE).
 C-----DEFINE CHANGE IN TOTAL CROSS SECTION (SAME FOR ALL SIGMA0).
       DST1=YBB(2)-YCC(2)
 C-----N=1 AND 22 VALUES OF SIGMA0 (I.E. 1/(TOTAL(E)+SIGMA0)).
-      DO 270 L=2,23
+      DO 290 L=2,23
       YBP=YBB(2)+SHIELD(L)
       YCP=YCC(2)+SHIELD(L)
       AVST1=YBP+YCP
@@ -2754,21 +2889,21 @@ C-----ALLOW FOR NEGATIVE TOTAL
       RATIO=     ZERO
       ENDIF
       RATIO2=RATIO**2
-      IF(RATIO2.LT.RATMIN) GO TO 250
+      IF(RATIO2.LT.RATMIN) GO TO 270
       XX=(ONE+RATIO)/(ONE-RATIO)
       XX=DLOG(XX)/RATIO
       FST(L)=XX
       XX=(TWO-XX)/RATIO
       DFST(L)=XX
       DDFST(L)=-XX/RATIO
-      GO TO 260
-  250 XX=(((((F15*RATIO2+F13)*RATIO2+F11)*RATIO2+F9)*RATIO2+F7)*
+      GO TO 280
+  270 XX=(((((F15*RATIO2+F13)*RATIO2+F11)*RATIO2+F9)*RATIO2+F7)*
      1                                RATIO2+F5)*RATIO2+F3
       DDFST(L)=XX
       DFST(L)=-RATIO*XX
       FST(L)=TWO+RATIO2*XX
-  260 CONTINUE
-  270 CONTINUE
+  280 CONTINUE
+  290 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     SIGMA0=0, N=2 AND 3 (I.E. 1/TOTAL(E)**2 AND 1/TOTAL(E)**3). THE
@@ -2793,11 +2928,12 @@ c-----------------------------------------------------------------------
       DEAVST(24)=DEAVST(23)/AVST1
       DEAVST(25)=DEAVST(24)/AVST1
       XCNORM(1)=XCNORM(1)+DE*AVSOUR
-      DO 280 L=2,25
+      DO 300 L=2,25
       FST(L)=DEAVST(L)*FST(L)
       DFST(L)=DEAVST(L)*DFST(L)
       DDFST(L)=DEAVST(L)*DDFST(L)
-  280 XCNORM(L)=XCNORM(L)+(AVSOUR*FST(L)+DSOUR*DFST(L))
+      XCNORM(L)=XCNORM(L)+(AVSOUR*FST(L)+DSOUR*DFST(L))
+  300 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     FOR EACH REACTION (TOTAL, ELASTIC, CAPTURE AND FISSION) DEFINE
@@ -2805,15 +2941,17 @@ C     INTEGRAL OF THE SPECTRUM TIMES CROSS SECTION TIMES SELF-SHIELDING
 C     FACTOR FOR ALL 25 COMBINATION OF (SIGMA0,N).
 C
 c-----------------------------------------------------------------------
-      DO 290 KSECT=2,NSECT
+      DO 320 KSECT=2,NSECT
       AVSTN=YBB(KSECT)+YCC(KSECT)
       DSTN=YBB(KSECT)-YCC(KSECT)
       A1=AVSTN*AVSOUR
       A2=DSTN*AVSOUR+DSOUR*AVSTN
       A3=DSTN*DSOUR
       XCINT(1,KSECT)=XCINT(1,KSECT)+DE*(A1+A3/3.0d0)
-      DO 290 L=2,25
-  290 XCINT(L,KSECT)=XCINT(L,KSECT)+(A1*FST(L)+A2*DFST(L)+A3*DDFST(L))
+      DO 310 L=2,25
+      XCINT(L,KSECT)=XCINT(L,KSECT)+(A1*FST(L)+A2*DFST(L)+A3*DDFST(L))
+  310 CONTINUE
+  320 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     TEST FOR END OF GROUP. IF NOT, CONTINUE WITH INTEGRALS.
@@ -2822,15 +2960,15 @@ C     FACTORS. DEFINE SELF-SHIELDED AVERAGED CROSS SECTIONS AS
 C     RATIO OF INTEGRALS (REACTIONS TO FLUX).
 C
 c-----------------------------------------------------------------------
-  300 IF(XB.LT.XE) GO TO 170
+  330 IF(XB.LT.XE) GO TO 190
 C-----CONVERT TOTAL AND REACTION INTEGRALS TO AVERAGES.
-      DO 320 I=1,25
+      DO 350 I=1,25
 C-----IF NORMALIZATION = 0 SET VALUES = 0
-      IF(XCNORM(I).GT.0.0d0) GO TO 310
+      IF(XCNORM(I).GT.0.0d0) GO TO 340
       DO KSECT=2,NSECT
       XCINT(I,KSECT)=0.0d0
       ENDDO
-      GO TO 320
+      GO TO 350
 c-----------------------------------------------------------------------
 c
 C     AT THIS POINT THE NUMERATOR (XCINT) AND DENOMINATOR (XCNORM)
@@ -2844,11 +2982,11 @@ C     XCNORM(25)      - IS 1/2 TIMES THE CORRECT INTEGRAL.
 C     RENORMALIZE XCNORM TO OBTAIN THE CORRECT RATIOS.
 c
 c-----------------------------------------------------------------------
-  310 XCNORM(I)=2.0d0*XCNORM(I)
+  340 XCNORM(I)=2.0d0*XCNORM(I)
       DO KSECT=2,NSECT
       XCINT(I,KSECT)=XCINT(I,KSECT)/XCNORM(I)
       ENDDO
-  320 CONTINUE
+  350 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     CHECK TO INSURE TOTAL DOES NOT INCREASE WITH SIGMA0
@@ -2858,12 +2996,12 @@ c-----------------------------------------------------------------------
       DO KK=2,25
       IF(XCINT(KK,2).GT.1.000001d0*XCINT(KK-1,2).OR.
      1   XCINT(KK,2).GT.1.000001d0*XCINT(1,2)) THEN
-      WRITE(3,330) IGR
-      WRITE(*,330) IGR
-  330 FORMAT(' IGR=',I5)
-      WRITE(3,340) (II,XCINT(II,2),XCINT(II,2)/XCINT(1,2),II=1,25)
-      WRITE(*,340) (II,XCINT(II,2),XCINT(II,2)/XCINT(1,2),II=1,25)
-  340 FORMAT(I8,1PD20.12,0PF20.12,' BEFORE SUM')
+      WRITE(3,360) IGR
+      WRITE(*,360) IGR
+  360 FORMAT(' IGR=',I5)
+      WRITE(3,370) (II,XCINT(II,2),XCINT(II,2)/XCINT(1,2),II=1,25)
+      WRITE(*,370) (II,XCINT(II,2),XCINT(II,2)/XCINT(1,2),II=1,25)
+  370 FORMAT(I8,1PD20.12,0PF20.12,' BEFORE SUM')
       ENDIF
       ENDDO
       ENDIF
@@ -2890,8 +3028,8 @@ C
 C     IF NON-POSITIVE TOTAL OR ELASTIC DEFINE ALL = UNSHIELDED
 C
 c-----------------------------------------------------------------------
-C-----IF LITTLE SELF-SHIELDING SET TO NONE
-      IF(XCINT(23,2).GT.0.99999d0*XCINT(1,2)) NOTPLUS = 1
+C-----2020/8/13 - IF LITTLE SELF-SHIELDING (less than 0.1 %) SET TO NONE
+      IF(XCINT(23,2).GT.0.9999d0*XCINT(1,2)) NOTPLUS = 1
       IF(NOTPLUS.NE.0) THEN
       DO KSECT=2,6
       DO I=2,25
@@ -2907,7 +3045,7 @@ c-----------------------------------------------------------------------
 C-----DEFINE LOWER GROUP BOUNDARY.
       CALL OUT9G(EGB,FIELDX(1,1))
 C-----LOOP OVER TOTAL AND PARTIALS.
-      DO 380 KSECT=2,6
+      DO 410 KSECT=2,6
 c-----------------------------------------------------------------------
 c
 C     ASSUME SMALL "OTHER" IS NOISE AND IGNORE
@@ -2919,7 +3057,7 @@ c     The following replaces the above to eliminate AND statements
 c
 c-----------------------------------------------------------------------
       IF(KSECT.EQ.6) THEN        ! Only execute the next line if KSECT=6
-      IF(XCINT(1,KSECT).LE.1.0D-6*XCINT(1,2)) GO TO 380
+      IF(XCINT(1,KSECT).LE.1.0D-6*XCINT(1,2)) GO TO 410
       ENDIF
 C-----CROSS SECTION.
       XCINTS=XCINT(1,KSECT)
@@ -2927,20 +3065,22 @@ C-----CROSS SECTION.
 C-----CROSS SECTION OR RESONANCE INTEGRAL.
       IF(OPS(1).EQ.2) XCINTS=DLOG(EGROUP(IGR+1)/EGROUP(IGR))*XCINTS
       CALL OUT9G(XCINTS,FIELDX(1,3))
-      IF(XCINT(1,KSECT).GT.0.0d0) GO TO 360
+      IF(XCINT(1,KSECT).GT.0.0d0) GO TO 390
       XCFI(1,KSECT)=1.0d0
-      DO 350 L=2,25
-  350 XCFI(L,KSECT)=0.0d0
-      GO TO 380
-  360 DO 370 L=2,25
-  370 XCFI(L,KSECT)=XCINT(L,KSECT)/XCINT(1,KSECT)
-  380 CONTINUE    ! END REACTION loop
+      DO 380 L=2,25
+      XCFI(L,KSECT)=0.0d0
+  380 CONTINUE
+      GO TO 410
+  390 DO 400 L=2,25
+      XCFI(L,KSECT)=XCINT(L,KSECT)/XCINT(1,KSECT)
+  400 CONTINUE
+  410 CONTINUE    ! END REACTION loop
 c-----------------------------------------------------------------------
 C
 C     MULTI-BAND CALCULATION.
 C
 c-----------------------------------------------------------------------
-      IF(METHODB.GT.0) CALL BANDIT
+      IF(METHODB.ne.0) CALL BANDIT
 c-----------------------------------------------------------------------
 C
 C     END OF GROUP LOOP = Save ALL Group Results
@@ -2951,13 +3091,13 @@ c-----------------------------------------------------------------------
       XCALL(IS,IR,IGR) = XCINT(IS,IR)
       ENDDO
       ENDDO
-  390 CONTINUE
+  420 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     Only for Multi-Band Parameters
 C
 c-----------------------------------------------------------------------
-      IF(METHODB.EQ.0) GO TO 430
+      IF(METHODB.EQ.0) GO TO 460
 c-----------------------------------------------------------------------
 C
 C     UPDATE MAXMIMUM ERROR FOR THE ENTIRE LIBRARY FOR EACH NUMBER
@@ -2965,25 +3105,27 @@ C     OF BANDS. DEFINE MAXIMUM ERROR FOR CURRENT MATERIAL FOR EACH
 C     NUMBER OF BANDS AND OUTPUT THE RESULTS.
 C
 c-----------------------------------------------------------------------
-      DO 410 NB=1,NBNEED
+      DO 440 NB=1,NBNEED
       ERBIG(NB)=0.0d0
-      DO 400 I=1,25
+      DO 430 I=1,25
       IF(ERMAT(I,NB).GT.ERLIB(I,NB)) ERLIB(I,NB)=ERMAT(I,NB)
-      IF(I.GT.23) GO TO 400
+      IF(I.GT.23) GO TO 430
       IF(ERMAT(I,NB).GT.ERBIG(NB)) ERBIG(NB)=ERMAT(I,NB)
-  400 CONTINUE
-  410 ERBIG(NB)=100.0d0*ERBIG(NB)
+  430 CONTINUE
+      ERBIG(NB)=100.0d0*ERBIG(NB)
+  440 CONTINUE
 C-----SAVE PARAMETERS FOR FINAL OUTPUT REPORT.
       LZA=LZA+1
       IF(LZA.GT.MAXMAT) THEN
-      WRITE(3,440) MAXMAT
-      WRITE(*,440) MAXMAT
+      WRITE(3,470) MAXMAT
+      WRITE(*,470) MAXMAT
       CALL ENDERROR
       ENDIF
       IZATAB(LZA)=IZA
       NBNTAB(LZA)=NBNEED
-      DO 420 I=1,NBNEED
-  420 ERBTAB(I,LZA)=ERBIG(I)
+      DO 450 I=1,NBNEED
+      ERBTAB(I,LZA)=ERBIG(I)
+  450 CONTINUE
 c-----------------------------------------------------------------------
 c
 c     URR Fit? Only performed if,
@@ -3019,7 +3161,7 @@ C
 C     Self-Shielded Cross Section Output = After URRFIT
 C
 c-----------------------------------------------------------------------
-  430 IF(LIST1.GT.0) CALL XCLST
+  460 IF(LIST1.GT.0) CALL XCLST
 c-----------------------------------------------------------------------
 C
 C     PLOTTAB OUTPUT last after all changes
@@ -3027,10 +3169,69 @@ C
 c-----------------------------------------------------------------------
       if(IPLOT.gt.0) CALL PLOTIT
       RETURN
-  440 FORMAT(1x,78('=')/
+  470 FORMAT(1x,78('=')/
      1 ' ERROR - More than',I6,' Materials.'/
      2 '         Execution Terminated.'/1x,78('='))
       END
+      SUBROUTINE URRLIMIT
+C=======================================================================
+C
+C     2020/8/4 - Define Average group energy + URR limits
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
+      INCLUDE 'groupie.h'
+      if(URES2.le.0.0d0) RETURN       ! Ignore if no URR
+      NUNR1  = 0 ! lower group index
+      NUNR2  = 0 ! upper group index
+c-----------------------------------------------------------------------
+c
+c     Define group limits of unresolved region.
+c
+c     2020/8/7 - Only use bins TOTALLY within the unresolved
+c
+c     1) First = URR START
+c     2) Last  = URR END
+c     Ignore ENDS (URES1, URES2)
+c
+c-----------------------------------------------------------------------
+      do 10 igr=1,NGR
+      if(EGROUP(igr).le.URES1) go to 10   ! lower limit inside URR
+      if(NUNR1.le.0) then             ! First INSIDE
+      NUNR1 = igr
+      go to 10
+      endif
+      if(EGROUP(igr+1).ge.URES2) go to 10 ! upper limit inside URR
+      NUNR2 = igr                     ! Last INSIDE
+   10 continue
+c-----------------------------------------------------------------------
+c
+c     Define URR Energies = start/end + inside
+c
+c-----------------------------------------------------------------------
+      EAVURR(1) = URES1           ! Start with boundary
+      NUNROUT   = 1
+      do igr=NUNR1,NUNR2          ! Add ALL inside
+      NUNROUT   = NUNROUT + 1
+      EAVURR(NUNROUT) = EAV(igr)
+      enddo
+      NUNROUT   = NUNROUT + 1     ! End with boundary
+      EAVURR(NUNROUT) = URES2
+c-----------------------------------------------------------------------
+c
+c     Add 2 dummy points at end for 2 ends of URR
+c
+c-----------------------------------------------------------------------
+      EAV(NGRP1) = URES1               ! energy of URR limits
+      EAV(NGRP2) = URES2
+      do k=2,5
+      XCALL(1,k,NGRP1) = XCURRLIM(1,k) ! unshielded cross sections
+      XCALL(1,k,NGRP2) = XCURRLIM(2,k) ! total,elastic,capture,fission
+      enddo
+      return
+      end
       SUBROUTINE URRFIT
 C=======================================================================
 C
@@ -3041,6 +3242,7 @@ C=======================================================================
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
       if(URES2.le.0.0d0) RETURN
+      CALL URRLIMIT
       CALL MOMENTS              ! Define self-shielded moments
       CALL FITZ(URES1,URES2)    ! Fit moments to URR by extrapolation
       CALL MBMAKER              ! Define URR multi-band parameters
@@ -3058,8 +3260,9 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'groupie.h'
-      common/fitcom/xcmom(3,5,maxgroup),AE2(5),AE3(5)
-      common/newmom/xcnew(3,5,maxgroup),NURR1,NURR2
+      common/fitcom/xcmom(3,5,MAXGROUP),AE2(5),AE3(5)
+      common/newmom/xcnew(3,5,MAXGROUP)
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       dimension PARTB(2)
@@ -3076,14 +3279,9 @@ c-----denominator same for all reactions
       sum1t = 1.0d0 ! Sum of weights
       sum2t = WTBAND(1,igr)/XCBAND(2,1,igr)          +
      1        WTBAND(2,igr)/XCBAND(2,2,igr)
-c-----select third moment
-      if(METHODB.eq.1) then
-      sum3t = WTBAND(1,igr)/(XCBAND(2,1,igr)**2)     +
-     1        WTBAND(2,igr)/(XCBAND(2,2,igr)**2)
-      else
+c-----2020/8/2 - ALWAYS 1/[sigT + <sigT>]
       sum3t = WTBAND(1,igr)/(XCBAND(2,1,igr)+AVTOTG) +
      1        WTBAND(2,igr)/(XCBAND(2,2,igr)+AVTOTG)
-      endif
 c-----------------------------------------------------------------------
 c
 c     loop over reactions
@@ -3095,14 +3293,9 @@ c-----------------------------------------------------------------------
       sum1r    = PARTB(1) + PARTB(2)
       sum2r    = PARTB(1)/XCBAND(2,1,igr)    +
      1           PARTB(2)/XCBAND(2,2,igr)
-c-----select third moment
-      if(METHODB.eq.1) then
-      sum3r    = PARTB(1)/XCBAND(2,1,igr)**2 +
-     1           PARTB(2)/XCBAND(2,2,igr)**2
-      else
+c-----2020/8/2 - ALWAYS 1/[sigT + <sigT>]
       sum3r    = PARTB(1)/(XCBAND(2,1,igr)+AVTOTG) +
      1           PARTB(2)/(XCBAND(2,2,igr)+AVTOTG)
-      endif
 c-----moments
       xcmom(1,ir,igr) = sum1r/sum1t
       xcmom(2,ir,igr) = sum2r/sum2t
@@ -3130,31 +3323,20 @@ C=======================================================================
 C
 C     Define URR self-shielded moments by extrapolation
 C
+C     elow  = URES1
+c     ehigh = URES2
+C
 C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'groupie.h'
       INTEGER*4 OTAPE2
       COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
-      common/fitcom/xcmom(3,5,maxgroup),AE2(5),AE3(5)
-      common/newmom/xcnew(3,5,maxgroup),NURR1,NURR2
+      common/fitcom/xcmom(3,5,MAXGROUP),AE2(5),AE3(5)
+      common/newmom/xcnew(3,5,MAXGROUP)
+      COMMON/ERANGES/e1,e2,e3
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
-      COMMON/ERANGES/e1,e2,e3
-c-----------------------------------------------------------------------
-c
-c     Define group range of unresolved
-c
-c-----------------------------------------------------------------------
-      NURR1 = 0
-      NURR2 = 0
-      DO 10 igr=1,NGR
-      ave = 0.5d0*(EGROUP(igr) + EGROUP(igr+1))
-      if(ave.lt.elow ) go to 10
-      if(ave.gt.ehigh) go to 20
-      if(NURR1.le.0) NURR1 = igr
-   10 continue
-      igr   = NGR+1
-   20 NURR2 = igr-1
 c-----------------------------------------------------------------------
 c
 c     Define moments for fit = fit below unresolved and
@@ -3170,14 +3352,14 @@ c-----WARNING: ir=1 is SPECTRUM: 2-5 = total, elastic, capture, fission
       a2  = 0.0d0
       a3  = 0.0d0
       b23 = 0.0d0
-      do 30 igr=1,NGR
-      ave = 0.5d0*(EGROUP(igr) + EGROUP(igr+1))
-      if(ave.lt.e1) go to 30
-      if(ave.gt.e2) go to 40
+      do 10 igr=1,NGR
+      ave = EAV(igr)
+      if(ave.lt.e1) go to 10
+      if(ave.gt.e2) go to 20
       a2  = a2 + ave*(1.0d0 - xcmom(2,ir,igr))
       a3  = a3 + ave*(1.0d0 - xcmom(3,ir,igr))
       b23 = b23 + 1.0d0
-   30 continue
+   10 continue
 c-----------------------------------------------------------------------
 c
 c     Define fit: F = 1 - A/E   final form
@@ -3185,24 +3367,46 @@ c                 A = E*(1 - F) define A as sum over E
 c
 c-----------------------------------------------------------------------
 c-----Test for no points in E range = set to NO Shielding
-   40 if(b23.le.0.0d0) then
+   20 if(b23.le.0.0d0) then
       AE2(ir) = 0.0d0
       AE3(ir) = 0.0d0
       else
       AE2(ir) = a2/b23
       AE3(ir) = a3/b23
       endif
-c-----Extrapolate through URR
-      do 50 igr=1,NGR
-      ave = 0.5d0*(EGROUP(igr) + EGROUP(igr+1))
+c-----Extrapolate through URR - including 2 ends of URR
+      do 30 igr=1,NGRP2
+      ave = EAV(igr)
 c-----define up to e3 = 1.5*ehigh for graphics output only
-      if(ave.lt.e1) go to 50
-      if(ave.gt.e3) go to 60
+      if(ave.lt.e1) go to 30
+      if(ave.gt.e3) go to 30
+c-----------------------------------------------------------------------
+c
+c     Force to = 1 at URES2 = No Self=Shielding
+c
+c     For 57-La-139 LINEAR is the closest to Original
+c     ALL of these were tested,
+c     DEURR = 1.0d0                                             ! same
+c     DEURR = (ehigh-ave)/(ehigh-elow)                          ! linear
+c     DEURR = DLOG(ehigh/ave)/DLOG(ehigh/elow)                  ! log
+c     DEURR = (1.0d0/ehigh-1.0d0/ave)/(1.0d0/ehigh-1.0d0/elow)  ! 1/E
+c-----------------------------------------------------------------------
+c
+c     LInear was adopted as closest to Original
+C
+c-----------------------------------------------------------------------
+      DEURR = (ehigh-ave)/(ehigh-elow)                          ! linear
+      if(DEURR.lt.0.0d0) DEURR = 0.0d0       ! no change outside URR
+      if(DEURR.gt.1.0d0) DEURR = 1.0d0
+c-----------------------------------------------------------------------
+c
+c     Extrapolate and force no shielding at upper end of urresolved
+c
+c-----------------------------------------------------------------------
       xcnew(1,ir,igr) = 1.0d0
-      xcnew(2,ir,igr) = 1.0d0 - AE2(ir)/ave
-      xcnew(3,ir,igr) = 1.0d0 - AE3(ir)/ave
-   50 continue  ! end group loop
-   60 continue
+      xcnew(2,ir,igr) = 1.0d0 - DEURR*AE2(ir)/ave
+      xcnew(3,ir,igr) = 1.0d0 - DEURR*AE3(ir)/ave
+   30 continue  ! end group loop
       ENDDO     ! end reaction loop
       RETURN
       END
@@ -3219,13 +3423,14 @@ c=======================================================================
       character*8 reacts
       character*24 plot24
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
       INCLUDE 'groupie.h'
-      common/fitcom/xcmom(3,5,maxgroup),AE2(5),AE3(5)
-      common/newmom/xcnew(3,5,maxgroup),NURR1,NURR2
+      common/fitcom/xcmom(3,5,MAXGROUP),AE2(5),AE3(5)
+      common/newmom/xcnew(3,5,MAXGROUP)
       COMMON/ERANGES/e1,e2,e3
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       dimension reacts(5),plot1(24)
       equivalence (plot24,plot1(1))
@@ -3245,19 +3450,27 @@ c-----------------------------------------------------------------------
      3 'Elastic ',
      4 'Capture ',
      5 'Fission '/
+c-----------------------------------------------------------------------
+c
+c     2020/2/2   - Skip if no URR Fit.
+c
+c-----------------------------------------------------------------------
+      if(e1.le.0.0d0.and.e2.le.0.0d0) go to 80
+c-----------------------------------------------------------------------
+c
+c     Original moments = only over fit energy range e1 to e2 = 0.9*elow
+c     Note: NSECT=1 is weighting spectrum
+c                =2 through 5 = total, elastic, capture, fission
+c
+c-----------------------------------------------------------------------
 c-----Loop over reactions: total, elastic, capture, fission
       DO ir = 2,NSECT
 c-----Loop over 3 moments to extrapolate
       DO m=1,3
-c-----------------------------------------------------------------------
-c
-c     Original moments = only over fit energy range e1 to e2 = 0.9*elow
-c
-c-----------------------------------------------------------------------
       write(IPLOT,10) ZABCD,m,reacts(ir)
-   10 format(10a1,i2,1x,a8)
+   10 format(12a1,i2,1x,a8)
       do 30 igr=1,NGR
-      ave = 0.5d0*(EGROUP(igr) + EGROUP(igr+1))
+      ave = EAV(igr)
       if(ave.lt.e1) go to 30
       if(ave.gt.e2) go to 40
       write(IPLOT,20) ave,xcmom(m,ir,igr)
@@ -3272,7 +3485,7 @@ c
 c-----------------------------------------------------------------------
       write(IPLOT,10) ZABCD,m,reacts(ir)
       do 60 igr=1,NGR
-      ave = 0.5d0*(EGROUP(igr) + EGROUP(igr+1))
+      ave = EAV(igr)
       if(ave.lt.e1) go to 60
       if(ave.gt.e3) go to 70
       write(IPLOT,20) ave,xcnew(m,ir,igr)
@@ -3283,34 +3496,36 @@ c-----------------------------------------------------------------------
 c=======================================================================
 c
 c     Plot unshielded and shielded cross sections
+c     Note: NSECT=1 is weighting spectrum
+c                =2 through 5 = total, elastic, capture, fission
 c
 c=======================================================================
 c-----Loop over reactions: total, elastic, capture, fission
-      do ir=2,NSECT
+   80 do ir=2,NSECT
 c-----Unshielded
-      WRITE(IPLOT,80) ZABCD,reacts(ir)
-   80 FORMAT(10A1,1x,A8,' Unshielded')
+      WRITE(IPLOT,90) ZABCD,reacts(ir)
+   90 FORMAT(12A1,1x,A8,' Unshielded')
       DO igr=1,NGR
       CALL OUT9G(EGROUP(igr),FIELDX(1,1))
       CALL OUT9G(XCALL (1,ir,igr),FIELDX(1,2))
       CALL OUT9G(EGROUP(igr+1),FIELDX(1,3))
-      WRITE(IPLOT,90) (FIELDX(I,1),I=1,11),(FIELDX(I,2),I=1,11),
-     1                (FIELDX(I,3),I=1,11),(FIELDX(I,2),I=1,11)
-   90 FORMAT(22A1)
+      WRITE(IPLOT,100) (FIELDX(I,1),I=1,11),(FIELDX(I,2),I=1,11),
+     1                 (FIELDX(I,3),I=1,11),(FIELDX(I,2),I=1,11)
+  100 FORMAT(22A1)
       ENDDO
-      WRITE(IPLOT,100)
-  100 FORMAT(30X,'(BLANK LINE)')
+      WRITE(IPLOT,110)
+  110 FORMAT(30X,'(BLANK LINE)')
 c-----Shielded
-      WRITE(IPLOT,110) ZABCD,reacts(ir)
-  110 FORMAT(10A1,1x,A8,' Shielded')
+      WRITE(IPLOT,120) ZABCD,reacts(ir)
+  120 FORMAT(12A1,1x,A8,' Shielded')
       DO igr=1,NGR
       CALL OUT9G(EGROUP(igr),FIELDX(1,1))
       CALL OUT9G(XCALL (23,ir,igr),FIELDX(1,2))
       CALL OUT9G(EGROUP(igr+1),FIELDX(1,3))
-      WRITE(IPLOT,90) (FIELDX(I,1),I=1,11),(FIELDX(I,2),I=1,11),
-     1                (FIELDX(I,3),I=1,11),(FIELDX(I,2),I=1,11)
+      WRITE(IPLOT,100) (FIELDX(I,1),I=1,11),(FIELDX(I,2),I=1,11),
+     1                 (FIELDX(I,3),I=1,11),(FIELDX(I,2),I=1,11)
       ENDDO
-      WRITE(IPLOT,100)
+      WRITE(IPLOT,110)
       enddo  ! END REACTION LOOP
       CLOSE(IPLOT)
       RETURN
@@ -3324,7 +3539,8 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'groupie.h'
       character*4 title4
-      common/newmom/xcnew(3,5,maxgroup),NURR1,NURR2
+      common/newmom/xcnew(3,5,MAXGROUP)
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       dimension BOTTOM(25),TOP(25),SIGMA0(25),PARTB(2),imuse(3),
@@ -3339,83 +3555,88 @@ c-----Titles for moment test
 c-----Define acceptable per-cent fractional difference in fir
       data dxcnewok/1.0d-01/               ! 0.1 %
 c-----Indices to 3 moments to conserve
+c-----Methodb #2: Always use: 1) unshielded, 2) total, 3) partial
       data imuse/ 1, 23, 12/
-      IF(methodb.EQ.1) IMUSE(3) = 24
 c-----------------------------------------------------------------------
 c
 c     Multi-Band Parameters from Unresolved Moments Fit
 c
 c-----------------------------------------------------------------------
-c-----Loop over groups within Unresolved Resonance Region
-      DO igr=NURR1,NURR2
+c-----Loop = 1: over groups within Unresolved Resonance Region
+c-----     = 2: ENDS of URR
+      DO LOOP=1,2
+      NUX1 = NUNR1
+      NUX2 = NUNR2
+      if(LOOP.eq.2) then
+      NUX1 = NGRP1
+      NUX2 = NGRP2
+      endif
+      DO igr=NUX1,NUX2
 c-----unshielded total
-      TOTNS = XCALL(1,2,igr)
+      TOTNS = XCALL(1,2,igr) ! 1=unshield 2=total igr=group
 c-----f-factor to XC
       SIGT1   = TOTNS*xcnew(1,2,igr)
       SIGT2   = TOTNS*xcnew(2,2,igr)
       SIGT3   = TOTNS*xcnew(3,2,igr)
       DSIGT12 = SIGT1 - SIGT2
       DSIGT13 = SIGT1 - SIGT3
+c-----Initiallize, just in case
+      ABAND   = SIGT1
+      BBAND   = 0.0d0
+      DBAND   = 0.0d0
 C-----------------------------------------------------------------------
 C
 C     IF TOTAL = 0 OR NO SHIELDING USE 2 BAND with same cross section
 C
 C-----------------------------------------------------------------------
-      IF(SIGT1  .LE.0.0d0)  GO TO 10
-      IF(DSIGT12.le.0.0d0)  GO TO 10
+c-----NO Shielding.
+      IF(SIGT1  .LE.0.0d0)  GO TO 20   ! no total
+      IF(DSIGT12.le.0.0d0)  GO TO 20   ! no shielding
 C-----------------------------------------------------------------------
 C
-C     LITTLE SHIELDING = CONSERVE 2 MOMENTS.
+C     2020/8/13 - SMALL TEST on self-shielding < 0.1% (accuracy of data)
+C
+C     Conserve 2 moments
+C     wt1 = wt2 = 1/2
+c     BB  = (sigt1 - sigt2)/sigt1  < 1 - 0.999     < 0.001
+C     A   =        1/sigt2
+C     B   = sqrt[BB]/sigt2                         < 0.031
 C
 C-----------------------------------------------------------------------
-c-----SMALL 0.01% TEST
-      IF(SIGT2.gt.0.9999d0*SIGT1) THEN
+      IF(SIGT2.le.0.999d0*SIGT1) go to 10
       ABAND  = 1.0d0/SIGT2
       BB2    = DSIGT12/SIGT1
-      if(BB2.le.0.0d0) go to 10
+      if(BB2.le.0.0d0) go to 20
       BBAND  = ABAND*DSQRT(BB2)  ! note: ABAND = 1/SIGT2 (defined above)
       DBAND  = 0.0d0                          ! for below tests
       WT1    = 0.5d0
       WT2    = 0.5d0
       BANDT1 = 1.0d0/(ABAND + BBAND)
       BANDT2 = 1.0d0/(ABAND - BBAND)
-      go to 20
-      endif
+      go to 30
 C-----------------------------------------------------------------------
 C
-C     USE 2 BANDS
+C     NORMAL SHIELDING - USE 2 BANDS
 C
-c***** 2019/5/26 - METHODB = 1 no longer allowed
-C     METHODB #1: CONSERVE 1/TOT AND 1/TOT**2
-c***** 2019/5/26 - METHODB = 1 no longer allowed
-C     METHODB #2: CONSERVE 1/TOT AND 1/(TOT + <TOT>)
+C     2020/8/2 - METHODB #2: CONSERVE 1/TOT AND 1/(TOT + <TOT>)
 C
 C-----------------------------------------------------------------------
-      if(METHODB.eq.1) then
-      ABAND = DSIGT13/(2.0d0*DSIGT12*SIGT3)
-      else
-      ABAND = DSIGT12/(2.0d0*DSIGT13*SIGT2)
-      endif
-c-----------------------------------------------------------------------
-C
-C     THE FOLLOWING IS THE SAME FOR BOTH METHODS
-C
-c-----------------------------------------------------------------------
+   10 ABAND = DSIGT12/(2.0d0*DSIGT13*SIGT2)
       BB2   = (SIGT2*ABAND*(SIGT1*ABAND-2.0d0)+1.0d0)/(SIGT1*SIGT2)
-      if(BB2.le.0.0d0) go to 10
+      if(BB2.le.0.0d0) go to 20
       BBAND = DSQRT(BB2)
       DBAND = (1.0d0-ABAND*SIGT2)/(2.0d0*SIGT2*BBAND)
       WT1   = 0.5d0 + DBAND
       WT2   = 0.5d0 - DBAND
       BANDT1 = 1.0d0/(ABAND + BBAND)
       BANDT2 = 1.0d0/(ABAND - BBAND)
-      go to 20
+      go to 30
 C-----------------------------------------------------------------------
 C
-c     Little or no self-shielding
+c     Little or no self-shielding = 2 IDENTICAL bands
 C
 C-----------------------------------------------------------------------
-   10 WT1    = 0.5d0
+   20 WT1    = 0.5d0
       WT2    = 0.5d0
       BANDT1 = SIGT1
       BANDT2 = SIGT1
@@ -3424,7 +3645,7 @@ C
 c     Save new Total Band Paramters
 C
 C-----------------------------------------------------------------------
-   20 WTBAND  (1,igr) = WT1
+   30 WTBAND  (1,igr) = WT1
       WTBAND  (2,igr) = WT2
       XCBAND(2,1,igr) = BANDT1
       XCBAND(2,2,igr) = BANDT2
@@ -3465,13 +3686,22 @@ c
       XCBAND(ir,2,igr) = BANDP2
       ENDDO ! end of reaction loop
       ENDDO ! end of group loop
+      ENDDO ! 2 loop to add URR ends
 c-----------------------------------------------------------------------
 c
 c     Self-Shielded Cross Sections
 c
 c-----------------------------------------------------------------------
-c-----Loop over groups within Unresolved Resonance Region
-      DO igr=NURR1,NURR2
+c-----Loop = 1: over groups within Unresolved Resonance Region
+c-----     = 2: ENDS of URR
+      DO LOOP=1,2
+      NUX1 = NUNR1
+      NUX2 = NUNR2
+      if(LOOP.eq.2) then
+      NUX1 = NGRP1
+      NUX2 = NGRP2
+      endif
+      DO igr=NUX1,NUX2
 c-----unshielded group average (use as SIGMA-0 multiplier)
       AVTOTG     = WTBAND(1,igr)*XCBAND(2,1,igr)              +
      1             WTBAND(2,igr)*XCBAND(2,2,igr)
@@ -3509,6 +3739,7 @@ c-----New Unresolved, self-shielded cross sections.
       ENDDO    ! end SIGMA0   loop
       ENDDO    ! end reaction loop
       ENDDO    ! end group    loop
+      ENDDO    ! 2 loops to include URR ends
 c-----------------------------------------------------------------------
 c
 c     Check that new paramters conserve 3 new moments
@@ -3516,7 +3747,7 @@ c
 c-----------------------------------------------------------------------
       imdiff=0
 c-----loop over groups
-      DO igr=NURR1,NURR2
+      DO igr=NUNR1,NUNR2
 c-----loop over reactions
       DO ir=2,5
       xcnoshield = XCALL(1,ir,igr)         ! unshielded barns
@@ -3531,21 +3762,21 @@ c-----           "new" multi-band parameters
       if(dabs(dxcnew).gt.dxcnewok) then
       if(imdiff.le.0) then ! Title define first output
       imdiff = 1
-      write(3,30) dxcnewok
-   30 format(1x,78('-')/' Failed Moments Conservation Test',
+      write(3,40) dxcnewok
+   40 format(1x,78('-')/' Failed Moments Conservation Test',
      1 ' by More than',0pf12.4,' %'/
      1 ' Group React Mom#  New         Old         Difference %'/
      2 1x,78('-'))
       endif
-      write(3,40) igr,title4(ir),m,XCALL(im,ir,igr),xcbarns,dxcnew
+      write(3,50) igr,title4(ir),m,XCALL(im,ir,igr),xcbarns,dxcnew
       endif
-   40 format(i6,1x,a4,i6,1p2d12.4,0pf12.4,' %')
+   50 format(i6,1x,a4,i6,1p2d12.4,0pf12.4,' %')
       ENDDO    ! end moment, 1, 2, 3
       endif    ! end reaction > 0
       ENDDO    ! end reaction loop
       ENDDO    ! end group    loop
-      if(imdiff.gt.0) write(3,50)
-   50 format(1x,78('-'))
+      if(imdiff.gt.0) write(3,60)
+   60 format(1x,78('-'))
       RETURN
       END
       SUBROUTINE XCLST
@@ -3566,7 +3797,7 @@ C=======================================================================
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ELPAS2/EGB,TMPK
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/SIGGIE/SIGHL1(12),SIGHL2(12)
@@ -3606,7 +3837,8 @@ c-----Ignore reactions with 0 cross section.
       DO 10 L=1,11
       LOUT = ITSIG(L+1)
 c-----Define F-Factor
-   10 XCFIS(L)=XCALL(LOUT,KSECT,IGR)/XCALL(1,KSECT,IGR)
+      XCFIS(L)=XCALL(LOUT,KSECT,IGR)/XCALL(1,KSECT,IGR)
+   10 CONTINUE
 c-----Insure TOTAL does not incresse vs. SIGMA-0.
       IF(KSECT.EQ.2) THEN
       DO KKK=1,11
@@ -3661,7 +3893,7 @@ C=======================================================================
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ELPAS2/EGB,TMPK
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/SIGGIE/SIGHL1(12),SIGHL2(12)
@@ -3738,23 +3970,23 @@ C-----IDENTIFY CROSS SECTIONS OR RESONANCE INTEGRALS.
      1 (FIELDX(M,4),M=1,11),
      1 TMPHOL(2),TMPHOL(3),ZABCD,SIGHL2
       RETURN
-   50 FORMAT(' MAT',I5,1X,10A1,14X,11A1,1X,
-     1 A4,A2,' Self-Shielded Cross Sections',30X,10A1//
+   50 FORMAT(' MAT',I5,1X,12A1,12X,11A1,1X,
+     1 A4,A2,' Self-Shielded Cross Sections',28X,12A1//
      2 21X,'  Unshielded (Sigma-0 = the Unshielded Total Cross',
      3 ' Section in Each Group times Below Multipliers)'/
      4 '  No.   Group-eV React',3X,12A8)
-   60 FORMAT(' MAT',I5,1X,10A1,11X,11A1,1X,
-     1 A4,A2,' Self-Shielded Resonance Integrals',28X,10A1//
+   60 FORMAT(' MAT',I5,1X,12A1, 9X,11A1,1X,
+     1 A4,A2,' Self-Shielded Resonance Integrals',26X,12A1//
      2 21X,'  Unshielded (Sigma-0 = the Unshielded Total Cross',
      3 ' Section in Each Group times Below Multipliers)'/
      4 '  No.   Group-eV React',3X,12A8)
-   70 FORMAT(' MAT',I5,1X,10A1,14X,11A1,1X,
-     1 A4,A2,' Self-Shielded Cross Sections',30X,10A1//
+   70 FORMAT(' MAT',I5,1X,12A1,12X,11A1,1X,
+     1 A4,A2,' Self-Shielded Cross Sections',28X,12A1//
      2 21X,'  Unshielded (Sigma-0 = the barns Values Listed',
      3 'Below)'/
      4 '  No.   Group-eV React',3X,12A8)
-   80 FORMAT(' MAT',I5,1X,10A1,11X,11A1,1X,
-     1 A4,A2,' Self-Shielded Resonance Integrals',28X,10A1//
+   80 FORMAT(' MAT',I5,1X,12A1, 9X,11A1,1X,
+     1 A4,A2,' Self-Shielded Resonance Integrals',26X,12A1//
      2 21X,'  Unshielded (Sigma-0 = the barns Values Listed',
      3 ' Below)'/
      4 '  No.   Group-eV React',3X,12A8)
@@ -3828,7 +4060,7 @@ C-----AS THE UPPER ENERGY LIMIT OF THE LAST GROUP
    10 CONTINUE
 C-----ADD UPPER ENERGY LIMIT OF LAST GROUP AND OUTPUT.
       II=II+1
-      XOUT(II)=E(NGR+1)
+      XOUT(II)=E(NGRP1)
       YOUT(II)=0.0d0
       CALL POINTO9(XOUT,YOUT,II)
       GO TO 60
@@ -3889,7 +4121,7 @@ C=======================================================================
       COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/OPUS/OPS(5)
       INCLUDE 'groupie.h'
       DIMENSION E(*),AV(*),KEY(4),FIELD1(11,6),FIELD2(11,6)
@@ -3993,11 +4225,12 @@ C-----FOR UPPER ENERGY OF LAST GROUP DO NOT PRINT AVERAGE VALUE.
    80 WRITE(LIST3,110) NGRP1,(FIELD1(M,1),M=1,11)
    90 CONTINUE
 C-----SPACE TO THE BOTTOM OF THE PAGE.
-  100 WRITE(LIST3,120) QBLANK
+      WRITE(LIST3,120) QBLANK
+  100 CONTINUE
       RETURN
   110 FORMAT(I6,22A1,3(I7,22A1))
   120 FORMAT(A1)
-  130 FORMAT(1X,10A1,I5,I4,11A1)
+  130 FORMAT(1X,12A1,I5,I4,11A1)
   140 FORMAT(16X,I4,11A1)
       END
       SUBROUTINE TOP3
@@ -4014,7 +4247,7 @@ C=======================================================================
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ELPAS2/EGB,TMPK
       COMMON/OPUS/OPS(5)
       INCLUDE 'groupie.h'
@@ -4071,11 +4304,11 @@ C-----IDENTIFY EITHER CROSS SECTIONS OR RESONANCE INTEGRALS.
       RETURN
    20 FORMAT(53X,'MT=',I3/' MAT',I5,
      1 24X,11A1,1X,A4,A2,' Unshielded Cross Sections',
-     2 25X,10A1//1X,'  No.  Group-eV   Average',
+     2 26X,12A1//1X,'  No.  Group-eV   Average',
      3 3(4X,'  No.  Group-eV   Average')/)
    30 FORMAT(53X,'MT=',I3/' MAT',I5,
      1 22X,11A1,1X,A4,A2,' Unshielded Resonance Integrals',
-     2 22X,10A1//1X,'  No.  Group-eV   R.I.   ',
+     2 23X,12A1//1X,'  No.  Group-eV   R.I.   ',
      3 3(4X,'  No.  Group-eV   R.I.   ')/)
    40 FORMAT(
      1 ' Unshielded Cross Sections'/
@@ -4167,7 +4400,7 @@ C=======================================================================
       COMMON/FILLER/ISECT
       COMMON/ZABAD/IZABAD
       COMMON/FIELDC/FIELDX(11,22)
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/LOGCOM/MYLOG(8)
       INCLUDE 'groupie.h'
       DIMENSION XCB(5),WTB(5)
@@ -4219,19 +4452,19 @@ C
 C-----------------------------------------------------------------------
       SIGT1   = XCINT( 1,2)
       SIGT2   = XCINT(23,2)
-      IF(SIGT1.LE.ZERO)  GO TO 240
-      IF(SIGT2.ge.SIGT1) GO TO 240
+      IF(SIGT1.LE.ZERO)  GO TO 250
+      IF(SIGT2.ge.SIGT1) GO TO 250
 C-----------------------------------------------------------------------
 C
 C     LITTLE SHIELDING = CONSERVE 2 MOMENTS.
 C
 C-----------------------------------------------------------------------
 c-----SMALL 0.01% TEST
-      IF(SIGT2.gt.0.9999d0*SIGT1) THEN
+      IF(SIGT2.gt.0.999d0*SIGT1) THEN
       MYLOGX = 2
       ABAND  = ONE/SIGT2
       BB2    = (SIGT1 - SIGT2)/SIGT1
-      if(BB2.le.0.0d0) go to 240
+      if(BB2.le.0.0d0) go to 250
       BBAND  = DSQRT(BB2)/SIGT2
       DBAND  = ZERO
       WT1    = HALF
@@ -4244,27 +4477,19 @@ C-----------------------------------------------------------------------
 C
 C     USE 2 BANDS
 C
-c***** 2019/5/26 - METHODB = 1 no longer allowed
-C     METHODB #1: CONSERVE 1/TOT AND 1/TOT**2
-c***** 2019/5/26 - METHODB = 1 no longer allowed
-C     METHODB #2: CONSERVE 1/TOT AND 1/(TOT + <TOT>)
+C     2020/8/2 - METHODB #2: CONSERVE 1/TOT AND 1/(TOT + <TOT>)
 C
 C-----------------------------------------------------------------------
       MYLOGX = 3
-      if(METHODB.eq.1) then
-      SIGT3 = XCINT(24,2)
-      ABAND = (SIGT1 - SIGT3)/(TWO*(SIGT1 - SIGT2)*SIGT3)
-      else
       SIGT3 = XCINT(12,2)
       ABAND = (SIGT1 - SIGT2)/(TWO*(SIGT1 - SIGT3)*SIGT2)
-      endif
 c-----------------------------------------------------------------------
 C
 C     THE FOLLOWING IS THE SAME FOR BOTH METHODS
 C
 c-----------------------------------------------------------------------
       BB2   = (SIGT2*ABAND*(SIGT1*ABAND-TWO)+ONE)/(SIGT1*SIGT2)
-      if(BB2.le.0.0d0) go to 240
+      if(BB2.le.0.0d0) go to 250
       BBAND = DSQRT(BB2)
       DBAND = (ONE-ABAND*SIGT2)/(TWO*SIGT2*BBAND) ! Note: divide by B
       WT1   = HALF + DBAND
@@ -4282,14 +4507,10 @@ C-----------------------------------------------------------------------
       SIGT3   = XCINT(12,2)                   ! for below tests
       APPROX3 = SIGT3
       else                ! for below tests
-      if(METHODB.eq.1) then
-      APPROX3 = (WT1/BANDT1+WT2/BANDT2)/(WT1/BANDT1**2+WT2/BANDT2**2)
-      else
       BB1     = BANDT1+SIGT1
       BB2     = BANDT2+SIGT1
       APPROX3 = (WT1*BANDT1/BB1 + WT2*BANDT2/BB2)/
      1          (WT1       /BB1 + WT2       /BB2)
-      endif
       endif
       ERR2 = (SIGT1 - APPROX1)/SIGT1
       ERR2 = (SIGT2 - APPROX2)/SIGT2
@@ -4344,7 +4565,7 @@ C     P   = T[<SIGP1>-<SIGP2>]/[<SIGT1>-<SIGT2>]
 C
 C-----------------------------------------------------------------------
       DSIGT12 = SIGT1 - SIGT2
-      if(DSIGT12.eq.0.0d0) go to 240            ! No Shielding
+      if(DSIGT12.eq.0.0d0) go to 250            ! No Shielding
       BTRY = DBAND*DSIGT12
       CTRY = (QUARTER - DBAND**2)*SIGT1*DSIGT12
       ROOT = DSQRT(BTRY**2 + CTRY)
@@ -4436,7 +4657,7 @@ C-----END OF PARTIAL LOOP
    70 CONTINUE
 C-----ALL PARTIALS ARE O.K.
       MYLOG(MYLOGX) = MYLOG(MYLOGX) + 1
-      GO TO 260
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     NEXT TRY ITERATION
@@ -4454,10 +4675,10 @@ C              3: 100%
 C              4: POSITIVE
 C
 c-----------------------------------------------------------------------
-      DO 200 MYLOOP=1,4
+      DO 210 MYLOOP=1,4
       MYCHANGE = 0
 C-----LOOP TO VARY DBAND
-      DO 190 IDB = -50000,50000
+      DO 200 IDB = -50000,50000
       DBAND = IDB*DBSTEP
       BTRY   = DBAND*DSIGT12
       CTRY   = (QUARTER - DBAND**2)*SIGT1*DSIGT12
@@ -4527,11 +4748,12 @@ C-----ALL PARTIALS ARE O.K. - IF CHANGED, COPY NEW TOTALS
       XCBAND(2,1,IGR) = BANDT1
       XCBAND(2,2,IGR) = BANDT2
       ENDIF
-      GO TO 260
+      GO TO 270
 C-----END OF LOOP TO CHANGE DBAND
   190 MYCHANGE = 1
-C-----END OF STRICT/LOOSE LOOP
   200 CONTINUE
+C-----END OF STRICT/LOOSE LOOP
+  210 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     CHANGING DBAND DID NOT HELP - RESET TO ORIGINAL
@@ -4555,11 +4777,11 @@ C-----------------------------------------------------------------------
       XCBAND(2,2,IGR) = BANDT2
       TOTNORM = DTOT/DSIGT12
 C-----LOOP OVER REACTIONS
-      DO 230 MSECT=3,6
+      DO 240 MSECT=3,6
       SIGP1 = XCINT( 1,MSECT)
       SIGP2 = XCINT(23,MSECT)
 C-----NOTHING TO DO IF NO CROSS SECTION.
-      IF(SIGP1.LE.ZERO) GO TO 210
+      IF(SIGP1.LE.ZERO) GO TO 220
       CBAND = TOTNORM*(SIGP1 - SIGP2)
       BANDP1 = SIGP1 - CBAND/WT1
       BANDP2 = SIGP1 + CBAND/WT2
@@ -4576,26 +4798,26 @@ C-----NO NEGATIVES
       ENDIF
       IF(BANDP1.LT.ZERO) BANDP1 = ZERO
       IF(BANDP2.LT.ZERO) BANDP2 = ZERO
-      GO TO 220
-  210 BANDP1=SIGP1
+      GO TO 230
+  220 BANDP1=SIGP1
       BANDP2=SIGP1
-  220 XCBAND(MSECT,1,IGR)=BANDP1
+  230 XCBAND(MSECT,1,IGR)=BANDP1
       XCBAND(MSECT,2,IGR)=BANDP2
-  230 CONTINUE
-      GO TO 260
+  240 CONTINUE
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     NO SHIELDING - USE 1 BAND
 C
 C-----------------------------------------------------------------------
-  240 MYLOGX   = 1
+  250 MYLOGX   = 1
       MYLOG(1) = MYLOG(1) + 1
       WTBAND(1,IGR)=0.5d0
       WTBAND(2,IGR)=0.5d0
-      DO 250 MSECT=2,6
+      DO 260 MSECT=2,6
       XCBAND(MSECT,1,IGR)=XCINT(1,MSECT)
       XCBAND(MSECT,2,IGR)=XCINT(1,MSECT)
-  250 CONTINUE
+  260 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     DEFINE TOTAL = SUM OF PARTS
@@ -4603,11 +4825,12 @@ C
 C     WARNING - This SUM allows for competition - MSECT = 6
 C
 C-----------------------------------------------------------------------
-  260 XCBAND(2,1,IGR)=ZERO
+  270 XCBAND(2,1,IGR)=ZERO
       XCBAND(2,2,IGR)=ZERO
-      DO 270 MSECT=3,6
+      DO 280 MSECT=3,6
       XCBAND(2,1,IGR)=XCBAND(2,1,IGR)+XCBAND(MSECT,1,IGR)
-  270 XCBAND(2,2,IGR)=XCBAND(2,2,IGR)+XCBAND(MSECT,2,IGR)
+      XCBAND(2,2,IGR)=XCBAND(2,2,IGR)+XCBAND(MSECT,2,IGR)
+  280 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     DEFINE ERROR IN FIT
@@ -4618,13 +4841,14 @@ C-----------------------------------------------------------------------
       XCB(2)=XCBAND(2,2,IGR)/XCINT(1,2)
       WTB(1)=WTBAND(1,IGR)
       WTB(2)=WTBAND(2,IGR)
-      DO 290 I=2,23
+      DO 300 I=2,23
       XCTOP=0.0d0
       AVNORM(I)=ZERO
-      DO 280 NB=1,NBUSE
+      DO 290 NB=1,NBUSE
       FACTOR=WTB(NB)/(XCB(NB)+SIGMAB(I))
       XCTOP=XCTOP+FACTOR*XCB(NB)
-  280 AVNORM(I)=AVNORM(I)+FACTOR
+      AVNORM(I)=AVNORM(I)+FACTOR
+  290 CONTINUE
       IF(AVNORM(I).gt.0.0d0.and.XCFI(I,2).gt.0.0d0) then
       XCAV=XCTOP/AVNORM(I)
       ERNOW(I,NBUSE)=DABS(ONE-XCAV/XCFI(I,2))
@@ -4632,22 +4856,23 @@ C-----------------------------------------------------------------------
       else
       ERNOW(I,NBUSE) = 0.0d0
       endif
-  290 CONTINUE
+  300 CONTINUE
       AVNORM(24)=WTB(1)/(XCB(1)**2)
       AVNORM(25)=AVNORM(24)/XCB(1)
-      DO 300 NB=2,NBUSE
+      DO 310 NB=2,NBUSE
       FACTOR=WTB(NB)/(XCB(NB)**2)
       AVNORM(24)=AVNORM(24)+FACTOR
-  300 AVNORM(25)=AVNORM(25)+FACTOR/XCB(NB)
+      AVNORM(25)=AVNORM(25)+FACTOR/XCB(NB)
+  310 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     MULTI-BAND PARAMETERS ARE PHYSICALLY ACCEPTABLE AND YIELD LOWEST
 C     ERROR OF ANY NUMBER OF BANDS CONSIDERED SO FAR.
 C
 C-----------------------------------------------------------------------
-      DO 310 I=2,23
+      DO 320 I=2,23
       IF(ERNOW(I,NBAND).GT.ERMAT(I,NBAND)) ERMAT(I,NBAND)=ERNOW(I,NBAND)
-  310 CONTINUE
+  320 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     ITERATION IS COMPLETED. SET ALL REMAINING WEIGHTS TO ZERO AND
@@ -4656,36 +4881,39 @@ C     SET OF WEIGHTS AND CROSS SECTIONS FOR DETERMNATION OF PARTIAL
 C     CROSS SECTIN BAND PARAMETERS.
 C
 C-----------------------------------------------------------------------
-      IF(NBAND.GE.NBMAX) GO TO 330
+      IF(NBAND.GE.NBMAX) GO TO 350
       NBP1=NBAND+1
-      DO 320 NB=NBP1,NBMAX
+      DO 340 NB=NBP1,NBMAX
       WTBAND(NB,IGR)=ZERO
-      DO 320 MSECT=2,6
-  320 XCBAND(MSECT,NB,IGR)=XCINT(1,MSECT)
+      DO 330 MSECT=2,6
+      XCBAND(MSECT,NB,IGR)=XCINT(1,MSECT)
+  330 CONTINUE
+  340 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     CHECK THAT TOTAL IS SUM OF PARTS IN EACH BAND
 C
 C-----------------------------------------------------------------------
-  330 IF(XCINT(1,2).LE.ZERO) GO TO 610
-      DO 370 NB=1,NBAND
+  350 IF(XCINT(1,2).LE.ZERO) GO TO 630
+      DO 390 NB=1,NBAND
       SUMMER=0.0d0
       IF(XCBAND(2,NB,IGR).GT.ZERO) THEN
-      DO 340 KSECT=3,6
-  340 SUMMER=SUMMER+XCBAND(KSECT,NB,IGR)
+      DO 360 KSECT=3,6
+      SUMMER=SUMMER+XCBAND(KSECT,NB,IGR)
+  360 CONTINUE
       DIFF=(XCBAND(2,NB,IGR)-SUMMER)/XCBAND(2,NB,IGR)
-      IF(DABS(DIFF).LE.1.0D-03) GO TO 370
-      GO TO 350
+      IF(DABS(DIFF).LE.1.0D-03) GO TO 390
+      GO TO 370
       ELSE
       DIFF   = ZERO
       SUMMER = ZERO
       ENDIF
-  350 WRITE(OUTP,360) IGR,NB,WTBAND(NB,IGR),100.0d0*DIFF,SUMMER,
+  370 WRITE(OUTP,380) IGR,NB,WTBAND(NB,IGR),100.0d0*DIFF,SUMMER,
      1 (XCBAND(K,NB,IGR),K=2,6)
-      WRITE(   *,360) IGR,NB,WTBAND(NB,IGR),100.0d0*DIFF,SUMMER,
+      WRITE(   *,380) IGR,NB,WTBAND(NB,IGR),100.0d0*DIFF,SUMMER,
      1 (XCBAND(K,NB,IGR),K=2,6)
-  360 FORMAT(' Band Sum ERROR',I6,I2,1PE11.4,0PF10.2,' %',1P8E11.4)
-  370 CONTINUE
+  380 FORMAT(' Band Sum ERROR',I6,I2,1PE11.4,0PF10.2,' %',1P8E11.4)
+  390 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     COMPARE EXACT CROSS SECTION MOMENTS TO THOSE RECONSTRUCTED
@@ -4694,49 +4922,56 @@ C
 C-----------------------------------------------------------------------
 C-----DEFINE NORMALIZATION (DENOMINATOR) FOR ALL SELF-SHIELDED
 C-----CROSS SECTIONS.
-      DO 380 I=2,25
-  380 AVNORM(I)=ZERO
-      DO 400 NB=1,NBAND
-      DO 390 I=2,23
-  390 AVNORM(I)=AVNORM(I)+WTBAND(NB,IGR)/
+      DO 400 I=2,25
+      AVNORM(I)=ZERO
+  400 CONTINUE
+      DO 420 NB=1,NBAND
+      DO 410 I=2,23
+      AVNORM(I)=AVNORM(I)+WTBAND(NB,IGR)/
      1 (XCBAND(2,NB,IGR)+SHIELD(I))
+  410 CONTINUE
       SA2=XCBAND(2,NB,IGR)**2
       SA3=SA2*XCBAND(2,NB,IGR)
       AVNORM(24)=AVNORM(24)+WTBAND(NB,IGR)/SA2
-  400 AVNORM(25)=AVNORM(25)+WTBAND(NB,IGR)/SA3
+      AVNORM(25)=AVNORM(25)+WTBAND(NB,IGR)/SA3
+  420 CONTINUE
 C-----DEFINE NUMERATOR FOR EACH REACTION AND EACH SELF-SHIELDED
 C-----CROSS SECTION.
-      DO 600 ISECT=2,6
-      IF(XCINT(1,ISECT).LE.ZERO) GO TO 600
-      DO 410 I=1,25
-  410 AVEXP(I)=0.0d0
-      DO 430 NB=1,NBAND
+      DO 620 ISECT=2,6
+      IF(XCINT(1,ISECT).LE.ZERO) GO TO 620
+      DO 430 I=1,25
+      AVEXP(I)=0.0d0
+  430 CONTINUE
+      DO 450 NB=1,NBAND
       ADDNB=WTBAND(NB,IGR)*XCBAND(ISECT,NB,IGR)
       AVEXP(1)=AVEXP(1)+ADDNB
-      DO 420 I=2,23
-  420 AVEXP(I)=AVEXP(I)+ADDNB/(XCBAND(2,NB,IGR)+SHIELD(I))
+      DO 440 I=2,23
+      AVEXP(I)=AVEXP(I)+ADDNB/(XCBAND(2,NB,IGR)+SHIELD(I))
+  440 CONTINUE
       SA2=XCBAND(2,NB,IGR)**2
       SA3=SA2*XCBAND(2,NB,IGR)
       AVEXP(24)=AVEXP(24)+ADDNB/SA2
-  430 AVEXP(25)=AVEXP(25)+ADDNB/SA3
+      AVEXP(25)=AVEXP(25)+ADDNB/SA3
+  450 CONTINUE
 C-----DEFINE NORMALIZED RECONSTRUCTED SELF-SHIELDED
 C-----CROSS SECTIONS.
-      DO 440 I=2,25
-  440 AVEXP(I)=AVEXP(I)/AVNORM(I)
-C-----DEFINE DIFFERENCE BETWEEN EXACT AND RECONSTRUCTED VALUES.
-      DO 460 I=1,25
-      IF(XCINT(I,ISECT).GT.0.0d0) GO TO 450
-      ERNOW(I,NBAND)=ZERO
-      GO TO 460
-  450 ERNOW(I,NBAND)=DABS(ONE-AVEXP(I)/XCINT(I,ISECT))
+      DO 460 I=2,25
+      AVEXP(I)=AVEXP(I)/AVNORM(I)
   460 CONTINUE
+C-----DEFINE DIFFERENCE BETWEEN EXACT AND RECONSTRUCTED VALUES.
+      DO 480 I=1,25
+      IF(XCINT(I,ISECT).GT.0.0d0) GO TO 470
+      ERNOW(I,NBAND)=ZERO
+      GO TO 480
+  470 ERNOW(I,NBAND)=DABS(ONE-AVEXP(I)/XCINT(I,ISECT))
+  480 CONTINUE
 C-----UPDATE MAXIMUM ERROR FOR SELF-SHIELDED TOTAL CROSS SECTIONS.
-      IF(ISECT.NE.2) GO TO 480
+      IF(ISECT.NE.2) GO TO 500
       IF(ERNOW(24,NBAND).GT.ERMAT(24,NBAND))
      1 ERMAT(24,NBAND)=ERNOW(24,NBAND)
       IF(ERNOW(25,NBAND).GT.ERMAT(25,NBAND))
      1 ERMAT(25,NBAND)=ERNOW(25,NBAND)
-      DO 470 I=1,25
+      DO 490 I=1,25
 C-----UPDATE MAXIMUM ERROR IF MULTI-BANDS ARE NOT USED
 C-----(I.E. ONE BAND/GROUP)
       IF(XCFI(I,2).gt.ZERO) then
@@ -4745,7 +4980,7 @@ C-----(I.E. ONE BAND/GROUP)
       else
       ERNOW(I,1) = 0.0d0
       endif
-  470 CONTINUE
+  490 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     CHECK DATA AND PRINT IF ANY ERRORS
@@ -4753,29 +4988,29 @@ C
 C-----------------------------------------------------------------------
 C-----CHECK WEIGHTS BETWEEN ZERO AND ONE AND BAND CROSS SECTIONS
 C-----BETWEEN MINIMUM AND MAXIMUM FOR EACH REACTION.
-  480 DO 490 NB=1,NBMAX
+  500 DO 510 NB=1,NBMAX
       IF(WTBAND(NB,IGR).LT.ZERO.OR.WTBAND(NB,IGR).GT.ONE)
-     1 GO TO 500
+     1 GO TO 520
 C-----NO LIMIT TEST FOR OTHER
-      IF(ISECT.GE.5) GO TO 490
+      IF(ISECT.GE.5) GO TO 510
 C-----NO LIMIT TEST FOR CROSS SECTION SMALL COMPARED TO TOTAL
-      IF(XCINT(1,ISECT).LE.0.005d0*XCINT(1,2)) GO TO 490
+      IF(XCINT(1,ISECT).LE.0.005d0*XCINT(1,2)) GO TO 510
       IF(XCBAND(ISECT,NB,IGR).LT.YLOW (ISECT).OR.
-     1   XCBAND(ISECT,NB,IGR).GT.YHIGH(ISECT)) GO TO 500
-  490 CONTINUE
+     1   XCBAND(ISECT,NB,IGR).GT.YHIGH(ISECT)) GO TO 520
+  510 CONTINUE
 C-----FOR EACH CROSS SECTION CHECK TWO CONSERVED MOMENTS.
       IF(ERNOW(1,NBAND).LE.ER10PC.AND.ERNOW(23,NBAND).LE.ERROK)
-     1 GO TO 600
+     1 GO TO 620
 C-----------------------------------------------------------------------
 C
 C     ONE OR MORE ERRORS IN PARAMETERS. RE-CHECK, FLAG AND LIST ALL
 C     PARAMETERS.
 C
 C-----------------------------------------------------------------------
-  500 XES=XE
+  520 XES=XE
 C-----NO ERROR MESSAGE FOR OTHER
-      IF(ISECT.GT.5) GO TO 600
-      WRITE(OUTP,630) IGR,ZABCD,REACT2(1,ISECT),REACT2(2,ISECT),
+      IF(ISECT.GT.5) GO TO 620
+      WRITE(OUTP,650) IGR,ZABCD,REACT2(1,ISECT),REACT2(2,ISECT),
      1 EGB,XES,YLOW(2),YHIGH(2),YLOW(ISECT),YHIGH(ISECT),XCINT(1,2),
      2             XCINT(23,2),XCINT(1,ISECT),
      3 XCINT(23,ISECT),AVEXP(1),          AVEXP(23),
@@ -4783,49 +5018,50 @@ C-----NO ERROR MESSAGE FOR OTHER
      5 100.0d0*ERNOW(23,NBAND)
 C-----CHECK ERRORS.
       IERR=0
-      DO 510 I=1,3
-  510 POINT(I)='    '
-      IF(ERNOW(1,NBAND).LE.ER10PC) GO TO 520
+      DO 530 I=1,3
+      POINT(I)='    '
+  530 CONTINUE
+      IF(ERNOW(1,NBAND).LE.ER10PC) GO TO 540
       IERR=1
       POINT(1)=BUMMER
-  520 IF(ERNOW(23,NBAND).LE.ERROK) GO TO 530
+  540 IF(ERNOW(23,NBAND).LE.ERROK) GO TO 550
       IERR=1
       POINT(2)=BUMMER
-  530 IF(IERR.GT.0) WRITE(OUTP,670) (POINT(I),I=1,2)
+  550 IF(IERR.GT.0) WRITE(OUTP,690) (POINT(I),I=1,2)
 C-----CHECK BAND WEIGHTS.
-      WRITE(OUTP,640) (WTBAND(NB,IGR),NB=1,NBMAX)
-      IF(ISECT.GT.2) GO TO 560
+      WRITE(OUTP,660) (WTBAND(NB,IGR),NB=1,NBMAX)
+      IF(ISECT.GT.2) GO TO 580
       IERR=0
-      DO 550 NB=1,NBMAX
+      DO 570 NB=1,NBMAX
       IF(WTBAND(NB,IGR).LT.ZERO.OR.WTBAND(NB,IGR).GT.ONE)
-     1 GO TO 540
+     1 GO TO 560
       POINT(NB)='    '
-      GO TO 550
-  540 IERR=1
+      GO TO 570
+  560 IERR=1
       POINT(NB)=BUMMER
-      IF(IZABAD.LE.0) WRITE(OUTP,620) IZA,IGR
+      IF(IZABAD.LE.0) WRITE(OUTP,640) IZA,IGR
       IZABAD=1
-  550 CONTINUE
-      IF(IERR.GT.0) WRITE(OUTP,670) (POINT(NB),NB=1,NBMAX)
-  560 WRITE(OUTP,650) (XCBAND(2,NB,IGR),NB=1,NBMAX)
+  570 CONTINUE
+      IF(IERR.GT.0) WRITE(OUTP,690) (POINT(NB),NB=1,NBMAX)
+  580 WRITE(OUTP,670) (XCBAND(2,NB,IGR),NB=1,NBMAX)
 C-----CHECK PARTIAL BAND CROSS SECTIONS.
-      WRITE(OUTP,660) (XCBAND(ISECT,NB,IGR),NB=1,NBMAX)
+      WRITE(OUTP,680) (XCBAND(ISECT,NB,IGR),NB=1,NBMAX)
       IERR=0
-      DO 580 NB=1,NBMAX
+      DO 600 NB=1,NBMAX
       IF(XCBAND(ISECT,NB,IGR).LT.YLOW (ISECT).OR.
-     1   XCBAND(ISECT,NB,IGR).GT.YHIGH(ISECT)) GO TO 570
+     1   XCBAND(ISECT,NB,IGR).GT.YHIGH(ISECT)) GO TO 590
       POINT(NB)='    '
-      GO TO 580
-  570 IERR=1
+      GO TO 600
+  590 IERR=1
       POINT(NB)=BUMMER
-  580 CONTINUE
-      IF(IERR.GT.0) WRITE(OUTP,670) (POINT(NB),NB=1,NBMAX)
-      WRITE(OUTP,680)
+  600 CONTINUE
+      IF(IERR.GT.0) WRITE(OUTP,690) (POINT(NB),NB=1,NBMAX)
+      WRITE(OUTP,700)
       IF(XCBAND(ISECT,1,IGR).LT.0.0d0.OR.
      1   XCBAND(ISECT,2,IGR).LT.0.0d0) THEN
-      WRITE(3,590) ISECT,IGR,(XCBAND(ISECT,k,IGR),k=1,2)
-      WRITE(*,590) ISECT,IGR,(XCBAND(ISECT,k,IGR),k=1,2)
-  590 FORMAT(' ERROR - Negative Partials..ISECT/IGR=',2i5/
+      WRITE(3,610) ISECT,IGR,(XCBAND(ISECT,k,IGR),k=1,2)
+      WRITE(*,610) ISECT,IGR,(XCBAND(ISECT,k,IGR),k=1,2)
+  610 FORMAT(' ERROR - Negative Partials..ISECT/IGR=',2i5/
      1       '         Partialls=',1P2D12.5)
       CALL ENDERROR
       ENDIF
@@ -4834,11 +5070,11 @@ C
 C     END OF CHECK LOOP
 C
 C-----------------------------------------------------------------------
-  600 CONTINUE
-  610 RETURN
-  620 FORMAT(' ERROR - Bad Weights in',I6,' Group',I6)
-  630 FORMAT(1X,78('-')/
-     1  1X,'ERROR in Group',I5,1X,10A1,2A4/
+  620 CONTINUE
+  630 RETURN
+  640 FORMAT(' ERROR - Bad Weights in',I6,' Group',I6)
+  650 FORMAT(1X,78('-')/
+     1  1X,'ERROR in Group',I5,1X,12A1,2A4/
      2  1X,'Energy Range    ',1P2E11.4,' eV'/
      3  1X,'Total Limits    ',1P2E11.4/
      4  1X,'Partial Limits  ',1P2E11.4/
@@ -4846,11 +5082,11 @@ C-----------------------------------------------------------------------
      6  1X,'Partial Averages',1P2E11.4/
      7  1X,'Approximation   ',1P2E11.4/
      8  1X,'Error           ',0P2F11.2,' %')
-  640 FORMAT(1X,'Weights         ',1P5E11.4)
-  650 FORMAT(1X,'Total Bands     ',1P5E11.4)
-  660 FORMAT(1X,'Partial Bands   ',1P5E11.4)
-  670 FORMAT(17X,5(6X,A4))
-  680 FORMAT(1X,78('-'))
+  660 FORMAT(1X,'Weights         ',1P5E11.4)
+  670 FORMAT(1X,'Total Bands     ',1P5E11.4)
+  680 FORMAT(1X,'Partial Bands   ',1P5E11.4)
+  690 FORMAT(17X,5(6X,A4))
+  700 FORMAT(1X,78('-'))
       END
       SUBROUTINE GROPE(IWANT,EGROUP,NGROUP)
 C=======================================================================
@@ -5161,22 +5397,26 @@ c              1   2   3   4   5   6   7   8   9  10
      1       200,220,230,250,260,240,270,280,290,300),II
 C-----TART 176 GROUPS
    20 DO 30 I=1,176
-   30 EGROUP(I)=TART(I)
+      EGROUP(I)=TART(I)
+   30 CONTINUE
       NGROUP=175
       RETURN
 C-----ORNL 50 GROUPS
    40 DO 50 I=1,51
-   50 EGROUP(I)=ORNLA(I)
+      EGROUP(I)=ORNLA(I)
+   50 CONTINUE
       NGROUP=50
       RETURN
 C-----ORNL 126 GROUPS
    60 DO 70 I=1,127
-   70 EGROUP(I)=ORNLB(I)
+      EGROUP(I)=ORNLB(I)
+   70 CONTINUE
       NGROUP=126
       RETURN
 C-----ORNL 171 GROUPS
    80 DO 90 I=1,172
-   90 EGROUP(I)=ORNLC(I)
+      EGROUP(I)=ORNLC(I)
+   90 CONTINUE
       NGROUP=171
       RETURN
 c-----------------------------------------------------------------------
@@ -5196,27 +5436,32 @@ C-----SAND 640 GROUPS (1.0D-4 eV to 20 MeV)
       RETURN
 C-----WIMS 69 GROUPS
   120 DO 130 I=1,70
-  130 EGROUP(I)=WIMS(I)
+      EGROUP(I)=WIMS(I)
+  130 CONTINUE
       NGROUP=69
       RETURN
 C-----GAM-I 68 GROUPS
   140 DO 150 I=1,69
-  150 EGROUP(I)=GAMI(I)
+      EGROUP(I)=GAMI(I)
+  150 CONTINUE
       NGROUP=68
       RETURN
 C-----GAM-II 99 GROUPS
   160 DO 170 I=1,100
-  170 EGROUP(I)=GAMII(I)
+      EGROUP(I)=GAMII(I)
+  170 CONTINUE
       NGROUP=99
       RETURN
 C-----MUFT 54 GROUPS
   180 DO 190 I=1,55
-  190 EGROUP(I)=XMUFT(I)
+      EGROUP(I)=XMUFT(I)
+  190 CONTINUE
       NGROUP=54
       RETURN
 C-----ABBN 28 GROUPS
   200 DO 210 I=1,29
-  210 EGROUP(I)=ABBN(I)
+      EGROUP(I)=ABBN(I)
+  210 CONTINUE
       NGROUP=28
       RETURN
 C-----TART 616 GROUPS UP TO 20 MeV
@@ -5298,7 +5543,8 @@ C-----DEFINE GROUPS UP TO MAXIMUM ENDL ENERGY
       EGROUP(I)=ENOW
       IF(EGROUP(I).eq.EGRPMAX) go to 30
       IF(EGROUP(I).gt.EGRPMAX) go to 20
-   10 ENOW=ENOW*DE
+      ENOW=ENOW*DE
+   10 CONTINUE
       RETURN
 C-----DEFINE END OF GROUPS AT MAXIMUM ENDL ENERGY
    20 EGROUP(I)=EGRPMAX
@@ -5675,7 +5921,7 @@ C=======================================================================
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/GROUPC/LIBID
       COMMON/ELPAS2/EGB,TMPK
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/FIELDC/FIELDX(11,22)
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
       INCLUDE 'groupie.h'
@@ -5730,7 +5976,8 @@ C-----CONVERT BAND CROSS SECTIONS TO HOLLERITH. CONVERT UNUSED TO BLANK.
       GO TO 60
 C-----UNUSED =  BLANK
    40 DO 50 M=1,11
-   50 FIELDX(M,MSECT)=' '
+      FIELDX(M,MSECT)=' '
+   50 CONTINUE
    60 CONTINUE
       IF(NB.GT.1) GO TO 150
 C-----CONVERT UNSHIELDED AVERAGES TO HOLLERITH.
@@ -5742,7 +5989,8 @@ c-----2019/6/8 - Use XCALL, not XCINT
       GO TO 90
 C-----UNUSED = BLANK
    70 DO 80 M=1,11
-   80 FIELDX(M,ISP4)=' '
+      FIELDX(M,ISP4)=' '
+   80 CONTINUE
    90 CONTINUE
 C-----LIST REMAINDER WITH FIRST BAND IF REMAINDER IS AT LEAST
 C-----0.05 PER-CENT OF THE UNSHIELDED TOTAL CROSS SECTION.
@@ -5750,13 +5998,15 @@ c-----2019/6/8 - Use XCALL, not XCINT
       REMAIN=XCALL(1,2,IGR)
       DO 100 MSECT=3,NSECT
 c-----2019/6/8 - Use XCALL, not XCINT
-  100 REMAIN=REMAIN-XCALL(1,MSECT,IGR)
+      REMAIN=REMAIN-XCALL(1,MSECT,IGR)
+  100 CONTINUE
       IF(REMAIN.LT.0.0005d0*XCALL(1,2,IGR)) GO TO 110
       CALL OUT9G(REMAIN,FIELDX(1,10))
       GO TO 130
 C-----UNUSED = BLANK
   110 DO 120 M=1,11
-  120 FIELDX(M,10)=' '
+      FIELDX(M,10)=' '
+  120 CONTINUE
 C-----LIST PARAMETERS FOR FIRST BAND AND UNSHIELDED GROUP
 C-----AVERAGES.
   130 IF(NSECT.LT.5) GO TO 140
@@ -5773,10 +6023,10 @@ C-----AVERAGES.
 C-----LIST PARAMETERS FOR SECOND TO N-TH BANDS.
   150 IF(NSECT.LT.5) GO TO 160
       WRITE(LIST2,240) NB,WTBAND(NB,IGR),
-     1 ((FIELDX(M,I),M=1,11),I=2,5)
+     1 ((FIELDX(M,I),M=1,11),I=2,5),STAR
       GO TO 170
   160 WRITE(LIST2,260) NB,WTBAND(NB,IGR),
-     1 ((FIELDX(M,I),M=1,11),I=2,4)
+     1 ((FIELDX(M,I),M=1,11),I=2,4),STAR
   170 CONTINUE
   180 continue
 C-----------------------------------------------------------------------
@@ -5793,20 +6043,22 @@ c-----Define Upper Energy limit of last group
   200 CLOSE(LIST2)
       RETURN
   210 FORMAT(' MAT',I5,11X,11A1,1X,
-     1 A4,A3,' Multi-Band Parameters',12X,'*',
-     2 7X,' Unshielded Group Averages',12X,10A1/73X,'*'/
-     1 '  No.   Group-eV Band  Weight',4(3X,2A4),' *',5(3X,2A4)/73X,'*')
+     1 A4,A3,' Multi-Band Parameters',13X,'*',
+     2 7X,' Unshielded Group Averages',10X,12A1/74X,'*'/
+     1 '  No.   Group-eV Band  Weight',4(3X,2A4),' *',    ! 5 column
+     2 5(3X,2A4)/74X,'*')
   220 FORMAT(' MAT',I5,11X,11A1,1X,
-     1 A4,A3,' Multi-Band Parameters',12X,'*',
-     2 7X,' Unshielded Group Averages',12X,10A1/73X,'*'/
-     1 10X,'  No.   Group-eV Band  Weight',3(3X,2A4),' *',4(3X,2A4)/73X
-     2,'*')
-  230 FORMAT(I5,11A1,    I5,F8.5,44A1,' *',55A1)
-  240 FORMAT(16X,        I5,F8.5,44A1,' *')
-  250 FORMAT(11X,I5,11A1,I5,F8.5,33A1,' *',44A1)
-  260 FORMAT(27X,        I5,F8.5,33A1,' *')
-  270 FORMAT(    I5,11A1,58X,A1)
-  280 FORMAT( 9X,I5,11A1,48X,A1)
+     1 A4,A3,' Multi-Band Parameters',13X,'*',
+     2 7X,' Unshielded Group Averages',10X,12A1/74X,'*'/
+     1 '  No.   Group-eV Band  Weight',3(3X,2A4),' *',
+     2 4(3X,2A4)/74X,'*')
+c               bands                  averages
+  230 FORMAT(I5,11A1,I5,F8.5,44A1,' *',55A1)         ! 5 column
+  240 FORMAT(16X,    I5,F8.5,44A1,1X,A1)             ! 4
+  250 FORMAT(I5,11A1,I5,F8.5,33A1,' *',44A1)         ! 5 column
+  260 FORMAT(16X,    I5,F8.5,33A1,1X,A1)             ! 4
+  270 FORMAT(I5,11A1,58X,A1)                         ! 5 column
+  280 FORMAT(I5,11A1,47X,A1)                         ! 4
       END
       SUBROUTINE BANOUT
 C=======================================================================
@@ -5828,7 +6080,7 @@ C=======================================================================
       COMMON/TEMPO/TMPTAB(3),TEMP1,NTEMP
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/GROUPC/LIBID
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/FIELDC/FIELDX(11,22)
       INCLUDE 'groupie.h'
       dimension ban2(24)
@@ -5879,7 +6131,8 @@ C-----FORMAT GROUP/BAND CROSS SECTIONS FOR OUTPUT.
       IOUT=2
       DO 10 IS=2,NSECT
       IOUT=IOUT+1
-   10 CALL OUT9G(XCBAND(IS,IB,IG),FIELDX(1,IOUT))
+      CALL OUT9G(XCBAND(IS,IB,IG),FIELDX(1,IOUT))
+   10 CONTINUE
 C-----ENERGY OUTPUT WITH FIRST BAND
       IF(IB.EQ.1) WRITE(OTAPE2,50) ((FIELDX(M,K),M=1,11),K=1,IOUT)
 C-----NO ENERGY OUTPUT WITH OTHER BANDS
@@ -5891,7 +6144,7 @@ C-----OUTPUT LAST GROUP BOUNDARY.
       WRITE(OTAPE2,50) (FIELDX(M,1),M=1,11)
       CLOSE(OTAPE2)
       RETURN
-   40 FORMAT(3I11,11A1,1X,10A1)
+   40 FORMAT(3I11,11A1,1X,12A1)
    50 FORMAT(11A1,11A1,55A1)
    60 FORMAT(11X ,11A1,55A1)
       END
@@ -5942,7 +6195,8 @@ C-----DEFINE REMAINING POINTS AS LOGARITHMICALLY SPACED, I.E. EACH
 C-----ENERGY POINT IS A MULTILPE OF THE PRECEEDING ENERGY POINT.
       DO 10 J=2,N
       ESPECT(J)=DE*ESPECT(J-1)
-   10 SPECT(J)=1.0d0/ESPECT(J)
+      SPECT(J)=1.0d0/ESPECT(J)
+   10 CONTINUE
 C-----ELIMINATE ROUNDOFF PROBLEMS BY DEFINING LAST POINT AS EXACTLY
 C-----AT UPPER ENERGY LIMIT.
       ESPECT(N)=EHIGH
@@ -6159,7 +6413,7 @@ C-----DEFINE DESCRIPTION OF BUILT IN GROUP STRUCTURES.
      3 1102/
 C-----DEFINE DESCRIPTION OF WEIGHTING SPECTRUM.
       DATA HWEIGH/
-     1 '(Maxwellian-1/E-Fission Spectrum)   ',
+     1 '(Maxwellian-1/E-Fission-Constant)   ',
      2 '(1/E)                               ',
      3 '(Flat Weighted)                     ',
      4 '(From Input)                        '/
@@ -6186,8 +6440,8 @@ C-----(KELVIN, EV, KEV OR MEV).
       TINOUT(4)=BOLTZM/1.0D+06
 C-----INITIALIZE EVALUATION COUNT FOR OUTPUT LISTING.
       LZA=0
-      WRITE(OUTP,550)
-      WRITE(*   ,550)
+      WRITE(OUTP,570)
+      WRITE(*   ,570)
 c-----------------------------------------------------------------------
 C
 C     READ ALL INPUT PARAMETERS.
@@ -6229,20 +6483,20 @@ c-----2017/5/6 - Changed floating point to character.
       CALL IN9(SHIELD(i),FIELDX(1,i))
       enddo
 c-----2017/5/6 - Changed floating point to character.
-      WRITE(OUTP,770) (SHIELD(I),I=2,22)
-      WRITE(   *,770) (SHIELD(I),I=2,22)
+      WRITE(OUTP,790) (SHIELD(I),I=2,22)
+      WRITE(   *,790) (SHIELD(I),I=2,22)
 C-----THEY MUST BE IN DESCENDING ORDER
       MYERR = 0
       DO I=2,22
       IF(SHIELD(I).LE.SHIELD(I+1)) THEN
-      WRITE(OUTP,780) I,SHIELD(I),SHIELD(I+1)
-      WRITE(   *,780) I,SHIELD(I),SHIELD(I+1)
+      WRITE(OUTP,800) I,SHIELD(I),SHIELD(I+1)
+      WRITE(   *,800) I,SHIELD(I),SHIELD(I+1)
       MYERR = MYERR + 1
       ENDIF
       ENDDO
       IF(MYERR.NE.0) THEN
-      WRITE(OUTP,790)
-      WRITE(   *,790)
+      WRITE(OUTP,810)
+      WRITE(   *,810)
       CALL ENDERROR
       ENDIF
 C-----CHANGE TITLES IDENTIFYING SIGMA0 VALUES
@@ -6305,10 +6559,8 @@ C
 C     IN PRODUCTION VERSION ONLY ALLOW 0 OR 2 BANDS
 C
 c-----------------------------------------------------------------------
-C-----ONLY ALLOW 2 BANDS
-      IF(METHODB.LT.0) METHODB = 0
-c-----2019/5/26 - METHODS = 1 no longer allowed
-      IF(METHODB.GT.2) METHODB = 2
+C-----ONLY ALLOW 2 BANDS - MTHOD #2 - 1/[sigt + <sigt>]
+      IF(METHODB.ne.0) METHODB = 2
 C-----IF NOT CROSS SECTIONS OR RESONANCE INTEGRALS SELECTED TURN OFF
       IF(OPS(1).LT.0.OR.OPS(1).GT.2) OPS(1)=0
       IF(OPS(5).LT.0.OR.OPS(5).GT.2) OPS(5)=0
@@ -6336,14 +6588,14 @@ C
 c-----------------------------------------------------------------------
 C-----INSURE THAT STANDARD SPECTRUM OPTION IS IN STANDARD FORM.
       IF(MSPECT.GE.0) GO TO 190
-C-----DEFINE SPECTRUM TO BE 1/E OR MAXWELLIAN, 1/E AND FISSION SPECTRUM
+C-----DEFINE SPECTRUM TO BE 1/E OR MAXWELLIAN, 1/E, FISSION, Constant
       IF(MSPECT.LT.-2) MSPECT=-2
 c-----05/24/09 - increased from 3,000 to 30,000
       IF(MSPECT.EQ.-1) THEN
       IMSP=2        ! 1/E
       MSPTAB=30000
       ELSE
-      IMSP=1        ! Maxwellian + 1/E + Fission
+      IMSP=1        ! Maxwellian + 1/E + Fission + Constant
       MSPTAB=16724
       ENDIF
       GO TO 200
@@ -6414,8 +6666,8 @@ C-----CHECK FOR LEGAL NUMBER OF GROUPS.
 C-----LOAD ALL CROSS SECTIONS INTO SECOND PAGE.
       LSECT=2
       IF(MGROUP.GE.-19.AND.MGROUP.LE.MAXGROUP) GO TO 300
-      WRITE(OUTP,710) MGROUP,MAXGROUP
-      GO TO 540
+      WRITE(OUTP,730) MGROUP,MAXGROUP
+      GO TO 560
 C-----SELF-SHIELDING CALCULATION. UP TO 20,000 GROUPS ALLOWED.
 C-----CHECK FOR LEGAL NUMBER OF GROUPS.
   290 NOSELF=0
@@ -6424,8 +6676,8 @@ C-----CROSS SECTIONS INTO PAGE 4 (THIS PAGE WILL BE LAST ONE USED
 C-----WHEN TOTAL, ELASTIC, CAPTURE AND FISSION ARE READ.
       LSECT=4
       IF(MGROUP.GE.-19.AND.MGROUP.LE.MAXGROUP) GO TO 300
-      WRITE(OUTP,700) MGROUP,MAXGROUP
-      GO TO 540
+      WRITE(OUTP,720) MGROUP,MAXGROUP
+      GO TO 560
   300 IMGR=IABS(MGROUP)+2
       IF(MGROUP.GT.0) IMGR=1
       MYGRUI(1)=MGROUP
@@ -6435,75 +6687,59 @@ C     LIST INTERPRETATION OF INPUT PARAMETERS.
 C
 c-----------------------------------------------------------------------
       CALL OUT9G(ERROK,FIELDX(1,1))
-      WRITE(OUTP,560) MESS1(MODGET+1),MYGRUI(IMGR),
+      WRITE(OUTP,580) MESS1(MODGET+1),MYGRUI(IMGR),
      1 MYGRUP(IMGR),NBMAX,MESSBAND(METHODB),MSPTAB,HWEIGH(IMSP),
      2 (FIELDX(M,1),M=1,11)
-      WRITE(*   ,560) MESS1(MODGET+1),MYGRUI(IMGR),
+      WRITE(*   ,580) MESS1(MODGET+1),MYGRUI(IMGR),
      1 MYGRUP(IMGR),NBMAX,MESSBAND(METHODB),MSPTAB,HWEIGH(IMSP),
      2 (FIELDX(M,1),M=1,11)
-c-----------------------------------------------------------------------
-c
-c     2019/5/26 - METHODB = 1 no longer allowed
-c
-c-----------------------------------------------------------------------
-      if(METHODB.eq.1) then
-      WRITE(OUTP,310)
-      WRITE(*   ,310)
-  310 FORMAT(1X,78('=')/
-     1 ' ERROR - Multi-Band Option = 1 is no longer allowed - use'/
-     2 '         0 = no Multi-band, or'/
-     3 '         2 = Conserve 1/[Total+<Total>]  '/
-     4 '         Correct input options and re-run.'/
-     5 '         EXECUTION TERMINATED.'/1x,78('='))
-      CALL ENDERROR
-      ENDIF
       IF(MYSIGMA0.EQ.0) THEN
-      WRITE(OUTP,650)
-      WRITE(*   ,650)
-      ELSE
-      WRITE(OUTP,660)
-      WRITE(*   ,660)
-      ENDIF
-c-----2019/6/23 - Only allow ENDF Standard convention
-      IF(MYXTEND.EQ.0) THEN   ! high energy cross section extension.
       WRITE(OUTP,670)
       WRITE(*   ,670)
       ELSE
-      MYXTEND = 0      ! Set to standard
       WRITE(OUTP,680)
       WRITE(*   ,680)
+      ENDIF
+c-----2019/6/23 - Only allow ENDF Standard convention
+      IF(MYXTEND.EQ.0) THEN   ! high energy cross section extension.
+      WRITE(OUTP,690)
+      WRITE(*   ,690)
+      ELSE
+      MYXTEND = 0      ! Set to standard
+      WRITE(OUTP,700)
+      WRITE(*   ,700)
       ENDIF
 C-----MUST USE MULTIPLES OF UNSHIELDED TOTAL IF CALCULATING
 C-----MULTI-BAND PARAMETERS
       IF(MYSIGMA0.NE.0.AND.NBMAX.GT.0) THEN
-      WRITE(OUTP,320)
-      WRITE(*   ,320)
-  320 FORMAT(1X,78('-')/
+      WRITE(OUTP,310)
+      WRITE(*   ,310)
+  310 FORMAT(1X,78('-')/
      1 ' ERROR - Multi-Band Parameters Require that Sigma-0'/
      2 '         be Multiples of the Unshielded Total. You MUST'/
      3 '         Turn off either Multi-bands or Sigma-0 Definition.'/
      3 '         EXECUTION TERMINATED.'/1x,78('='))
       CALL ENDERROR
       ENDIF
-      WRITE(OUTP,570) OPSC(1),TYPEL(IMOPS1),
+      WRITE(OUTP,590) OPSC(1),TYPEL(IMOPS1),
      1 (OPSC(J),J=2,4),MYLAW(MYLAWO+1),
      2 OPSC(5),TYPEL(IMOPS5)
-      WRITE(*   ,570) OPSC(1),TYPEL(IMOPS1),
+      WRITE(*   ,590) OPSC(1),TYPEL(IMOPS1),
      1 (OPSC(J),J=2,4),MYLAW(MYLAWO+1),
      2 OPSC(5),TYPEL(IMOPS5)
 C-----IF USING STANDARD BUILT-IN SPECTRA PRINT MAXWELLIAN TEMPERATURE
       IF(MSPECT.EQ.-2) THEN
       IF(TEMPMIN.GT.1000.0D+0) TEMPMIN = 1000.0D+0
       IF(TEMPMIN.LE.0.0d0) TEMPMIN = 0.0253d0 ! DEFAULT ROOM TEMPERATURE
-      WRITE(OUTP,580) TEMPMIN
-      WRITE(   *,580) TEMPMIN
+      WRITE(OUTP,600) TEMPMIN
+      WRITE(   *,600) TEMPMIN
       ENDIF
-      WRITE(OUTP,590) LIBID
-      WRITE(   *,590) LIBID
+      WRITE(OUTP,610) LIBID
+      WRITE(   *,610) LIBID
 C-----IF NO OUTPUT DEVICES SELECTED TERMINATE RUN.
-      IF(IPICK.NE.0) GO TO 330
-      WRITE(OUTP,730)
-      GO TO 540
+      IF(IPICK.NE.0) GO TO 320
+      WRITE(OUTP,750)
+      GO TO 560
 c-----------------------------------------------------------------------
 C
 C     READ SELECTION RANGES (EITHER MAT OR ZA). IF MAXIMUM IS LESS THAN
@@ -6511,24 +6747,24 @@ C     MINIMUM SET IT EQUAL TO MINIMUM. IF FIRST CARD IS BLANK RETRIEVE
 C     ALL DATA.
 C
 c-----------------------------------------------------------------------
-  330 IF(MODGET.EQ.0) WRITE(OUTP,600)
-      IF(MODGET.EQ.1) WRITE(OUTP,610)
-      IF(MODGET.EQ.0) WRITE(*   ,600)
-      IF(MODGET.EQ.1) WRITE(*   ,610)
-      IF(ISTAT1.EQ.1) GO TO 350
-      READ(INP,340,END=350,ERR=350)
+  320 IF(MODGET.EQ.0) WRITE(OUTP,620)
+      IF(MODGET.EQ.1) WRITE(OUTP,630)
+      IF(MODGET.EQ.0) WRITE(*   ,620)
+      IF(MODGET.EQ.1) WRITE(*   ,630)
+      IF(ISTAT1.EQ.1) GO TO 340
+      READ(INP,330,END=340,ERR=340)
      1 MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),MTMAX(1)
-  340 FORMAT(I6,I2,I3,I6,I2,I3)
-      GO TO 360
+  330 FORMAT(I6,I2,I3,I6,I2,I3)
+      GO TO 350
 C-----DEFINE DEFAULT VALUES
-  350 ISTAT1    = 1
+  340 ISTAT1    = 1
       MATMIN(1) = 0
       MFMIN(1)  = 0
       MTMIN(1)  = 0
       MATMAX(1) = 0
       MFMAX(1)  = 0
       MTMAX(1)  = 0
-  360 IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 370
+  350 IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 360
       MATMAX(1)=9999
       IF(MFMIN(1).LT.0) MFMIN(1)=0
       IF(MFMAX(1).LE.0) MFMAX(1)=99
@@ -6536,47 +6772,68 @@ C-----DEFINE DEFAULT VALUES
       IF(MTMAX(1).LE.0) MTMAX(1)=999
       MODGET=0
       NMATZA=2
-      WRITE(OUTP,630) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(OUTP,650) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      WRITE(*   ,630) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(*   ,650) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      GO TO 400
-  370 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
+      GO TO 390
+  360 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
       IF(MFMIN(1).LT.0) MFMIN(1)=0
       IF(MFMAX(1).LE.0) MFMAX(1)=99
       IF(MTMIN(1).LT.0) MTMIN(1)=0
       IF(MTMAX(1).LE.0) MTMAX(1)=999
-      WRITE(OUTP,620) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(OUTP,640) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      WRITE(*   ,620) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
+      WRITE(*   ,640) MATMIN(1),MFMIN(1),MTMIN(1),MATMAX(1),MFMAX(1),
      1 MTMAX(1)
-      DO 380 NMATZA=2,101
-      IF(ISTAT1.EQ.1) GO TO 400
-      READ(INP,340,END=390,ERR=390)
+      DO 370 NMATZA=2,101
+      IF(ISTAT1.EQ.1) GO TO 390
+      READ(INP,330,END=380,ERR=380)
      1 MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      2 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
-      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 400
+      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 390
       IF(MATMAX(NMATZA).LT.MATMIN(NMATZA)) MATMAX(NMATZA)=MATMIN(NMATZA)
       IF(MFMIN(NMATZA).LT.0) MFMIN(NMATZA)=0
       IF(MFMAX(NMATZA).LE.0) MFMAX(NMATZA)=99
       IF(MTMIN(NMATZA).LT.0) MTMIN(NMATZA)=0
       IF(MTMAX(NMATZA).LE.0) MTMAX(NMATZA)=999
-      WRITE(OUTP,620) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
+      WRITE(OUTP,640) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      1 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
-  380 WRITE(*   ,620) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
+      WRITE(*   ,640) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      1 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA)
-      WRITE(OUTP,640)
-      WRITE(*   ,640)
-      GO TO 540
-  390 ISTAT1 = 1
-  400 NMATZA=NMATZA-1
+  370 CONTINUE
+      WRITE(OUTP,660)
+      WRITE(*   ,660)
+      GO TO 560
+  380 ISTAT1 = 1
+  390 NMATZA=NMATZA-1
+c-----------------------------------------------------------------------
+C
+C     Check if MF=2 (Unresolved will be IGNORED)
+C
+c-----------------------------------------------------------------------
+      if(NMATZA.gt.0) then
+      do im=1,NMATZA
+      if(MFMIN(im).le.2.and.MFMAX(im).gt.2) go to 410
+      enddo
+      write(OUTP,400)
+      write(   *,400)
+  400 format(1x,78('=')/
+     1 ' WARNING - Requested MAT/MF/MT ranges IGNORS MF=2 Resonance',
+     2 ' Parameters.'/
+     3 '           This prevents Unresolved Resonance Region',
+     4 ' Calculation.'/
+     5 '           To include Unresolved Resonance Region CHANGE INPUT',
+     5 ' Parameters '/
+     6 '           and RE-RUN.'/1x,78('='))
+      endif
 c-----------------------------------------------------------------------
 C
 C     DEFINE GROUP STRUCTURE.
 C
 c-----------------------------------------------------------------------
-      IF(MGROUP.eq.0) go to 410
-      IF(MGROUP.gt.0) go to 420
+  410 IF(MGROUP.eq.0) go to 420
+      IF(MGROUP.gt.0) go to 430
 c-----------------------------------------------------------------------
 C
 C     SELECT BUILT IN GROUP STRUCTURE.
@@ -6604,33 +6861,39 @@ C             =19 1102 GROUPS (UKAEA  , 1.0D-5 eV, UP TO   1 GeV)
 C
 c-----------------------------------------------------------------------
       MGROUP=-MGROUP
-  410 CALL GROPE(MGROUP,EGROUP,NGR)
+  420 CALL GROPE(MGROUP,EGROUP,NGR)
       NGRP1=NGR+1
-      GO TO 450
+      NGRP2=NGR+2
+      GO TO 460
 C-----READ AND PRINT ARBITRARY GROUP STRUCTURE.
-  420 NGR=MGROUP
+  430 NGR=MGROUP
       NGRP1=NGR+1
+      NGRP2=NGR+2
 c-----2017/5/6 - Changed floating point to character.
       CALL LISTIV(INP,EGROUP,NGRP1)
 c-----2017/5/6 - Changed floating point to character.
-      WRITE(OUTP,750)
-      DO 440 I=1,NGRP1,6
+      WRITE(OUTP,770)
+      DO 450 I=1,NGRP1,6
       II=I+5
       IF(II.GT.NGRP1) II=NGRP1
       J=0
-      DO 430 III=I,II
+      DO 440 III=I,II
       J=J+1
-  430 CALL OUT9G(EGROUP(III),FIELDX(1,J))
-  440 WRITE(OUTP,760) ((FIELDX(M,JJ),M=1,11),JJ=1,J)
+      CALL OUT9G(EGROUP(III),FIELDX(1,J))
+  440 CONTINUE
+      WRITE(OUTP,780) ((FIELDX(M,JJ),M=1,11),JJ=1,J)
+  450 CONTINUE
 C-----INSURE GROUP BOUNDARIES ARE IN ASCENDING ENERGY ORDER.
-  450 DO 460 I=1,NGR
-      IF(EGROUP(I).LT.EGROUP(I+1)) GO TO 460
+  460 DO 470 I=1,NGR
+c-----2020/8/6 - Define average group energy
+      EAV(I) = 0.5d0*(EGROUP(I) + EGROUP(I+1))
+      IF(EGROUP(I).LT.EGROUP(I+1)) GO TO 470
       KERR=1
       CALL OUT9G(EGROUP(I)  ,FIELDX(1,1))
       CALL OUT9G(EGROUP(I+1),FIELDX(1,2))
-      WRITE(OUTP,690) I,((FIELDX(M,KKK),M=1,11),KKK=1,2)
-  460 CONTINUE
-      IF(KERR.gt.0) go to 540
+      WRITE(OUTP,710) I,((FIELDX(M,KKK),M=1,11),KKK=1,2)
+  470 CONTINUE
+      IF(KERR.gt.0) go to 560
 C-----------------------------------------------------------------------
 C
 C     DEFINE ENERGY DEPENDENT WEIGHTING SPECTRUM. USE EITHER LINEARLY
@@ -6638,13 +6901,13 @@ C     INTERPOLABLE APPROXIMATION TO 1/E, CONSTANT OR READ ABRITRARY
 C     WEIGHTING FUNCTION.
 C
 C-----------------------------------------------------------------------
-      IF(MSPECT.eq.0) go to 480
-      IF(MSPECT.gt.0) go to 490
+      IF(MSPECT.eq.0) go to 490
+      IF(MSPECT.gt.0) go to 500
 c-----------------------------------------------------------------------
 C
 C     DEFINE LINEARLY INTERPOLABLE TABULATED SPECTRUM EITHER,
 C     (1) 1/E, OR
-C     (2) MAXWELLIAN, 1/E, FISSION SPECTRUM
+C     (2) MAXWELLIAN, 1/E, FISSION, CONSTANT SPECTRUM
 C
 c-----------------------------------------------------------------------
       ELOW=EGROUP(1)
@@ -6659,23 +6922,23 @@ c-----------------------------------------------------------------------
       IF(EHIGH.lt.2.0D+07) EHIGH = 2.0D+07   ! 20 MeV
 c-----------------------------------------------------------------------
 C
-C     SELECT 1/E OR MAXWELLIAN, 1/E AND FISSION SPECTRUM.
+C     SELECT 1/E OR MAXWELLIAN, 1/E, FISSION, CONSTANT SPECTRUM.
 C
 c-----------------------------------------------------------------------
-      IF(MSPECT.EQ.-2) GO TO 470
+      IF(MSPECT.EQ.-2) GO TO 480
 C-----CONSTRUCT LINEARLY INTERPOLABLE APPROXIMATION TO 1/E.
       NPTAB(1)=MSPTAB
       IXYLOW(1)=0
       IXYHI(1)=MSPTAB
       CALL OVERE(XPAGE(1,1),YPAGE(1,1),NPTAB(1),ELOW,EHIGH)
-      GO TO 500
+      GO TO 510
 c-----------------------------------------------------------------------
 C
 C     CONSTRUCT LINEARLY INTERPOLABLE APPROXIMATION TO MAXWELLIAN, 1/E
 C     FISSION AND CONSTANT SPECTRUM.
 C
 c-----------------------------------------------------------------------
-  470 TEMPM=TEMPMIN
+  480 TEMPM=TEMPMIN
       WA=9.65D+5
       WB=2.29D-6
       ETAB(1)=ELOW
@@ -6683,114 +6946,118 @@ c-----------------------------------------------------------------------
       ETAB(3)=6.7D+04
       ETAB(4)=1.0D+07
       ETAB(5)=EHIGH      ! Note - EHIGH is at least 20 MeV.
+c-----2019/8/18 - Added the below test.
+      if(ETAB(5).lt.ETAB(4)) ETAB(5) = ETAB(4)
       NPTAB(1)=MSPTAB
       CALL SPECTM(XPAGE(1,1),YPAGE(1,1),NPTAB(1),ETAB,TEMPM,WA,WB)
       IXYLOW(1)=0
       IXYHI(1)=NPTAB(1)
-      GO TO 500
+      GO TO 510
 c-----------------------------------------------------------------------
 C
 C     DEFINE CONSTANT WEIGHTING SPECTRUM THAT SPANS THE ENERGY GROUP
 C
 c-----------------------------------------------------------------------
-  480 NPTAB(1)=2
+  490 NPTAB(1)=2
       IXYLOW(1)=0
       IXYHI(1)=2
       YPAGE(1,1)=1.0d0
       YPAGE(2,1)=1.0d0
       XPAGE(1,1)=EGROUP(1)
       XPAGE(2,1)=EGROUP(NGRP1)
-      GO TO 500
+      GO TO 510
 c-----------------------------------------------------------------------
 C
 C     LOAD ARBITRARY TABULATED SPECTRUM INTO PAGING SYSTEM.
 C
 c-----------------------------------------------------------------------
-  490 NPTAB(1)=MSPECT
+  500 NPTAB(1)=MSPECT
       CALL PAGIN5(INP,1,1)
 C-----INSURE SPECTRUM SPANS ENERGY RANGE OF GROUPS.
       CALL XYPAGE(1,1,ELOWD,SHIGH)
       CALL XYPAGE(MSPECT,1,EHIGHD,SHIGH)
-      IF(ELOWD.LE.EGROUP(1).AND.EHIGHD.GE.EGROUP(NGRP1)) GO TO 500
+      IF(ELOWD.LE.EGROUP(1).AND.EHIGHD.GE.EGROUP(NGRP1)) GO TO 510
       CALL OUT9G(ELOWD        ,FIELDX(1,1))
       CALL OUT9G(EHIGHD       ,FIELDX(1,2))
       CALL OUT9G(EGROUP(1)    ,FIELDX(1,3))
       CALL OUT9G(EGROUP(NGRP1),FIELDX(1,4))
-      WRITE(OUTP,720) ((FIELDX(M,I),M=1,11),I=1,4)
-      GO TO 540
+      WRITE(OUTP,740) ((FIELDX(M,I),M=1,11),I=1,4)
+      GO TO 560
 C-----OPEN EVALUATED DATA FILE AND IF REQUIRED CREATE MULTI-GROUP
 C-----DATA FILE (BOTH USE THE ENDF/B FORMAT).
-  500 NSECT=4
+  510 NSECT=4
 C-----INITIALIZE MAXIMUM ERROR VECTOR.
-      IF(NBMAX.LT.1) GO TO 520
-      DO 510 NB=1,MAXBAND
-      DO 510 I=1,25
-  510 ERLIB(I,NB)=0.0d0
+      IF(NBMAX.LT.1) GO TO 540
+      DO 530 NB=1,MAXBAND
+      DO 520 I=1,25
+      ERLIB(I,NB)=0.0d0
+  520 CONTINUE
+  530 CONTINUE
 C-----ALL INPUT DATA IS O.K.
-  520 RETURN
+  540 RETURN
 c-----------------------------------------------------------------------
 C
 C     ERROR IN INPUT DATA. PRINT MESSAGE AND TERMINATE.
 C
 c-----------------------------------------------------------------------
-  530 CALL ENDERROR
-  540 WRITE(OUTP,740)
+  550 CALL ENDERROR
+  560 WRITE(OUTP,760)
 c-----Added on-line output
-      WRITE(*   ,740)
-      GO TO 530
-  550 FORMAT(' Multi-Group and Multi-Band Parameters from',
-     1 ' ENDF/B Data (GROUPIE 2019-1)'/1X,78('-'))
-  560 FORMAT(' Retrieval Criteria------------',7X,A4/
+      WRITE(*   ,760)
+      GO TO 550
+  570 FORMAT(' Multi-Group and Multi-Band Parameters from',
+     1 ' ENDF/B Data (GROUPIE 2021-1)'/1X,78('-'))
+  580 FORMAT(' Retrieval Criteria------------',7X,A4/
      1       ' Number of Energy Groups-------',I11,1X,A16/
      2       ' Maximum Number of Bands/Group-',I11,1X,A28/
      3       ' Points in Weighting Spectrum--',I11,1X,A36/
      4       ' Band Selection Criteria-------',11A1,
      5 ' (No Longer Used)')
-  570 FORMAT(1X,78('-')/
+  590 FORMAT(1X,78('-')/
      1 ' Self-Shielded Listing---------',7X,A4,1X,A24/
      2 ' Multi-Band Listing------------',7X,A4/
      3 ' Multi-Band Library File-------',7X,A4/
      4 ' Unshielded Averages in ENDF/B-',7X,A4,1X,A16/
      5 ' Unshielded Averages Listing---',7X,A4,1X,A24)
-  580 FORMAT(
+  600 FORMAT(
      1 ' Maxwellian Temperature--------',1PE11.4,' eV')
-  590 FORMAT(
+  610 FORMAT(
      6 1X,78('-')/' Multi-Band Library Identification (no longer used)'/
      7 1x,78('-')/1X,A72/1X,78('-'))
-  600 FORMAT(' MAT/MF/MT Ranges'/1X,78('-')/
+  620 FORMAT(' MAT/MF/MT Ranges'/1X,78('-')/
      1 '    Minimum       Maximum'/
      2 '    MAT MF  MT    MAT MF  MT'/1X,78('-'))
-  610 FORMAT(' ZA/MF/MT Ranges'/1X,78('-')/
+  630 FORMAT(' ZA/MF/MT Ranges'/1X,78('-')/
      1 '    Minimum       Maximum'/
      2 '     ZA MF  MT     ZA MF  MT'/1X,78('-'))
-  620 FORMAT(I7,I3,I4,I7,I3,I4)
-  630 FORMAT(I7,I3,I4,I7,I3,I4,' (Default Option)')
-  640 FORMAT(//' ERROR - Over 100 ranges----Execution Terminated')
-  650 FORMAT(' Sigma-0 Definition------------',
+  640 FORMAT(I7,I3,I4,I7,I3,I4)
+  650 FORMAT(I7,I3,I4,I7,I3,I4,' (Default Option)')
+  660 FORMAT(//' ERROR - Over 100 ranges----Execution Terminated')
+  670 FORMAT(' Sigma-0 Definition------------',
      1 ' Multiple of Unshielded Total in Each Group')
-  660 FORMAT(' Sigma-0 Definition------------',
+  680 FORMAT(' Sigma-0 Definition------------',
      1 ' Same barns Values in Each Group')
-  670 FORMAT(' High E Cross Section Extension',
+  690 FORMAT(' High E Cross Section Extension',
      1 ' = Zero (ENDF Standard Definition)')
-  680 FORMAT(' High E Cross Section Extension',
+  700 FORMAT(' High E Cross Section Extension',
      1 ' = Input Ignored - will use = Zero (ENDF Standard)')
-  690 FORMAT(/' Group Boundaries are NOT in Ascending Energy Order'/
+  710 FORMAT(/' Group Boundaries are NOT in Ascending Energy Order'/
      1 ' Group',I5,1X,11A1,' to ',11A1,' eV')
-  700 FORMAT(/' Number of Groups=',I5,' (MUST be -19 to ',I5,')')
-  710 FORMAT(/' Number of Groups=',I5,' (MUST be -19 to ',I5,')')
-  720 FORMAT(/' Energy Spectrum from',11A1,' to ',11A1,' eV'/
+  720 FORMAT(/' Number of Groups=',I5,' (MUST be -19 to ',I5,')')
+  730 FORMAT(/' Number of Groups=',I5,' (MUST be -19 to ',I5,')')
+  740 FORMAT(/' Energy Spectrum from',11A1,' to ',11A1,' eV'/
      1 ' Does NOT Span the Group Range from',11A1,' to ',
      1 11A1,' eV')
-  730 FORMAT(/' No Output Options Selected---Execution Terminated')
-  740 FORMAT(' Execution Terminated')
-  750 FORMAT(1X,78('-')/' Group Energy Boundaries'/1X,78('-')/
+  750 FORMAT(/' No Output Options Selected---Execution Terminated')
+  760 FORMAT(' Execution Terminated')
+  770 FORMAT(1X,78('-')/' Group Energy Boundaries'/1X,78('-')/
      1 6(3X,'Energy-eV')/1X,78('-'))
-  760 FORMAT(6(1X,11A1))
-  770 FORMAT(' Sigma0 values read as input'/1X,78('-')/
+  780 FORMAT(6(1X,11A1))
+  790 FORMAT(' Sigma0 values read as input'/1X,78('-')/
      1 1X,1P6E11.4/1X,1P6E11.4/1X,1P6E11.4/1X,1P3E11.4/1X,78('-'))
-  780 FORMAT(' ERROR - Sigma0 NOT in DESCENDING value order',I5,
+  800 FORMAT(' ERROR - Sigma0 NOT in DESCENDING value order',I5,
      1 1P2E11.4)
-  790 FORMAT(1X,78('-')/' Execution terminated due to error in input'//)
+  810 FORMAT(1X,78('-')/' Execution terminated due to error in input'//)
       END
       SUBROUTINE NXTMAT
 C=======================================================================
@@ -7097,7 +7364,7 @@ C-----DEFINE HOLLERITH EQUIVALENT OF REACTIONS.
      3 ' Ela','stic',
      4 ' Cap','ture',
      5 ' Fis','sion',
-     6 ' Oth','er  '/
+     6 '   O','ther'/
       DATA REAC3/
      1 '    ','    ',
      2 'Tota','l   ',
@@ -7109,19 +7376,27 @@ C-----DEFINE TEMPERATURE OUTOUT UNITS.
       DATA TUNIS/'Kelv','in  ','eV  ',' ','keV ',' ','MeV ',' '/
       DO 10 I=1,25
       SIGMAB(I)=SIGMAZ(I)
-   10 SHIELD(I)=SHIELX(I)
-      DO 20 I=1,2
-      DO 20 J=1,6
-   20 REACT2(I,J)=REAC2(I,J)
+      SHIELD(I)=SHIELX(I)
+   10 CONTINUE
       DO 30 I=1,2
-      DO 30 J=1,6
-   30 REACT3(I,J)=REAC3(I,J)
-      DO 40 I=1,2
-      DO 40 J=1,4
-   40 TUNITS(I,J)=TUNIS(I,J)
-      DO 50 I=1,12
+      DO 20 J=1,6
+      REACT2(I,J)=REAC2(I,J)
+   20 CONTINUE
+   30 CONTINUE
+      DO 50 I=1,2
+      DO 40 J=1,6
+      REACT3(I,J)=REAC3(I,J)
+   40 CONTINUE
+   50 CONTINUE
+      DO 70 I=1,2
+      DO 60 J=1,4
+      TUNITS(I,J)=TUNIS(I,J)
+   60 CONTINUE
+   70 CONTINUE
+      DO 80 I=1,12
       SIGHL1(I) = SIGHX1(I)
-   50 SIGHL2(I) = SIGHX2(I)
+      SIGHL2(I) = SIGHX2(I)
+   80 CONTINUE
       RETURN
       END
       SUBROUTINE INTOUT(INTX,FIELD,LENGTH)
@@ -7138,7 +7413,8 @@ C=======================================================================
       DATA DIGITS/'0','1','2','3','4','5','6','7','8','9'/
 C-----INITIALIZE TO BLANK
       DO 10 I=1,LENGTH
-   10 FIELD(I)=' '
+      FIELD(I)=' '
+   10 CONTINUE
 C-----FILL IN LAST DIGIT TO FIRST
       II=INTX
       DO 20 I=LENGTH,1,-1
@@ -7146,7 +7422,8 @@ C-----FILL IN LAST DIGIT TO FIRST
       KK=II/10
       LL=II-10*KK
       FIELD(I)=DIGITS(LL)
-   20 II=KK
+      II=KK
+   20 CONTINUE
    30 RETURN
       END
       SUBROUTINE FILIO1
@@ -7253,7 +7530,8 @@ c-----------------------------------------------------------------------
       KK = II - 10*JJ
       ZCHAR(I) = DIGITS(KK)
       IF(JJ.LE.0) RETURN
-   10 II = JJ
+      II = JJ
+   10 CONTINUE
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -7270,7 +7548,8 @@ c-----------------------------------------------------------------------
       KK = II - 10*JJ
       ZCHAR(I) = DIGITS(KK)
       IF(JJ.LE.0) RETURN
-   30 II = JJ
+      II = JJ
+   30 CONTINUE
       RETURN
       END
       subroutine ACEENDF
@@ -7287,14 +7566,14 @@ c=======================================================================
       CHARACTER*1  urr1,ZABCD
       CHARACTER*20 urr1file
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
-      COMMON/ELPASZ/ZABCD(10)
+      COMMON/ELPASZ/ZABCD(12)
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
       COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/TEMPO/TMPTAB(3),TEMP1,NTEMP
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
-      common/ACECOM/nunr,NUNR1,NUNR2
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
       dimension urr1(20)
       equivalence (urr1file,urr1(1))
       INCLUDE 'groupie.h'
@@ -7313,43 +7592,29 @@ c-----Re-Define standard ENDF Output unit and output ENDF TPID
       NOSEQ  = 0
       OPEN(OTAPE,file=urr1file)
       write(OTAPE,10) ZABCD
-   10 format(10a1,' Unresolved Region 2-Band Data',
-     1 ' by PREPRO/GROUPIE(2019)  8000 0  0    0')
-c            10    12345678901234567890123456789012345678901234567890
-c                 1         2         3         4         5         6
-c       12345678901234567890123456
+   10 format(12a1,' Unresolved Region 2-Band Data',
+     1 '  PREPRO/GROUPIE(2021-1)8000 0  0    0')
+c            12    345678901234567890123456789012
+c               1         2         3         4
+c       345678901234567890123456
+c              5         6
 c          5         6
 c-----------------------------------------------------------------------
 c
 c     Define groups in URR
 c
 c-----------------------------------------------------------------------
-      nunr   = 0 ! # of URR groups
-      NUNR1  = 0 ! lower group index
-      NUNR2  = 0 ! upper group index
 c-----2019/6/23 - LSSF and INTUNR definitions
       LSSF   = 0 ! Always use LSSF=0 to forec only cross section -
       ! never f-factot output.
       INTUNR = 2 ! Interpolation code = not defined in NJOY manual
-      ! NJOY uss 2 or 5 -here always use 2
-c-----If a URR define group indices
-      if(URES2.le.0.0d0) go to 30
-      do 20 igr=1,NGR
-c-----2019/6/22 - Switched from anywhere in group to average energy
-c-----            plus saved all EAV here
-      EAV(igr) = 0.5d0*(EGROUP(igr)+EGROUP(igr+1))
-      if(EAV(igr).lt.URES1) go to 20
-      if(NUNR1.le.0) NUNR1 = igr
-      if(EAV(igr).gt.URES2) go to 20
-      NUNR2 = igr
-   20 continue
-      nunr = 1 + (NUNR2 - NUNR1)
+      ! NJOY uss 2 or 5 - here always use 2
 c-----------------------------------------------------------------------
 c
 c     Output URR data to ENDF Format Filename = ZAzzzaaa.URR.ENDF
 c
 c-----------------------------------------------------------------------
-   30 C1H = IZA              ! HEADER line
+      C1H = IZA              ! HEADER line
       C2H = ATWT
       L1H = 0
       L2H = 0
@@ -7364,6 +7629,8 @@ c-----------------------------------------------------------------------
 c-----Define MAT and MF
       math = MATNOW
       mfh  = 2
+c-----Move data to ourput arrays
+      call finalout
 c-----Output parameters in NJOY pseudo format
       call mf2mt152
       call mf2mt153
@@ -7373,6 +7640,73 @@ c-----Output parameters in NJOY pseudo format
       CLOSE(OTAPE)
 c-----Restore standard ENDF Output unit
       OTAPE  = MYUNIT
+      return
+      end
+      subroutine finalout
+c=======================================================================
+c
+c     Output MF/MT=2/152
+c     Output distribution vs. energy across unresolved region
+c     for 2 sigma-0 values,
+c     1) Unshielded = Sigma0 = infinity (1.0d10)
+c     2) Shielded   = Sigma0 = 0
+c
+c     Output for unshielded is always cross sections
+c
+c     2019/6/23 - GROUPIE Output is NOW ALWAYS cross sections -
+c                 never f-factors - it sets LSSF = 0 for output.
+c
+c=======================================================================
+      include 'implicit.h'
+      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth,noseq
+      common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
+      COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
+      INCLUDE 'groupie.h'
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
+c-----------------------------------------------------------------------
+c
+c     XCALL  ---> XCUALL
+c     XCBAND ---> XCUBAND
+c
+c-----------------------------------------------------------------------
+      do ir=1,6
+      XCUALL(1,ir,  1)     = XCALL( 1,ir,NGRP1) ! lower limit
+      XCUALL(2,ir,  1)     = XCALL(23,ir,NGRP1)
+      XCUALL(3,ir,  1)     = XCALL(24,ir,NGRP1)
+      XCUBAND(ir,1, 1)     = XCBAND(ir,1,NGRP1)
+      XCUBAND(ir,2, 1)     = XCBAND(ir,2,NGRP1)
+      ii = 1
+      do igr=NUNR1,NUNR2
+      ii = ii + 1
+      XCUALL(1,ir, ii)     = XCALL( 1,ir,igr)   ! inside
+      XCUALL(2,ir, ii)     = XCALL(23,ir,igr)
+      XCUALL(3,ir, ii)     = XCALL(24,ir,igr)
+      XCUBAND(ir,1,ii)     = XCBAND(ir,1,igr)
+      XCUBAND(ir,2,ii)     = XCBAND(ir,2,igr)
+      enddo                ! group loop end
+      ii = ii + 1
+      XCUALL(1,ir, ii)     = XCALL( 1,ir,NGRP2) ! upper limit
+      XCUALL(2,ir, ii)     = XCALL(23,ir,NGRP2) ! upper limit
+      XCUALL(3,ir, ii)     = XCALL(24,ir,NGRP2) ! upper limit
+      XCUBAND(ir,1,ii)     = XCBAND(ir,1,NGRP2)
+      XCUBAND(ir,2,ii)     = XCBAND(ir,2,NGRP2)
+      enddo                ! reaction loop end
+c-----------------------------------------------------------------------
+c
+c     WTBAND     ---> WTUBAND
+c
+c-----------------------------------------------------------------------
+      WTUBAND(1, 1) = WTBAND(1,NGRP1)              ! lower limit
+      WTUBAND(2, 1) = WTBAND(2,NGRP1)
+      ii = 1
+      do igr=NUNR1,NUNR2
+      ii = ii + 1
+      WTUBAND(1,ii) = WTBAND(1,igr)                ! inside
+      WTUBAND(2,ii) = WTBAND(2,igr)
+      enddo                ! group loop end
+      ii = ii + 1
+      WTUBAND(1,ii) = WTBAND(1,NGRP2)              ! upper limit
+      WTUBAND(2,ii) = WTBAND(2,NGRP2)
       return
       end
       subroutine mf2mt152
@@ -7385,7 +7719,6 @@ c     1) Unshielded = Sigma0 = infinity (1.0d10)
 c     2) Shielded   = Sigma0 = 0
 c
 c     Output for unshielded is always cross section
-c          "       shielded is cross section (LSSF=0) or f-factor
 c
 c     2019/6/23 - GROUPIE Output is NOW ALWAYS cross sections -
 c                 never f-factors - it sets LSSF = 0 for output.
@@ -7396,7 +7729,7 @@ c=======================================================================
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
-      common/ACECOM/nunr,NUNR1,NUNR2
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
 c-----Define 2 sihma0 values = infinity and 0
       dimension sigz(2)
       data nsigz/2/
@@ -7405,7 +7738,7 @@ c-----Define MF and MT
       mfh = 2
       mth = 152
 c-----Initialize HEADER and LEADER
-      l1h = LSSF     ! LSSF = Read as Input
+      l1h = LSSF     ! LSSF = 0 for output
       l2h = 0
       n1h = 0
       n2h = INTUNR   ! INTUNR = interpolation code = NJOY uses 2 or 5?
@@ -7413,7 +7746,7 @@ c                    ! NJOY uses 2 or 5 -here always use 2
       l1  = 5        ! always 5 reactions (T, E, F, C, T Current)
       l2  = nsigz    ! always 2 sigma-0 values
 c     n1  = 0        ! # of words = defined below
-      n2  = nunr     ! variable number of energies
+      n2  = NUNROUT
 c--------------------------------------------------------
       nreac   = l1   ! 5 = T, E, F, C, T current
 c-----------------------------------------------------------------------
@@ -7428,12 +7761,10 @@ c-----Sigma-0 values
       XOUT(ii) = sigz(isigz)
       enddo
 c-----shield x/c = vs. energy range, reaction, sigma-0
-      do iunrx = NUNR1,NUNR2        ! Energies
+      do iunrx = 1,NUNROUT          ! Energies
       ii = ii + 1
-      XOUT(ii) = EAV(iunrx)         ! energy
-      if(iunrx.eq.NUNR1) XOUT(ii) = URES1  ! First and last energies
-      if(iunrx.eq.NUNR2) XOUT(ii) = URES2  ! set to URR energy limits
-      do ireac = 1,nreac            ! reaction: T, E, F, C, Cuurent
+      XOUT(ii) = EAVURR(iunrx)      ! energy
+      do ireac = 1,nreac            ! reaction: T, E, F, C, Current
       if(ireac.eq.1) ireac1 = 2     ! T (Flux)   Note change in
       if(ireac.eq.2) ireac1 = 3     ! E          order to ENDF
       if(ireac.eq.3) ireac1 = 5     ! F          MT order 1, 2, 18, 102
@@ -7441,21 +7772,12 @@ c-----shield x/c = vs. energy range, reaction, sigma-0
       if(ireac.eq.5) ireac1 = 2     ! T (Current)
 c-----Unshielded
       ii = ii + 1
-      XOUT(ii) = XCALL( 1,ireac1,iunrx)
+      XOUT(ii) = XCUALL( 1,ireac1,iunrx)
 c-----Shielded (Flux or Current) = Cross Section or F-Fsctor
       ii = ii + 1
-      if(ireac.ne.5) K9=23                 ! Flux
-      if(ireac.eq.5) K9=24                 ! Current
-c-----Cross Section (LSSF=0) or F-Factor
-      if(LSSF.eq.0) then
-      XOUT(ii) = XCALL(K9,ireac1,iunrx)         ! Flux or Current
-      else
-      if(XCALL( 1,ireac1,iunrx).le.0.0d0) then  ! F-Factor
-      XOUT(ii) = 1.0d0
-      else
-      XOUT(ii) = XCALL(K9,ireac1,iunrx)/XCALL( 1,ireac1,iunrx)
-      endif
-      endif
+      if(ireac.ne.5) K9=2                  ! Flux
+      if(ireac.eq.5) K9=3                  ! Current
+      XOUT(ii) = XCUALL(K9,ireac1,iunrx)   ! Flux or Current
       enddo
       enddo
 c-----------------------------------------------------------------------
@@ -7485,7 +7807,7 @@ c=======================================================================
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
-      common/ACECOM/nunr,NUNR1,NUNR2
+      common/ACECOM/NUNR1,NUNR2,NUNROUT
 c-----Define MF and MT
       mfh = 2
       mth = 153
@@ -7494,10 +7816,10 @@ c-----Initialize HEADER and LEADER
       l2h = 0
       n1h = INTUNR   ! not defined in NJOY manual = guess INTERP code
       n2h = 2        ! Always 2 bins (bands)
-      l1  = LSSF     ! LSSF  = Read as Input
+      l1  = LSSF     ! LSSF  = 0 for output
       l2  = ICOMP    ! ICOMP = what NJOY uses = Competitive MT).
 c     n1  = 0        ! # of words - defined below
-      n2  = nunr     ! # of energies
+      n2  = NUNROUT  ! # of energies
 c-----------------------------------------------------------------------
 c
 c     Always output 2 band GROUPIE results.
@@ -7510,16 +7832,14 @@ c
 c-----------------------------------------------------------------------
       nbin = n2h                ! always 2 bins
       ii = 0
-      do iunrx = NUNR1,NUNR2        ! Energies
+      do iunrx = 1,NUNROUT          ! Energies
       ii = ii + 1
-      XOUT(ii) = EAV(iunrx)         ! energy
-      if(iunrx.eq.NUNR1) XOUT(ii) = URES1  ! First and last energies
-      if(iunrx.eq.NUNR2) XOUT(ii) = URES2  ! set to URR energy limits
+      XOUT(ii) = EAVURR(iunrx)      ! energy
       do ipar=1,6               ! 6 parameters=P,T,E,F,C,Heat = 0
       do ibin=1,nbin            ! nbin bins
       ii = ii + 1
       if(ipar.eq.1) then
-      XOUT(ii) = WTBAND(ibin,iunrx)  ! P
+      XOUT(ii) = WTUBAND (ibin,iunrx)  ! P
       else
       if(ipar.eq.6) then
       XOUT(ii) = 0.0d0               ! Heat = 0
@@ -7528,7 +7848,7 @@ c-----------------------------------------------------------------------
       if(ipar.eq.3) ipar1 = 3        ! E  to ENDF MT order: 1,2, 18,102
       if(ipar.eq.4) ipar1 = 5        ! F
       if(ipar.eq.5) ipar1 = 4        ! C
-      XOUT(ii) = XCBAND(ipar1,ibin,iunrx)
+      XOUT(ii) = XCUBAND (ipar1,ibin,iunrx)
       endif
       endif
       enddo
