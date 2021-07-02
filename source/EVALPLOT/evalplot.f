@@ -183,12 +183,14 @@ C                                  ALL ENDF/B-6 format defined MTs.
 C                                 *Added MF/MT=3/5 Parts based on SIXPAK
 C                                  ouput of MF/MT=6/5.
 C                                 *Added Target Isomeric State (m or n).
-C     Vers. 2021-1 (Jan. 2021)    *Added MOUSE Interaction to ZOOM plots
+C     Vers. 2021-1 (June 2021)    *Added MOUSE Interaction to ZOOM plots
 C                                  of Neutron (MF=3) and Photon (MF=23)
 C                                  Cross Sections.
 C                                 *SHOW ALL - Mouse click above plotting
 C                                  area.
 C                                 *Updated fot FORTRAN 2018
+C                                 *Corrected plot titles for neutrons,
+C                                  photons & electrons.
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -2660,6 +2662,7 @@ C=======================================================================
       INCLUDE 'evalplot.h'
       DIMENSION IXTIT(6),IYTIT(6),MFTAB1(6)
       EQUIVALENCE (XBCD(1),XBCD60),(YBCD(1),YBCD60),(MFBCD(1),MFBCD60)
+c-----------------------------------------------------------------------
 C-----DEFINE X AXIS LABELS FOR EACH TYPE OF DATA.
       DATA IXTIT/12,11,21,21,22,19/
       DATA XTITLE/
@@ -2669,7 +2672,8 @@ C-----DEFINE X AXIS LABELS FOR EACH TYPE OF DATA.
      4 'Incident Energy (MeV) ',
      5 'Secondary Energy (MeV)',
      6 'Photon Energy (MeV)   '/
-c       1234567890123456789022
+c       1234567890123456789012
+c-----------------------------------------------------------------------
 C-----DEFINE Y AXIS LABELS FOR EACH TYPE OF DATA.
       DATA IYTIT/18,18,14,13,15,15/
       DATA YTITLE/
@@ -2679,7 +2683,8 @@ C-----DEFINE Y AXIS LABELS FOR EACH TYPE OF DATA.
      4 'Legendre (CM)         ',
      5 'Probability/MeV       ',
      6 'Probability/MeV       '/
-c       1234567890123456789022
+c       1234567890123456789012
+c-----------------------------------------------------------------------
 C-----DEFINE TITLES FOR EACH DATA TYPE (MF NUMBER).
       DATA MFTAB1/21,21,21,21,20,20/
       DATA MFTAB/
@@ -2687,12 +2692,12 @@ C-----DEFINE TITLES FOR EACH DATA TYPE (MF NUMBER).
      1 'Angular Distributions ',
      5 'Legendre Coefficients ',
      5 'Legendre Coefficients ',
-     5 'Energy Distribution   ',
-     5 'Photon Distribution   '/
-c       1234567890123456789022
+     5 'Energy Distributions  ',
+     5 'Photon Distributions  '/
+c       1234567890123456789012
       DATA ERROR/
      1 '**Undefined**         '/
-c       1234567890123456789022
+c       1234567890123456789012
       DATA BLANK/' '/
 c-----------------------------------------------------------------------
 C
@@ -2780,9 +2785,9 @@ C     FOR MF =3, 10, 23 AND 27 DATA.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      CHARACTER*1 ZABCD,MFBCD,MTBCD,XBCD,YBCD,MFTEMP
+      CHARACTER*1 ZABCD,MFBCD,MTBCD,XBCD,YBCD,MFTEMP,TOP1(60,23)
       CHARACTER*22 MFTEMP22
-      CHARACTER*60 TOPPER(23),MTBCD60,XBCD60,YBCD60,ERROR,BOTTOM(6),
+      CHARACTER*60 TOPPER(23),MTBCD60,XBCD60,YBCD60,ERROR,BOTTOM(5),
      1 XTITLE(5),YTITLE(5),MFBCD60
       COMMON/LABELC/ZABCD(12),MFBCD(60),MTBCD(60),XBCD(60),YBCD(60)
       COMMON/LABELI/IMFBCD,IMTBCD,IXBCD,IYBCD
@@ -2790,7 +2795,8 @@ C=======================================================================
       DIMENSION NTOP(23),NBOT(4,9),
      2 IXTIT(5),IYTIT(5),MFTEMP(22)
       EQUIVALENCE (MTBCD(1),MTBCD60),(MFBCD(1),MFBCD60),
-     1 (XBCD(1),XBCD60),(YBCD(1),YBCD60),(MFTEMP(1),MFTEMP22)
+     1 (XBCD(1),XBCD60),(YBCD(1),YBCD60),(MFTEMP(1),MFTEMP22),
+     2 (TOP1(1,1),TOPPER)
       DATA ERROR/
      1 '**Undefined**         '/
 c       1234567890123456789012
@@ -2799,38 +2805,42 @@ C-----DEFINE TITLE FOR TEMPERATURE DEPENDENT NEUTRON CROSS SECTIONS.
       DATA MFTEMP22/
      1 ' Kelvin Cross Sections'/
 c       1234567890123456789012
+c-----------------------------------------------------------------------
+c
 C-----DEFINE TOP TITLE LINES OF PLOT FOR MF = 3, 10, 23 AND 27.
+c     NTOP = # of characters in each of 23 titles for top
       DATA NTOP/
-     1 5,18,16,19,7,12,12,12,12,15,13,12, 7, 8,12,13,15,6,6,37,13,10,19/
+     1 5,18,16,19,7,13,12,12,12,14,13,13, 7, 8, 5,10,15,6,6,37,14,10,19/
 c      1  2  3  4 5  6  7  8  9 10 11 12 13 14 15 16 171819 20 21 22 23
+c
+c     Neutron Interactions
+c
       DATA TOPPER/
+c       1234567890123456789012345678901234567
      1 'Major                 ',
-c
-c     Neutrons
-c
-c-----2020/1/8 - Changed Production to Absorption
-     2 'Neutron Absorption    ',
+     2 'Neutron Absorption    ', ! 2020/1/8 > Production to Absorption
      3 'Charged Particle      ',
      4 'Particle Production   ',
      5 'Fission               ',
-     6 '(n,n'') Levels        ',
+     6 '(n,n'') Levels        ', ! note double ' = only 1 character
      7 '(n,p) Levels          ',
      8 '(n,d) Levels          ',
      9 '(n,t) Levels          ',
      A '(n,He3) Levels        ',
      1 '(n,]a) Levels         ',
-c-----2020/1/8 - Added n,2n Levels
-     2 '(n,2n) Levels         ',
-     3 'Neutron               ',     ! <mu>, eta,..
-     4 'Neutrons              ',     ! <nu>
+     2 '(n,2n) Levels         ', ! 2020/1/8 > Added (n,2n) Levels
+     3 'Neutron               ', ! <mu>, eta,.. MT=251, 252,...
+     4 'Neutrons              ', ! <nu>         MT=452, 453....
+c       1234567890123456789012345678901234567
 c
-c     Photons & Electrons
+c     Photons & Electrons Interactions
 c
      5 'Major                 ',
      6 'Ionization            ',
      7 'Pair Production       ',
      8 'Photon                ',
      9 'Photon                ',
+c       1234567890123456789012345678901234567
 c
 c     Miscellaneous Neutron Data
 c
@@ -2839,30 +2849,31 @@ c
      2 'Parameters            ',
      3 '(n, anything) Parts   '/
 c       1234567890123456789012345678901234567
-C-----DEFINE BOTTOM LINE OF TITLE.
+c-----------------------------------------------------------------------
+C-----DEFINE BOTTOM TITLE LINES
 C     1 - LOWER LOOP VALUE
 C     2 - UPPER LOOP VALUE
 C     3 - INDEX TO TITLE TABLE
 C     4 - NUMBER OF CHARACTERS IN TITLE
       DATA NBOT/
      1   1,12,1,14,           ! Cross Sections neutron
-     2  13,13,2,10,           ! Neutron   <mu>, eta,...
-     3  14,14,3,11,           ! Neutrons  <nu>
+     2  13,13,2,10,           ! Neutron   <mu>, eta,...MT=251, 252,...
+     3  14,14,3,11,           ! Neutrons  <nu>         MT=452, 453...
      4  15,17,1,14,           ! Cross Sections photon x/c
      5  18,18,4,12,           ! Form Factors
      6  19,19,5,18,           ! Anomalous
      7  20,20,1,14,           ! Radioactive Prod.
      8  21,22,1,14,           ! Parameters
-     9  23,23,6,20/           ! yield cross section MT=5
+     9  23,23,1,14/           ! Cross Sections neutron MT=5
       DATA BOTTOM/
      1 'Cross Sections        ',       ! X/C
      2 'Parameters            ',       ! <mu>, eta,..
      3 'per Fission           ',       ! <nu>
      4 'Form Factors          ',       ! form factor
-     5 'Scattering Factors    ',       ! anomalous
-     6 'Yield Cross Sections  '/       ! yield*X/C MT=5
+     5 'Scattering Factors    '/       ! anomalous
 c       1234567890123456789012
-C-----X AXIS LABELS.
+c-----------------------------------------------------------------------
+C-----Define X AXIS LABELS.
       DATA IXTIT/21,21,21,17,17/
       DATA XTITLE/
      1 'Incident Energy (MeV) ',       ! X/C
@@ -2871,7 +2882,8 @@ C-----X AXIS LABELS.
      4 'E*Sin(]q/2) (MeV)     ',       ! form factor
      5 'E*Sin(]q/2) (MeV)     '/       ! anomalous
 c       1234567890123456789012
-C-----Y AXIS LABELS.
+c-----------------------------------------------------------------------
+C-----Define Y AXIS LABELS.
       DATA IYTIT/21,10,20,12,18/
       DATA YTITLE/
      1 'Cross Section (barns) ',       ! X/C
@@ -2880,6 +2892,33 @@ C-----Y AXIS LABELS.
      4 'Form Factors          ',       ! form factor
      5 'Scattering Factors    '/       ! anomalous
 c       1234567890123456789012
+c-----------------------------------------------------------------------
+c***** DEBUG
+c
+c     2021/6/24 - Checked - corrected 8 title lengths
+c
+c-----Check title lengths on first call.
+c     DATA IPASS/0/
+c     if(IPASS.eq.0) then
+c-----Check/set length of Titles at TOP
+c     do k=1,23
+c     do j=60,1,-1
+c     if(TOP1(j,k).ne.' ') go to 2
+c     enddo
+c     j = 0
+c   2 if(NTOP(k).ne.j) then
+c     write(3,3333) k,NTOP(k),j
+c3333 format(' k/NTOP/j=',3i5,' WRONG')
+c     else
+c     write(3,3334) k,NTOP(k),j
+c3334 format(' k/NTOP/j=',3i5)
+c     endif
+c     NTOP(k) = j    ! Insure correct
+c     enddo
+c     IPASS = 1
+c     endif
+c     stop
+c***** DEBUG
 c-----------------------------------------------------------------------
 C
 C     LOAD ERROR MESSAGE IF NOT DEFINED.
@@ -2921,7 +2960,8 @@ C
 C     BOTTOM LINE OF TITLE BY CATAGORY.
 C
 c-----------------------------------------------------------------------
-      IF(LOOP.LT.1.OR.LOOP.GT.13) GO TO 40
+c-----2021/6/22 - Changed LOOP=1 to 13, to 1 to 12 (13 = Parameters)
+      IF(LOOP.LT.1.OR.LOOP.GT.12) GO TO 40
       IF(MF.NE.3.OR.NOTEMP.NE.0) GO TO 40
 c-----------------------------------------------------------------------
 C

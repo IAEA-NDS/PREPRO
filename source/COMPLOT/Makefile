@@ -14,8 +14,8 @@ endif
 FFLAGS = -O0 -w -static-libgfortran
 CFLAGS = -w 
 LIBS   = -lXt -lX11
-LIBDIR = -L/usr/X11/lib
-CC     = gcc -I/usr/X11/include
+LIBDIR = -L/opt/X11/lib
+CC     = gcc -I/opt/X11/include
 FC     = gfortran
 
 FSUB1= complot.f endfio.f scratchb.f screen.f
@@ -35,7 +35,7 @@ complot: $(OBJ)
 comhard: complot.o endfio.o scratchb.o saveps.o
 	$(FC) -o comhard $(FFLAGS) complot.o endfio.o scratchb.o saveps.o
 
-comhard1: complot.o endfio.o scratchb.o  saveps1.o
+comhard1: complot.o endfio.o scratchb.o saveps1.o
 	$(FC) -o comhard1 $(FFLAGS) complot.o endfio.o scratchb.o saveps1.o
 
 .PHONY: install
@@ -45,5 +45,7 @@ install: complot comhard comhard1
 
 .PHONY: clean
 clean:
-	rm -f *.o
+	rm -f complot comhard comhard1
+	rm -f complot.o endfio.o scratchb.o screen.o \
+	      dash.o saveps.o saveps1.o 
 #

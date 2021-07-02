@@ -10,7 +10,7 @@
 # makefile to create PREPRO code suite
 
 FORT = gfortran
-FLAGS = -O3 -static-libgfortran
+FLAGS = -O0 -static-libgfortran
 
 PROG = \
 activate \
