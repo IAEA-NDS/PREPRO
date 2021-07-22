@@ -1,30 +1,30 @@
 #!/bin/sh
-PATH="$(pwd)/../bin:$PATH"
+PATH="$(pwd)/../../bin:$PATH"
 
 mkdir -p output
 cp input/* output
 cd output
 
-endf2c
-linear
-recent
+../../bin/endf2c
+../../bin/linear
+../../bin/recent
 rm LINEAR.OUT
-sigma1
+../../bin/sigma1
 rm RECENT.OUT
-activate
+../../bin/activate
 rm SIGMA1.OUT
-legend
+../../bin/legend
 rm ACTIVATE.OUT
-fixup
+../../bin/fixup
 rm LEGEND.OUT
-dictin
-rm FIXUP.OUT
-groupie
-mixer
-virgin
-evalplot
-complot
-evalhard1
+../../bin/dictin
+../../bin/sixpak
+../../bin/groupie
+../../bin/mixer
+../../bin/virgin
+../../bin/evalplot
+../../bin/complot
+../../bin/evalhard1
 mv PLOT0001.ps evalhard1.ps
-comhard1
+../../bin/comhard1
 mv PLOT0001.ps comhard1.ps

@@ -1,17 +1,17 @@
 DOUBLE INTEGER PROGRAM
-CONVERT.IN
+RELABEL.IN
 CONVERT.OUT
 === This and the below lines are NOT read as input, so you can store ===
 === anything you want below. Here I have defined how the input data  ===
 === is interpreted = so you know what each input field means.        ===
-  ==============================================================================
+  ======================================================================
   Input Keyword    Comments
-  ==============================================================================
+  ======================================================================
   ( 1) DOUBLE
   ( 2) INTEGER
   ( 3) PROGRAM
-  ==============================================================================
+  ======================================================================
   Input and Output Data Filenames
   CONVERT.IN
   CONVERT.OUT
-  ==============================================================================
+  ======================================================================

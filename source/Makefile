@@ -30,10 +30,10 @@ sixpak \
 spectra \
 virgin
 
-ifeq ($(graphics),no)
-	GRAPH_PROG =
-else
+ifeq ($(graphics),yes)
 	GRAPH_PROG = COMPLOT EVALPLOT
+else
+	GRAPH_PROG =
 endif
 
 CWD = $(shell pwd)
@@ -56,10 +56,12 @@ install:: $(PROG)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp $^ $(DESTDIR)$(PREFIX)/bin
 
+ifneq ($(GRAPH_PROG),)
 install:: $(GRAPH_PROG)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	$(MAKE) -C COMPLOT install DESTDIR=$(DESTDIR) PREFIX=$(PREFIX)
 	$(MAKE) -C EVALPLOT install DESTDIR=$(DESTDIR) PREFIX=$(PREFIX)
+endif
 
 .PHONY: clean
 clean:
