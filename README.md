@@ -24,7 +24,7 @@ D.E. Cullen, "PREPRO 2021: ENDF/B Pre-processing Codes", report  IAEA-NDS-xx, Re
 
 **Important note for users of earlier versions:**
 
-Earlier versions of PREPRO (i.e., before version 2019-1) may not accurately
+Earlier versions of PREPRO (i.e., before version 2019) may not accurately
 process current ENDF/B evaluations due to recent changes in the ENDF-6
 format and procedures.
 PREPRO 2021 can handle all past and present existing ENDF/B evaluations.
@@ -54,6 +54,13 @@ run the following commands from your command line:
     make clean
 ```
 If successful, the executables will be available in `PREPRO/bin`.
+
+```
+    make install graphics=yes
+    make clean
+```
+Will also install the graphics packages that requires X11 in /usr for Linux or
+/opt for MacOS
 
 Verify the installation by changing into the directory `test`.
 There run the command
@@ -98,7 +105,7 @@ For instance, `<PREPRO-CODE>` could be `endf2c` or `fixup`.
 
 ### Supplementary material
 
-The PREPRO 2019 codes can also be found [here][PREPRO2021-website]
+The PREPRO 2021 codes can also be found [here][PREPRO2021-website]
 on the IAEA-NDS website. In particular, these resources are provided:
 - [Download of codes for various operating systems][PREPRO2021-codes]
 - [Best input parameters][PREPRO2021-best-parameters]
