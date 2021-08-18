@@ -147,7 +147,7 @@ C     VERS. 2020-1 (Dec.  2020)   *ZA & AWRE Correction Required.
 C                                 *Extenstion to 20 MeV NOT ALLOWED.
 C                                 *Threshold correction NOT ALLOWED.
 C                                 *Added Target isomeric state
-C     VERS. 2021-1 (Kan.  2021)   *Updated for FORTRAN 2018
+C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
 C                                 *DELETED MT=3 = Nonelastic by adding
 C                                  it to the built-in DELETION table -
 C                                  to select set option 3 = 2 (use
@@ -157,7 +157,11 @@ C                                  can add an enormous volume to ENDF
 C                                  format files: (MT=3) = (MT-1)-(MT-2),
 C                                  included ALL of the resonances from
 C                                  capture, fission,.....
-C
+C     VERS. 2021-2 (Aug.  2021)   *Corrected MTCHEK to check only if
+C                                  using built-in tables,
+C                                  IMOPS(4) = DELETION
+C                                  IMOPS(5) = SUMMATION
+C                                  ERROR = Only print WARNING - NO STOP
 C     2019-2 Acknowledgment
 C     =====================
 C     I thank Jean-Christophe Sublet (NDS, IAEA, Vienna, Austria) for
@@ -1776,7 +1780,7 @@ c-----------------------------------------------------------------------
       WRITE(*   ,1060)
       RETURN
   870 FORMAT(' Test and Correct Data in the ENDF FORMAT',
-     1 ' (FIXUP 2021-1)'/1X,78('-')/
+     1 ' (FIXUP 2021-2)'/1X,78('-')/
      1 ' Interpretation of Input Test/Correction Options'/1X,78('-'))
   880 FORMAT(1X,78('-')/' Input Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
@@ -1891,7 +1895,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program FIXUP (Version 2021-1) ************',
+     1 ' ***************** Program FIXUP (Version 2021-2) ************',
      1 ' Corrected ZA/AWR in All Sections-----------------------------',
      2 ' Corrected Thresholds-----------------------------------------',
      3 ' Extended Cross Sections to 20 MeV----------------------------',
@@ -2155,9 +2159,8 @@ C-----SAVE FILE 3 RULES AND USE FILE 23 RULES.
       MTMAKE(I)=MTMAKP(I)
       MTRANG(I)=MTRANP(I)
       DO 40 J=1,2
-      DO K=1,15
+      DO 40 K=1,15
       MTADD(J,K,I)=MTADDP(J,K,I)
-      ENDDO
    40 CONTINUE
    50 CONTINUE
 C-----READ ALL SECTION, EDIT AND COPY TO SCRATCH FILE TAPEC.
@@ -4945,10 +4948,7 @@ C
 c-----------------------------------------------------------------------
 c-----Note - corrected dedfinition of MF=3, not to include MT=18,
 c            since it is already included in MT=27.
-c     MTADD6X = 2 X 10 X 20
-c***** DEBUG
-c     MTADD6X = 2 X 15 X 20
-c***** DEBUG
+c-----MTADD6X = 2 X 15 X 20
       DATA MTADD6X/
 c            1       2       3       4       5   6   7   8   9  10
 c                                               11  12  13  14  15
@@ -5437,12 +5437,11 @@ c-----01/18/11 - increased dimension from 200 to 1,000
       COMMON/OPS/IMOPS(14)
 c-----------------------------------------------------------------------
 c
-c     Check DELETIONS
+c     IMOPS(4) = Check DELETIONS
 c
 c-----------------------------------------------------------------------
-      MYERROR = 0
-c-----Only check if using built-in tables
-      if(IMOPS(4).le.0) go to 20
+c-----2021-2 = Only check if using built-in tables
+      if(IMOPS(4).ne.2) go to 20
       if(IDEL.le.0) go to 20
       do 12 i=1,IDEL
       jj1 = MTDEL(1,i)
@@ -5451,17 +5450,16 @@ c-----Only check if using built-in tables
       if(MTTABB(1,j).gt.0) go to 11
       write(*,10) j
       write(3,10) j
-   10 format(' ERROR...MT=',i5,' Not Defined for DELETION')
-      MYERROR = 1
+   10 format(' WARNING...MT=',i5,' Not Defined for DELETION')
    11 continue
    12 continue
 c-----------------------------------------------------------------------
 c
-c     Check NEUTRON SUMS
+c     IMOPS(5) = Check NEUTRON SUMS
 c
 c-----------------------------------------------------------------------
-c-----Only check if using built-in tables
-   20 if(IMOPS(5).le.0) go to 100
+c-----2021-2 = Only check if using built-in tables
+   20 if(IMOPS(5).ne.2) go to 100
       if(MAKE.le.0) go to 40
       do 35 i=1,MAKE
 c-----Sum
@@ -5470,8 +5468,7 @@ c-----Sum
       if(MTTABB(1,MTUSE).gt.0) go to 31
       write(*,30) MTUSE
       write(3,30) MTUSE
-   30 format(' ERROR...MT=',i5,' Not Defined for Neutron SUMMATION')
-      MYERROR = 1
+   30 format(' WARING...MT=',i5,' Not Defined for Neutron SUMMATION')
 c-----Parts
    31 do 34 k=1,15
       jj1 = IABS(MTADD(1,k,i))     ! Allow for subtraction
@@ -5488,7 +5485,6 @@ c-----Parts
       if(MTTABB(1,MTUSE).gt.0) go to 33
       write(*,30) MTUSE
       write(3,30) MTUSE
-      MYERROR = 1
    33 continue
    34 continue
    35 continue
@@ -5498,15 +5494,14 @@ c     Check PHOTON SUMS
 c
 c-----------------------------------------------------------------------
    40 if(MAKEP.le.0) go to 60
-      do 55 i=1,MAKE
+      do 55 i=1,MAKEP
 c-----Sum
-      MTUSE = MTMAKE(i)
+      MTUSE = MTMAKP(i)
       MTTABB(2,MTUSE) = MTTABB(2,MTUSE) + 1      ! Used AS SUM
       if(MTTABB(1,MTUSE).gt.0) go to 51
       write(*,50) MTUSE
       write(3,50) MTUSE
-   50 format(' ERROR...MT=',i5,' Not Defined for Photon SUMMATION')
-      MYERROR = 1
+   50 format(' WARNING...MT=',i5,' Not Defined for Photon SUMMATION')
 c-----Parts
    51 do 54 k=1,10
       jj1 = IABS(MTADDP(1,k,i))   ! Allow for subtraction
@@ -5523,7 +5518,6 @@ c-----Parts
       if(MTTABB(1,MTUSE).gt.0) go to 53
       write(*,50) MTUSE
       write(3,50) MTUSE
-      MYERROR = 1
    53 continue
    54 continue
    55 continue
@@ -5538,8 +5532,7 @@ c-----------------------------------------------------------------------
       if(MTTABB(3,i).le.0) then
       write(3,62) i,MTTABA(i)
       write(*,62) i,MTTABA(i)
-   62 format(' ERROR...MT=',i5,1x,a40,' Not Used in SUMMATION')
-      MYERROR = 1
+   62 format(' WARNING...MT=',i5,1x,a40,' Not Used in SUMMATION')
       endif
    65 continue
 c-----------------------------------------------------------------------
@@ -5552,15 +5545,13 @@ c-----------------------------------------------------------------------
       if(MTTABB(3,i).gt.1) then
       write(3,72) i,MTTABA(i),MTTABB(3,i)
       write(*,72) i,MTTABA(i),MTTABB(3,i)
-   72 format(' ERROR...MT=',i5,1x,a40,' Used',i2,' Times in SUMMATION')
-      MYERROR = 1
+   72 format(' WARNING..MT=',i5,1x,a40,' Used',i2,' Times in SUMMATION')
       endif
    75 continue
 c-----------------------------------------------------------------------
 C
-C     Stop on ERROR
+C     Finished
 c
 c-----------------------------------------------------------------------
-  100 if(MYERROR.gt.0) STOP
-      return
+  100 return
       end

@@ -6,6 +6,7 @@ cp input/* output
 cd output
 
 ../../bin/endf2c
+../../bin/merger
 ../../bin/linear
 ../../bin/recent
 rm LINEAR.OUT
@@ -19,6 +20,7 @@ rm ACTIVATE.OUT
 rm LEGEND.OUT
 ../../bin/dictin
 ../../bin/sixpak
+../../bin/spectra
 ../../bin/groupie
 ../../bin/mixer
 ../../bin/virgin
