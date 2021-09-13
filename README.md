@@ -1,13 +1,14 @@
 ## PREPRO 2021
 
-The ENDF/B preprocessing codes (PREPRO) are a collection of 22 module codes,
+The ENDF/B preprocessing codes (PREPRO) are a collection of 18 module codes,
 which are designed to convert ENDF/B formatted evaluated data from
-the originally distributed form (ENDF-6) to forms in which the data can be used in
-applications.
+the originally distributed ENDF-6 format to formats in which the data can be used in
+application codes.
 
 Features of the codes:
-- Forms include pointwise, groupwise cross-section, emitted particules angular 
-  distribution and spectra, particle and activation yields, multi-band parameters.
+- ENDF-6 formatted data include pointwise, groupwise cross-sections,
+  emitted particles angular distribution and spectra, particle and activation
+  yields, multi-band parameters.
 - Data can be plotted on-screen or plots can be saved as PostScript files to disk.
 - The codes run on Linux, MacOS and Windows.
 - PREPRO 2021 is ENDF/B-tested and completely Fortran, C and C++ compatible.
@@ -18,7 +19,7 @@ Features of the codes:
 This computer code package should be cited as follows:
 
 ```
-D.E. Cullen, "PREPRO 2021: ENDF/B Pre-processing Codes", report  IAEA-NDS-xx, Rev. yy, August 20, 2021
+D.E. Cullen, "PREPRO 2021: ENDF/B Pre-processing Codes", report IAEA-NDS-0238, September, 2021
 ```
 
 
@@ -42,7 +43,7 @@ system.
 
 ### Installation
 
-These installation instructions have been only tested on Linux and MacOS
+These installation instructions have been only tested on Linux and MacOS.
 Assuming that *git*, *GNU make*, *GNU Fortran*, *GNU gcc*, *Intel OneApi* 
 and *Xlib* (libX11) or compatible XQuartz X.Org are installed on your system, 
 run the following commands from your command line:
@@ -74,7 +75,7 @@ versions should not exceed 2%, i.e., the plotted ratio should
 be between 0.98 and 1.02.
 
 Finally, after successful verification, move the executables to
-a place of your liking. Under Linux `/usr/local/bin`is usually
+a place of your liking. Under Linux `/usr/local/bin` is usually
 a good place.
 
 #### Installation with Singularity
