@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM EVALPLOT
@@ -200,6 +191,10 @@ C                                  area.
 C                                 *Updated fot FORTRAN 2018
 C                                 *Corrected plot titles for neutrons,
 C                                  photons & electrons.
+C     Vers. 2021-2 (Sept 2021)    *Corrected Angular (MF=4) and Energy
+C                                  (MF=5) plotting - 2021-1 skipped ALL
+C                                  remaining MF rather thsn just current
+C                                  MT - 2021-2 corrects this.
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -1118,7 +1113,7 @@ C-----OF FILE 3 IF CROSS SECTION PLOTS HAVE BEEN REQUESTED.
   180 MT3OUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
 C-----SKIP UNLESS FILE HAS BEEN REQUESTED OR MF=3 TO GET Q-VALUES.
       IF(MFH.NE.3.AND.MT3OUT.LE.0) GO TO 190
-      IF(MT3OUT.GT.0.AND.MFH.EQ.3) LTABLE(1)=LTABLE(1)+1
+      IF(MT3OUT.GT.0.AND.MFH.EQ. 3) LTABLE(1)=LTABLE(1)+1
       IF(MT3OUT.GT.0.AND.MFH.EQ.23) LTABLE(6)=LTABLE(6)+1
       IF(MT3OUT.GT.0.AND.MFH.EQ.27) LTABLE(7)=LTABLE(7)+1
       CALL PAGEIT(0)
@@ -1196,7 +1191,8 @@ C-----IF SECTION HAS NOT BEEN REQUESTED, SKIP IT.
       LTT = 2
       endif
 C-----SKIP ISOTROPIC DISTRIBUTIONS.
-      IF(LTT.EQ.0) GO TO 50
+c-----2021/9/9 - Skip MT instead of MF
+      IF(LTT.EQ.0) GO TO 40
 C-----SKIP TRANSFORMATION MATRIX - only MF=4
       if(MFH.eq.4) CALL CARDI(C1L,C2L,L1L,LABCM,N1H,N2L)
       IF(LVT.NE.0) CALL LISTSKIP(N1H)
@@ -1244,7 +1240,8 @@ c-----------------------------------------------------------------------
   330 IF(MFH.NE.5.AND.MFH.NE.15) GO TO 50
 C-----IF SECTION HAS NOT BEEN REQUESTED, SKIP IT.
       MTOUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
-      IF(MTOUT.LE.0) GO TO 60
+c-----2021/9/9 - Corrected to skip MT instrad of MAT
+      IF(MTOUT.LE.0) GO TO 40          ! Skip MT
       NK=N1H
       DO 360 L=1,NK
 C-----CAN ONLY PLOT TABULATED ENERGY DISTRIBUTIONS. SKIP SECTION
@@ -1616,7 +1613,7 @@ C-----TERMINATE IF NO REQUESTS.
       CALL ENDERROR
   190 RETURN
   200 FORMAT(///' Plot Evaluated Data from the ENDF/B Format',
-     1 ' (EVALPLOT 2021-1)'/1X,72('-')/
+     1 ' (EVALPLOT 2021-2)'/1X,72('-')/
      2 ' Description of Plotter and Plots per Frame'/1X,72('-')/
      3 ' X Dimensions (X-Min to X-Max)-----------------',
      4 F11.4,' to ',F11.4,' Inches'/
@@ -5860,7 +5857,7 @@ C-----(3) VERSES - CHARACTERS FOR I.D.
 C       12345678901234567890123456789012
       DATA VERSE1/
      1 'Program EVALPLOT                ',
-     2 '(Version 2021-1)                ',
+     2 '(Version 2021-2)                ',
      3 'by                              ',
      4 'Dermott E. Cullen               ',
      5 '(Present Contact Information)   ',
