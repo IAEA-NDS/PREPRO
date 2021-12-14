@@ -78,6 +78,10 @@ Finally, after successful verification, move the executables to
 a place of your liking. Under Linux `/usr/local/bin` is usually
 a good place.
 
+
+:warning: **Warning**: If PREPRO is being installed in a virtual environment (e.g. conda), then the `activate` code will clash with the `activate` command available in the environment.
+
+
 #### Installation with Singularity
 
 [Singularity] is a containerisation application similar to Docker.
