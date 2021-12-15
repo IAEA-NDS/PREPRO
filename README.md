@@ -79,7 +79,11 @@ a place of your liking. Under Linux `/usr/local/bin` is usually
 a good place.
 
 
-:warning: **Warning**: If PREPRO is being installed in a virtual environment (e.g. conda), then the `activate` code will clash with the `activate` command available in the environment.
+:warning: **Warning:**  If PREPRO is being installed in a virtual environment (e.g. *conda, venv, pyenv*, etc.) or alongside *oneAPI*, then the `activate` code will clash with the `activate` command available in the environment. You can check which `activate` program you are running by inspecting the full path:
+```
+  which activate
+```
+If you run into this problem, the solution is to call the PREPRO code `activate` using it's full path, or to update the `$PATH` in your `.bashrc` script to ensure that the path containing the PREPRO executables is called before the path where the `activate` environment script is.
 
 
 #### Installation with Singularity
