@@ -121,7 +121,7 @@ on the IAEA-NDS website. In particular, these resources are provided:
 
 [PREPRO2023-website]: https://www-nds.iaea.org/public/endf/prepro/
 [PREPRO2023-codes]: https://www-nds.iaea.org/public/endf/prepro/ask4code.html
-[PREPRO2023-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/ask4best.html
+[PREPRO2023-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/BEST/ask4best.html
 [PREPRO2023-documentation]: https://www-nds.iaea.org/public/endf/prepro/DOCUMENT/ask4docs.html
 
 
