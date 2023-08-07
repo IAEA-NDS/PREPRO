@@ -1,4 +1,4 @@
-## PREPRO 2021
+## PREPRO 2023
 
 The ENDF/B preprocessing codes (PREPRO) are a collection of 18 module codes,
 which are designed to convert ENDF/B formatted evaluated data from
@@ -11,7 +11,7 @@ Features of the codes:
   yields, multi-band parameters.
 - Data can be plotted on-screen or plots can be saved as PostScript files to disk.
 - The codes run on Linux, MacOS and Windows.
-- PREPRO 2021 is ENDF/B-tested and completely Fortran, C and C++ compatible.
+- PREPRO 2023 is ENDF/B-tested and completely Fortran, C and C++ compatible.
 
 
 **Citation**
@@ -19,7 +19,7 @@ Features of the codes:
 This computer code package should be cited as follows:
 
 ```
-D.E. Cullen, "PREPRO 2021: ENDF/B Pre-processing Codes", report IAEA-NDS-0238, September, 2021
+D.E. Cullen, "PREPRO 2023: ENDF/B Pre-processing Codes", report IAEA-NDS-0241, June, 2023
 ```
 
 
@@ -28,16 +28,16 @@ D.E. Cullen, "PREPRO 2021: ENDF/B Pre-processing Codes", report IAEA-NDS-0238, S
 Earlier versions of PREPRO (i.e., before version 2019) may not accurately
 process current ENDF/B evaluations due to recent changes in the ENDF-6
 format and procedures.
-PREPRO 2021 can handle all past and present existing ENDF/B evaluations.
+PREPRO 2023 can handle all past and present existing ENDF/B evaluations.
 
-**Relation to the PREPRO 2021 code provided on the IAEA-NDS website:**
+**Relation to the PREPRO 2023 code provided on the IAEA-NDS website:**
 
-This repository is complementary to the [PREPRO website][PREPRO2021-website]
+This repository is complementary to the [PREPRO website][PREPRO2023-website]
 of the Nuclear Data Section at the IAEA
-and contains the source files of the PREPRO 2021 codes.
+and contains the source files of the PREPRO 2023 codes.
 If you do not want to compile the codes yourself or are unsuccessful using the
 instructions provided below, you find executables
-for Linux, MacOS and Windows [here][PREPRO2021-codes]. Additional
+for Linux, MacOS and Windows [here][PREPRO2023-codes]. Additional
 makefiles are also provided there which may be more pertinent for your
 system.
 
@@ -69,7 +69,7 @@ There run the command
     ./verify.sh
 ```
 At the very end of the execution, you will see the plots by
-*COMPLOT* comparing the result of PREPRO 2015 and PREPRO 2021.
+*COMPLOT* comparing the result of PREPRO 2015 and PREPRO 2023.
 The difference between these
 versions should not exceed 2%, i.e., the plotted ratio should
 be between 0.98 and 1.02.
@@ -113,16 +113,16 @@ For instance, `<PREPRO-CODE>` could be `endf2c` or `fixup`.
 
 ### Supplementary material
 
-The PREPRO 2021 codes can also be found [here][PREPRO2021-website]
+The PREPRO 2023 codes can also be found [here][PREPRO2023-website]
 on the IAEA-NDS website. In particular, these resources are provided:
-- [Download of codes for various operating systems][PREPRO2021-codes]
-- [Best input parameters][PREPRO2021-best-parameters]
-- [Documentation][PREPRO2021-documentation]
+- [Download of codes for various operating systems][PREPRO2023-codes]
+- [Best input parameters][PREPRO2023-best-parameters]
+- [Documentation][PREPRO2023-documentation]
 
-[PREPRO2021-website]: https://www-nds.iaea.org/public/endf/prepro/
-[PREPRO2021-codes]: https://www-nds.iaea.org/public/endf/prepro/ask4code.html
-[PREPRO2021-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/ask4best.html
-[PREPRO2021-documentation]: https://www-nds.iaea.org/public/endf/prepro/DOCUMENT/ask4docs.html
+[PREPRO2023-website]: https://www-nds.iaea.org/public/endf/prepro/
+[PREPRO2023-codes]: https://www-nds.iaea.org/public/endf/prepro/ask4code.html
+[PREPRO2023-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/ask4best.html
+[PREPRO2023-documentation]: https://www-nds.iaea.org/public/endf/prepro/DOCUMENT/ask4docs.html
 
 
 ### Legal note
