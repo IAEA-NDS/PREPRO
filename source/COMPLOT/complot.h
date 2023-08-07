@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     COMPLOT COMMON
@@ -16,17 +7,22 @@ C
 C     PARAMETERS
 C
 C-----------------------------------------------------------------------
+c***** DEBUG
 c-----2017/02/18 - Increased MAXPOINT to size to 2,400,000
-      PARAMETER (MAXPOINT = 2400000)
+c     PARAMETER (MAXPOINT = 2400000)
+      PARAMETER (MAXPOINT =  120000)
 c----- 2,400,000 X 8 bytes X 6 arrays = 115,200,000 bytes
 c-----------------------------------------------------------------------
 c-----2017/02/18 - Increased MAXLOAD  to 2,400,000 (same as MAXPOINT)
-      PARAMETER (MAXLOAD  = 2400000)
+c     PARAMETER (MAXLOAD  = 2400000)
+      PARAMETER (MAXLOAD  =  120000)
 c----- 2,400,000 X 8 bytes X 2 arrays =  38,400,000 bytes
 c-----------------------------------------------------------------------
 c-----2020/03/21 - Increased MAXIZA   to 2,400,000 (same as MAXPOINT)
-      PARAMETER (MAXIZA   = 2400000) ! MAT/MF/MT Combinations
+c     PARAMETER (MAXIZA   = 2400000) ! MAT/MF/MT Combinations
+      PARAMETER (MAXIZA   =  120000) ! MAT/MF/MT Combinations
 c-----2,400,000 X 12 bytes            =  28,800,000
+c***** DEBUG
 c-----------------------------------------------------------------------
       PARAMETER (MAXGET   =     101) ! Requested
 c-----Many arrays, but minimum storage.

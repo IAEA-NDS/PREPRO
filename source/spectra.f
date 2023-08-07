@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SPECTRA
@@ -156,6 +147,8 @@ C                                  to assume this has Y=0 - now keep
 C                                  point, but insure Y = 0.
 C     VERS. 2020-1 (Mar. 2020)    *Added Target Isomer State
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 3,000,000
+C                                  to 120,000
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -243,7 +236,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM SPECTRA (2021-1) ****************
+C     ***************** PROGRAM SPECTRA (2023-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-10 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -767,7 +760,7 @@ c-----End of Run - Normal
      4 2X,78('-'))
   100 FORMAT(2X,78('-')/48X,'Tape Totals',2I7/2X,78('-'))
   110 FORMAT('  Linearize ENDF/B Spectra',
-     1 ' (SPECTRA 2021-1)'/2X,78('-'))
+     1 ' (SPECTRA 2023-1)'/2X,78('-'))
   120 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -815,7 +808,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' **************** Program SPECTRA (VERSION 2021-1) ***********',
+     1 ' **************** Program SPECTRA (VERSION 2023-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',

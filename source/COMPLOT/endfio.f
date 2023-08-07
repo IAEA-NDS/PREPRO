@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PREPRO 2021-1
@@ -52,6 +43,10 @@ C     Version 2020-1 (Feb. 2020)
 C     ==========================
 C     *Added   INCORE10
 C     *Deleted INCORE9
+C
+C     Version 2022-1 (Mar. 2022)
+C     ==========================
+C     *Added CLOSE to ENDIT & ENDERROR = only routines that include STOP
 C
 C=======================================================================
 C
@@ -411,11 +406,9 @@ c-----------------------------------------------------------------------
   210 write(OUTP,220)
       write(*   ,220)
   220 FORMAT(' Execution Terminated')
+c-----2022/3/21 - turned back on
+      CALL ENDERROR
       STOP
-c***** DEBUG = leave this OFF - ENDERROR not defined everywhere
-c     CALL ENDERROR
-c     return
-c***** DEBUG = leave this OFF - ENDERROR not defined everywhere
       end
       SUBROUTINE TERPI(NBT,INT,N1)
 C=======================================================================
@@ -3175,12 +3168,19 @@ c-----Non-Starting Default values.
       SUBROUTINE ENDIT
 C=======================================================================
 C
-C     Version 2021-1 (Jan. 2021)
+C     Version 2022-1 (Mar. 2022)
 C     ==================================================================
 C     PRINT EXECUTION TIME AND TERMINATE = NORMAL FINISH
 C
 C=======================================================================
+c-----2022/3/21 - Added CLOSE to ALL standard units
+      INTEGER*4 OUTP,OTAPE
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       CALL TIMER
+      if(INP.gt.  0) CLOSE(INP)
+      if(OUTP.gt. 0) CLOSE(OUTP)
+      if(ITAPE.gt.0) CLOSE(ITAPE)
+      if(OTAPE.gt.0) CLOSE(OTAPE)
       STOP
       ENTRY ENDERROR
 C=======================================================================
@@ -3189,6 +3189,10 @@ C     ENTRY POINT TO STOP ON ERROR.
 C
 C=======================================================================
       CALL TIMEERR
+      if(INP.gt.  0) CLOSE(INP)
+      if(OUTP.gt. 0) CLOSE(OUTP)
+      if(ITAPE.gt.0) CLOSE(ITAPE)
+      if(OTAPE.gt.0) CLOSE(OTAPE)
       STOP
       END
       SUBROUTINE TIMER

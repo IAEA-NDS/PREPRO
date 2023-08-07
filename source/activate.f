@@ -1,13 +1,3 @@
-
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM ACTIVATE
@@ -54,6 +44,8 @@ C                                  to be compbined - print WARNING if
 C                                  inconsistent.
 C                                 *Added Target Isomer State
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb. 2023)    *Reduced page size from 6,000,000
+C                                  to 120,000
 C
 C     Acknowledgement 2015
 C     --------------------
@@ -161,7 +153,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM ACTIVATE (2021-1) ****************
+C     ***************** PROGRAM ACTIVATE (2023-1) ****************
 C     FILE 10 ACTIVATION CROSS SECTIONS HAVE BEEN DEFINED BY COMBINING
 C     FILE 3 CROSS SECTIONS AND FILE 9 MULTIPLIERS. FILE 9 DELETED.
 C
@@ -657,8 +649,6 @@ C-----END FILE ENDF FORMAT OUTPUT FILE
 C-----WRITE POINT TOTALS FOR TAPE.
       WRITE(OUTP,240) N2TOTI,N2TOTO
       WRITE(*   ,240) N2TOTI,N2TOTO
-      CLOSE(ITAPE)
-      CLOSE(OTAPE)
 C-----------------------------------------------------------------------
 C
 C     Print WARNING is MF=10 data already exists
@@ -679,6 +669,11 @@ C-----------------------------------------------------------------------
       endif
 c-----2019/3/7 - Final WARNING if Maximum Tabulated Energy Inconsistent.
       CALL MAXIE4(1)
+c-----2022/3/23 - added CLOSE
+      CLOSE(ISCR1)
+      CLOSE(ISCR2)
+      CLOSE(ISCR3)
+      CLOSE(ISCR4)
 C-----08/08/2012 - ONLY DO ONE ENDF FILE
       CALL ENDIT ! This ends execution, but some compilers do not like
       STOP       ! mains that end in a call - so this dummy STOP is
@@ -694,7 +689,7 @@ C                ! included here only avoid compiler ERROR Messages.
      4 1X,78('-'))
   240 FORMAT(1X,78('-')/45X,'Tape Totals',2I7/1X,78('-'))
   250 FORMAT(' ENDF Activation Cross Sections',
-     1 ' (ACTIVATE 2021-1)'/1X,78('-'))
+     1 ' (ACTIVATE 2023-1)'/1X,78('-'))
       END
       SUBROUTINE CREATE10
 C=======================================================================
@@ -1074,7 +1069,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' *************** PROGRAM ACTIVATE (VERSION 2021-1) ***********',
+     1 ' *************** PROGRAM ACTIVATE (VERSION 2023-1) ***********',
      2 ' MF=10 Activation Cross Sections Defined by Combining MF=3    ',
      3 ' Cross Section and MF=9 Multiplier. MF=9 Deleted/MF=8 Updated.'/
 C-----FILL IN REMAINDER OF FIRST LINE.

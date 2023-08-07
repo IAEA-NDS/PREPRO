@@ -1,14 +1,3 @@
-/*
- This file is part of PREPRO.
-
-    Author: Dermott (Red) Cullen
- Copyright: (C) International Atomic Energy Agency
-
- PREPRO is free software; you can redistribute it and/or modify it
- under the terms of the MIT License; see LICENSE file for more details.
-*/
-
-
 /*  *********************************************************************************
     *
     *  C X-Windows  graphics interface
@@ -773,3 +762,4 @@ char *string;
 	else
 	{XDrawImageString(display,window,gc,lx1,ly1,string,lenx);}
 }
+

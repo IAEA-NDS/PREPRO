@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     SIGMA1 COMMON
@@ -24,11 +15,17 @@ C-----           Actual allocation is by MAXPAGT3 = 3 PAGES
 C
 c     WARNING - if NAXPAGE Changes, change all of the folowing
 C
-      PARAMETER (MAXPAGE  = 1200000)  !             = Size of 1 page
-      PARAMETER (MAXPAGT3 = 3600000)  ! 3*MAXPAGE   = Size of 3 pages
+c***** DEBUG
+c     PARAMETER (MAXPAGE  = 1200000)  !             = Size of 1 page
+c     PARAMETER (MAXPAGT3 = 3600000)  ! 3*MAXPAGE   = Size of 3 pages
+      PARAMETER (MAXPAGE  =  120000)  !             = Size of 1 page
+      PARAMETER (MAXPAGT3 =  360000)  ! 3*MAXPAGE   = Size of 3 pages
 c----- 3,600,000 X 8 bytes X 6 arrays = 172,800,000 bytes
-      PARAMETER (MAXPAGP1 = 1200001)  ! MAXPAGE+1   = Start second page
-      PARAMETER (MAXPAGT2 = 2400001)  ! 2*MAXPAGE+1 = Start third page
+c     PARAMETER (MAXPAGP1 = 1200001)  ! MAXPAGE+1   = Start second page
+c     PARAMETER (MAXPAGT2 = 2400001)  ! 2*MAXPAGE+1 = Start third page
+      PARAMETER (MAXPAGP1 =  120001)  ! MAXPAGE+1   = Start second page
+      PARAMETER (MAXPAGT2 =  240001)  ! 2*MAXPAGE+1 = Start third page
+c***** DEBUG
 C-----------------------------------------------------------------------
 C
 C     STORAGE

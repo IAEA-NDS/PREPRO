@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     SPECTRA COMMON
@@ -17,8 +8,11 @@ C     PARAMETERS
 C
 C-----------------------------------------------------------------------
 C-----2017/3/7 - INCREASED PAGE SIZE 3,000,000 FROM 600,000
-      PARAMETER (MAXPAGE =  1000000)
+c-----2023/3/7 - Decreased page size from 3,000,000 to 120,000
+c     PARAMETER (MAXPAGE =  3000000)
+      PARAMETER (MAXPAGE =   120000)
 C----- 3,000,000 X 8 bytes X 6 arrays = 144,000,000
+C-----   120,000 X 8 bytes X 6 arrays =   5,760,000
 C-----2019/6/27 - points to be added
       PARAMETER (MAXADD = 10000)
 C-----------------------------------------------------------------------

@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM CONVERT
@@ -76,7 +67,8 @@ C     VERS. 2015-1 (Jan.  2015)   *Replaced ALL 3 way IF Statements
 C     VERS. 2017-1 (May   2017)   *Updated based on user feedback.
 C     VERS. 2018-1 (Jan.  2018)   *Added on-line output for ALL ENDERROR
 C     VERS. 2020-1 (Feb.  2020)   *Identical to 2018-1.
-C     VERS. 2021-1 (jAN.  2021)   *Updated for FORTRAN 2018
+C     VERS. 2021-1 (Jan   2021)   *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb.  2023)   *Identical to 2021-1
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -732,7 +724,7 @@ C-----END OF RUN. PRINT LINE COUNT.
       WRITE(*   ,630) ILINE
       CALL ENDIT
   460 FORMAT(80A1)
-  470 FORMAT(' Convert FORTRAN Programs (CONVERT 2021-1)'/2X,78('='))
+  470 FORMAT(' Convert FORTRAN Programs (CONVERT 2023-1)'/2X,78('='))
   480 FORMAT('  Input Keyword    Comments'/2X,78('='))
   490 FORMAT(2X,78('=')/'  Required Modifications'/2X,78('=')/
      1 '  Keyword    Comments'/2X,78('='))

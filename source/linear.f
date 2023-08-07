@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM LINEAR
@@ -161,6 +152,8 @@ C                                 *Optionlly add MF/MT=1/451 comments
 C                                 *Updated from FORTRAN 2018
 C                                 *Minimum Cross Section is no longer
 C                                  an input option = set to 1.0d-30.
+C     VERS. 2023-1 (Feb. 2023)    *Decreased in-core page size from
+C                                  6,000,000 ro 120,000
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -248,7 +241,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM LINEAR (2021-1) ****************
+C     ***************** PROGRAM LINEAR (2023-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-30 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -794,7 +787,7 @@ C-----END OF RUN - NORMAL
      4'       In      Out'/2X,78('-'))
   110 FORMAT(2X,78('-')/48X,'Tape Totals',2I9/2X,78('-'))
   120 FORMAT('  Linearize ENDF/B Cross Sections',
-     1 ' (LINEAR 2021-1)'/2X,78('-'))
+     1 ' (LINEAR 2023-1)'/2X,78('-'))
   130 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -843,7 +836,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LINEAR (VERSION 2021-1) ***********',
+     1 ' ***************** Program LINEAR (VERSION 2023-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',

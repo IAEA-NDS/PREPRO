@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM COMPLOT
@@ -216,6 +207,8 @@ C                                  NOT RECOMMENDED!!!!
 C     Vers. 2021-1 (Jan. 2021)    *SHOW ALL = mouse click above the
 C                                  plotting area.
 C                                 *Updated for FORTRAN 2018
+C     Vers. 2023-1 (Feb. 2023)    *Reduced page size from 2,400,000 to
+C                                  120,000
 C
 C     2020-1 Acknowledgment
 C     =====================
@@ -1298,7 +1291,7 @@ C-----ON SCREEN GRAPHICS MESSAGE
       IF(IMHARD.LE.0) CALL NOPLOTS
 C-----ON SCREEN TEXT MESSAGE
       IF(IMHARD.GT.0) WRITE(*,40)
-   40 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2021-1)'/
+   40 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2023-1)'/
      1 1X,97('-')/
      2 ' All Data Agreed within input Allowable Uncertainty.'/
      3 ' So NO Plots were Generated. See the output file'/
@@ -1306,7 +1299,7 @@ C-----ON SCREEN TEXT MESSAGE
       ELSE
 C-----ON SCREEN TEXT MESSAGE
       IF(IMHARD.GT.0) WRITE(*,50)
-   50 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2021-1)'/
+   50 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2023-1)'/
      1 1X,97('-')/
      2 ' See output file COMPLOT.LST for Details of the Comparisons.')
       ENDIF
@@ -2331,7 +2324,7 @@ C-----END OF REQUEST LIST REACHED. DEFINE NUMBER OF REQUESTS.
   360 IQUATE=IQUATE-1
       IF(IQUATE.LE.0) WRITE(OUTP,640)
       RETURN
-  370 FORMAT(' Comparison of Evaluated Data (COMPLOT 2021-1)'/
+  370 FORMAT(' Comparison of Evaluated Data (COMPLOT 2023-1)'/
      1 1X,97('-'))
   380 FORMAT(
      1 ' Description of Plotter and Frame Layout'/1X,97('-')/
@@ -7462,7 +7455,7 @@ C-----(3) VERSES - CHARACTERS FOR I.D.
 C       12345678901234567890123456789032
       DATA VERSE1/
      1 'Program Complot                 ',
-     2 '(Version 2021-1)                ',
+     2 '(Version 2023-1)                ',
      3 'by                              ',
      4 'Dermott E. Cullen               ',
      5 '(Present Contact Information)   ',
@@ -7470,7 +7463,7 @@ C       12345678901234567890123456789032
      7 '1466 Hudson Way                 ',
      8 'Livermore, CA 94550             ',
      9 'U.S.A.                          ',
-     A 'Tele: 925-443-1911              ',
+     A 'Tele: 925-321-4177              ',
      1 'E.Mail:redcullen1@comcast.net   ',
      2 'Web:redcullen1.net/HOMEPAGE.NEW ',
      3 '                                ',
@@ -8838,6 +8831,8 @@ C-----DEFINE INDICES TO SPECIAL CHARACTER STROKE TABLE.
       GO TO 50
 C-----END OF DATA OR ERROR.
    40 ICHAR=ICHAR-1
+c-----2022/3/23 - added CLOSE
+      CLOSE(NCHR)
    50 RETURN
    60 FORMAT(1X,A1,I5)
    70 FORMAT(2F7.3,I5)
@@ -8989,6 +8984,8 @@ C-----DEFINE INDICES TO SPECIAL CHARACTER STROKE TABLE.
       GO TO 40
 C-----END OF DATA OR ERROR.
    30 ISYMER=ISYMER-1
+c-----2022/3/23 - added CLOSE
+      CLOSE(NSYM)
    40 RETURN
    50 FORMAT(2X,I5,F7.3)
    60 FORMAT(2F7.3,I5)

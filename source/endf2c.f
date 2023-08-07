@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 c=======================================================================
 c
 c     Program ENDF2C
@@ -32,6 +23,7 @@ C             2019-1 June 2019 * Added /UNITS/ to allow correct output
 C                                at end = output either o.k. or error.
 C             2020-1 Feb. 2020 * Identical to 2019-1.
 C             2021-1 Jan. 2021 * Updated for FOTRAN 2018
+C             2023-1 Feb. 2023 * Identify ENDF in and out filenames
 C
 c     Purpose
 c     ==================================================================
@@ -106,7 +98,7 @@ c     allows data users to determine the pedigree of the data they are
 c     using, by reading these comments. This code documents what is has
 c     done by adding the following 2 comment lines.
 c
-c ***************** Program ENDF2C (Version 2021-1) ***************
+c ***************** Program ENDF2C (Version 2023-1) ***************
 c      Convert ENDF Data to Standard FORTRAN, C and C++ Format
 c
 c     WARNING - This documentation is IMPORTANT to data users and it
@@ -130,12 +122,18 @@ c=======================================================================
       implicit integer*4 (i-n)
       save
       character*8 codename
+c-----2023/2/5 - Added ENDF in and out filenames
+      character*12 filein,fileout
       character*1 LINE66
       integer*4 OUTP,OTAPE
       common/endf1/LINE66(11,6)
       common/endf2/MAT,MF,MT,NOSEQ,IVERSE
       common/ENDFIO/INP,OUTP,ITAPE,OTAPE
       common/namecode/codename
+c-----2023/2/5 - Added ENDF in and out filenames
+      data filein /'ENDFB.IN    '/
+      data fileout/'ENDFB.OUT   '/
+c                   123456799012
 c-----------------------------------------------------------------------
 c
 c     Define Code name for output report and initialize time
@@ -143,10 +141,10 @@ c
 c-----------------------------------------------------------------------
       codename = 'ENDF2C  '
 c-----2019/1/8 - not used unit numbers, defined for PREPRO compatible
-      INP   = 2
-      OUTP  = 3
-      ITAPE = 10
-      OTAPE = 11
+      INP  = 2
+      OUTP = 3
+      ITAPE= 10
+      OTAPE= 11
 c-----Initialize timer.
       call TIMER
 c-----------------------------------------------------------------------
@@ -155,20 +153,22 @@ c     Define I/O Files
 c
 c-----------------------------------------------------------------------
       open( 3,file='ENDF2C.LST')
-      open(10,file='ENDFB.IN')
-      open(11,file='ENDFB.OUT')
 c-----------------------------------------------------------------------
 c
 c     Identify Code.
 c
 c-----------------------------------------------------------------------
-      write(*,10)
-      write(3,10)
+c-----2023/2/5 - added ENDF in and out filenames
+      write(*,10) filein,fileout
+      write(3,10) filein,fileout
    10 format(//
-     1 ' ',13('*'),'**** Program ENDF2C (Version 2021-1) ***',
-     2 12('*')/5(' '),
-     3 ' Convert ENDF Data to Standard FORTRAN, C and C++ Format',
-     4 5(' ')/1x,71('-')/' ENDF Tape Label (TPID)'/1x,71('-'))
+     3 ' Convert ENDF Data to Standard FORTRAN, C and C++ Format'/
+     1 '             Program ENDF2C (Version 2023-1)'/
+     1 1x,79('-')/' ENDF Input and OutOut Filenames'/1x,A12/1x,A12/
+     7 1x,79('-')/' ENDF Tape Label (TPID)'/1x,79('-'))
+c-----2023/3/5 - use ENDF in and out filenames
+      open(10,file=filein)
+      open(11,file=fileout)
 c-----Initialize previous MAT read and ENDF format version #
       MATLAST = -99999
       IVERSE  = 0
@@ -192,19 +192,19 @@ c-----------------------------------------------------------------------
       write(11,20) LINE66,MAT,MF,MT,NOSEQ               ! Assume TPID
       write( *,30)
       write( 3,30)
-   30 format(1x,71('-')/' Input       Output         Fractional Diff.',
+   30 format(1x,79('-')/' Input       Output         Fractional Diff.',
      5 '    MAT MF  MT  Seq# Format'/
-     6       1x,71('-'))
+     6       1x,79('-'))
       else
       write( *,40)                                      ! NOT TPID
       write( 3,40)
-   40 format(1x,71('-')/' WARNING - This DOES NOT look like a TPID.',
+   40 format(1x,79('-')/' WARNING - This DOES NOT look like a TPID.',
      1       ' Expect MF = MT = 0 on TPID.'/
      2       '           Will Assume file has NO TPID',
      3       ' and TRY to Translate this line.'/
-     4 1x,71('-')/' Input       Output         Fractional Diff.',
+     4 1x,79('-')/' Input       Output         Fractional Diff.',
      5 '    MAT MF  MT  Seq# Format'/
-     6       1x,71('-'))
+     6       1x,79('-'))
       go to 60                                            ! Translate
       endif
 c-----------------------------------------------------------------------
@@ -266,11 +266,11 @@ c-----------------------------------------------------------------------
 c-----End of File BEFORE TEND
    80 write( *,90)
       write( 3,90)
-   90 format(1x,71('-')/
-     1 ' ERROR - ENDF file does not end with TEND Line.'/1x,71('-'))
+   90 format(1x,79('-')/
+     1 ' ERROR - ENDF file does not end with TEND Line.'/1x,79('-'))
       call ENDERROR
 c-----TEND line read
-  100 call endit
+  100 call ENDIT
       end
       Subroutine FILE1
 C=======================================================================
@@ -358,7 +358,7 @@ c-----------------------------------------------------------------------
       NOSEQ = NXTSEQ(NOSEQ)
       write(11,100) MAT,MF,MT,NOSEQ
    90 format(
-     1 ' ',13('*'),'**** Program ENDF2C (Version 2021-1) ***',
+     1 ' ',13('*'),'**** Program ENDF2C (Version 2023-1) ***',
      2 12('*'),i4,i2,i3,i5)
   100 format(5(' '),
      1 'Convert ENDF Data to Standard FORTRAN, C and C++ Format',

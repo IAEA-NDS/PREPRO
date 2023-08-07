@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     RECENT COMMON
@@ -32,10 +23,14 @@ c----- 100 X 8 bytes X 31 arrays = 24,800 bytes
 C
 C     WARNING - Change both MAXPTX and MAXPTXP1
 C
+c***** DEBUG
 C-----2017/3/7 - INCREASED FROM 600,000 TO 1,200,000
-      PARAMETER (MAXPTX   = 1200000) ! Max. # energy points per page
+c     PARAMETER (MAXPTX   = 1200000) ! Max. # energy points per page
+      PARAMETER (MAXPTX   =  120000) ! Max. # energy points per page
 c----- 1,200,000 X 8 bytes X 16 = 153,600,000 bytes
-      PARAMETER (MAXPTXP1 = 1200001) ! MAXPTX + 1
+c     PARAMETER (MAXPTXP1 = 1200001) ! MAXPTX + 1
+      PARAMETER (MAXPTXP1 =  120001) ! MAXPTX + 1
+c***** DEBUG
 c----- 1,200,001 X 8 bytes X 12 = 115,200,000 bytes
 C-----12/20/06 - INCREASED MAXSAVE FROM 200 TO 2,000
       PARAMETER (MAXSAVE = 2000)  ! Max. # of saved iteration points

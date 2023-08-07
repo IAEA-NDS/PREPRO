@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM FIXUP
@@ -171,6 +162,21 @@ C                                  using built-in tables,
 C                                  IMOPS(4) = DELETION
 C                                  IMOPS(5) = SUMMATION
 C                                  ERROR = Only print WARNING - NO STOP
+C     VERS, 2021-3 (Nov.  2021)   *Corrected summation rules to be
+C                                  identical to ENDF102, 0.4.2.11 -
+C                                  WARNING - I did not check these
+C                                  definitions, i.e., I believe ENDF-102
+C     VERS, 2021-4 (Dec.  2021)   *Check summation rules using MT.DAT
+C                                  is OPTIONAL = done if MT.DAT present-
+C                                  otherwise skipped with WARNING.
+C                                 *Cross Section Reconstruction optional
+C                                  (option 5).
+C     VERS. 2023-1 (Jan.  2023)   *Increase MTREAD(2,10) to MTREAD(2,15)
+C                                 *Decreased in-core array size from
+C                                  1,800,000 to 120,000 - enormous
+C                                  arrays merely make the code run
+C                                  longer I/O instead of calculations.
+C
 C     2019-2 Acknowledgment
 C     =====================
 C     I thank Jean-Christophe Sublet (NDS, IAEA, Vienna, Austria) for
@@ -940,9 +946,9 @@ C-----DEFINE MAXIMUM ENERGY OF INTEREST (100 MEV).
 C-----READ AND INTERPRET ALL INPUT PARAMETERS.
       CALL READIN
 c-----Load ALL MT Definitions
-      CALL MTREADIN
+      CALL MTREADIN(MTDATOK)
 c-----Check SUMMATION rules
-      CALL MTCHEK
+      if(MTDATOK.ne.0) CALL MTCHEK
 C-----INITIALIZE SECTION VALUES.
       MATLST=-99999
       MFLST=-99999
@@ -1186,7 +1192,8 @@ C=======================================================================
       COMMON/SAVE6/MTRAN6(20),MTADD6(2,15,20)
       COMMON/DELETE/IDEL,MTDEL(2,20)
       COMMON/OPS/IMOPS(14)
-      COMMON/READI/MTREAD(2,10)
+c-----2023/1/25 - increased MTREAD(2,10) to MTREAD(2,15)
+      COMMON/READI/MTREAD(2,15)
       COMMON/READC/MSIGN(20)
       COMMON/MAKTAB/C1HTAB(50),C2HTAB(50),C1TAB(50),C2TAB(50),
      1 L1HTAB(50),L2HTAB(50),MATTAB(50),MTTAB(50),L1TAB(50),L2TAB(50),
@@ -1247,7 +1254,7 @@ C-----2017/5/20 - changed from ERROR and STOP to WARNING and ignore.
       IF(IMOPS(2).ne.0) THEN
       WRITE(OUTP,40)
       WRITE(   *,40)
-   40 FORMAT(
+   40 FORMAT(1x,78('-')/
      1 ' WARNING - Threshold Correction is no longer allowed.'/
      2 '           This option has resulted in far too much'/
      3 '           misinterpretation and as such it is judged to'/
@@ -1326,12 +1333,12 @@ c-----------------------------------------------------------------------
       WRITE(OUTP,210)
       WRITE(   *,210)
   210 FORMAT(///
-     1 ' ERROR - Cross Section Reconstruction is MANDATORY'/
-     2 '         You MUST define option (5) to be 1 or 2,'/
+     1 ' ERROR - FIXUP Cross Section Reconstruction is MANDATORY.'/
+     2 '         You MUST define option (5) to be 1 or 2.'/
      3 '         1) YOU input summation rules, or,'/
-     4 '         2) Use bult-in summation rules.'/
-     5 '            (2 is RECOMMENDED unless you have '/
-     6 '             special needs = CAVEAT EMPTOR)'///)
+     4 '         2) Use built-in summation rules.'/
+     5 '            2) is RECOMMENDED unless you have special'/
+     6 '               summation needs = CAVEAT EMPTOR)'///)
       CALL ENDERROR
       ENDIF
 c-----------------------------------------------------------------------
@@ -1789,7 +1796,7 @@ c-----------------------------------------------------------------------
       WRITE(*   ,1060)
       RETURN
   870 FORMAT(' Test and Correct Data in the ENDF FORMAT',
-     1 ' (FIXUP 2021-2)'/1X,78('-')/
+     1 ' (FIXUP 2023-1)'/1X,78('-')/
      1 ' Interpretation of Input Test/Correction Options'/1X,78('-'))
   880 FORMAT(1X,78('-')/' Input Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
@@ -1904,7 +1911,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program FIXUP (Version 2021-2) ************',
+     1 ' ***************** Program FIXUP (Version 2023-1) ************',
      1 ' Corrected ZA/AWR in All Sections-----------------------------',
      2 ' Corrected Thresholds-----------------------------------------',
      3 ' Extended Cross Sections to 20 MeV----------------------------',
@@ -4955,7 +4962,7 @@ C
 C     ENDF-6
 C
 c-----------------------------------------------------------------------
-c-----Note - corrected dedfinition of MF=3, not to include MT=18,
+c-----Note - corrected definition of MF=3, not to include MT=18,
 c            since it is already included in MT=27.
 c-----MTADD6X = 2 X 15 X 20
       DATA MTADD6X/
@@ -4976,15 +4983,17 @@ c                                               11  12  13  14  15
      7 875,891,  0,  0,  0,  0,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
      7                                         0,0,0,0,0,0,0,0,0,0,
 c-----(n, disppearance) = no n out
-c            1       2       3       4       5       6
-     8 102,109,111,117,155,155,182,182,191,193,197,197,
-c      *** ***                   7   8   9  10  11  12  13  14  15
-     8                         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+c            1       2       3       4       5       6       7
+c----2021/11/15 - Added (18,18) to MT=27
+     8  18, 18,102,109,111,117,155,155,182,182,191,193,197,197,
+c      *** ***                   8   9  10  11  12  13  14  15
+     8                         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
      9  18, 18,-20,-21,-38,-38,  0,  0,  0,  0,0,0,0,0,0,0,0,0,0,0,
 c      *** ***
      9                                         0,0,0,0,0,0,0,0,0,0,
 c            1       2       3       4       5       6       7
-     A   4,  5, 11, 11, 16, 18, 22, 25, 27, 30, 32, 37, 41, 42,
+c----2021/11/15 - Deleted (18,18) from MT=3
+     A   4,  5, 11, 11, 16, 17, 22, 25, 27, 30, 32, 37, 41, 42,
 c                          ***
 c    A       8       9      10      11      12      13  14  15
      A  44, 45,152,154,156,181,183,190,194,196,198,200,0,0,0,0,
@@ -5189,7 +5198,8 @@ C=======================================================================
       CHARACTER*1 DIGITS,LINEIN,MINUS,TYPEIT
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      DIMENSION LINEIN(72),DIGITS(10),TYPEIT(5),MTREAD(2,10)
+c-----2023/1/25 - increased MTREAD(2,10) to MTREAD(2,15)
+      DIMENSION LINEIN(72),DIGITS(10),TYPEIT(5),MTREAD(2,15)
       DATA DIGITS/'0','1','2','3','4','5','6','7','8','9'/
       DATA TYPEIT/'S','D','T','R','*'/
       DATA MINUS/'-'/
@@ -5334,7 +5344,7 @@ C=======================================================================
    20 ISTAT2 = 1
       RETURN
       END
-      SUBROUTINE MTREADIN
+      SUBROUTINE MTREADIN(MTDATOK)
 C=======================================================================
 C
 C     READ TABLE OF MT DEFINITIONS.
@@ -5352,6 +5362,8 @@ C=======================================================================
 c-----01/18/11 - increased dimension from 200 to 1,000
       COMMON/MTDAT1/MTTABA(1000)
       COMMON/MTDAT2/MTTABB(5,1000)
+c-----assume MT.DAT is present
+      MTDATOK = 1
 C-----Initialize
       do i=1,1000
       MTTABA(i) = '   '
@@ -5414,13 +5426,18 @@ c-----Finished with MT.DAT
       RETURN
 C-----------------------------------------------------------------------
 c
-c     ERROR opening file
+c     WARNING opening file
 c
 C-----------------------------------------------------------------------
    40 write(*,50)
-   50 format(' ERROR...Opening MT.DAT = MT Definitions.'/
-     1       '         EXECUTION TERMINATED')
-      STOP
+      write(3,50)
+   50 format(1x,78('-')/
+     1 ' WARNING - ERROR opening MT Definitions (MT.DAT).'/
+     2 '           Cannot Check MT Summation rules.'/
+     3 '           Will continue processing.'/1x,78('-'))
+c-----indicate MT.DAT is NOT present
+      MTDATOK = 0
+      RETURN
       END
       SUBROUTINE MTCHEK
 C=======================================================================
@@ -5436,7 +5453,7 @@ C                     = 5
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      CHARACTER*40 MTTABA,MTTABIN
+      CHARACTER*40 MTTABA
 c-----01/18/11 - increased dimension from 200 to 1,000
       COMMON/MTDAT1/MTTABA(1000)
       COMMON/MTDAT2/MTTABB(5,1000)

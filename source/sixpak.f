@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SIXPAK
@@ -119,6 +110,8 @@ C     VERS. 2020-1 (Mar.  2020)   *Added ENDFB.MF3 for MF/MT=3/5 parta
 C                                  based on MF=6/5.
 C                                 *Added Target Isomer State
 C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb.  2023)   *Decreased page siZe from 600,000
+C                                  to 120,000
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -1058,7 +1051,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/HIGHE45/N2X4,N2X5,I2X4,I2X5
       COMMON/LEADMT5/C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1MT5 ,N2MT5
       DATA LSTMAT/-9999/
-      DATA LABOUT/' Program SIXPAK (2021-1) Output'/
+      DATA LABOUT/' Program SIXPAK (2023-1) Output'/
 C-----08/08/2012 DEFINE CODE NAME
       CODENAME = 'SIXPAK  '
 C-----INITIALIZE TIMER
@@ -1301,11 +1294,19 @@ c-----2020/3/19 - Added MF=3
       CALL CONT3
 c-----Print final WARNING if data not tabulated to same Maximum Energy
       CALL MAXIE4(1)
+c-----2022/3/23 - added CLOSE
+      if(OTAPE4 .eq.11) CLOSE(OTAPE4)
+      if(OTAPE5 .eq.12) CLOSE(OTAPE5)
+      if(OTAPE15.eq.14) CLOSE(OTAPE15)
+      if(OTAPE12.eq.17) CLOSE(OTAPE12)
+      if(OTAPE14.eq.18) CLOSE(OTAPE14)
+      if(OTAPE9 .eq.19) CLOSE(OTAPE9)
+      if(OTAPE3 .eq.20) CLOSE(OTAPE3)
 c-----End of run - Normal
   170 CALL ENDIT
-      GO TO 170   ! cannot get to here
+      go to 170
   180 FORMAT(' Process ENDF/B Double Differential Data - MF=6',
-     1 ' (SIXPAK 2021-1)'/1X,78('='))
+     1 ' (SIXPAK 2023-1)'/1X,78('='))
   190 FORMAT(1X,78('=')/' Terminology'/1X,78('-')/
      1 ' LCT  = Reference System (Lab or Center-of-Mass)'/
      2 ' LIP  = Product Modifier, e.g., for Isomeric States'/

@@ -1,13 +1,8 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
+C
+C     PREPRO 2023-1
+C     ==================================================================
+C     IDENTICAL to 2021-1.
 C
 C     PREPRO 2021-1
 C     ==================================================================
@@ -52,6 +47,10 @@ C     Version 2020-1 (Feb. 2020)
 C     ==========================
 C     *Added   INCORE10
 C     *Deleted INCORE9
+C
+C     Version 2022-1 (Mar. 2022)
+C     ==========================
+C     *Added CLOSE to ENDIT & ENDERROR = only routines that include STOP
 C
 C=======================================================================
 C
@@ -411,11 +410,9 @@ c-----------------------------------------------------------------------
   210 write(OUTP,220)
       write(*   ,220)
   220 FORMAT(' Execution Terminated')
+c-----2022/3/21 - turned back on
+      CALL ENDERROR
       STOP
-c***** DEBUG = leave this OFF - ENDERROR not defined everywhere
-c     CALL ENDERROR
-c     return
-c***** DEBUG = leave this OFF - ENDERROR not defined everywhere
       end
       SUBROUTINE TERPI(NBT,INT,N1)
 C=======================================================================
@@ -597,6 +594,14 @@ c----- 2017/10/14 replaced INCLUDE
       COMMON/FLAGS/MINUS3,IMPLUS
       DIMENSION X(IXY),Y(IXY),FIELD6(11,6)
       DATA ZEROD/0.0D+00/
+c-----2023/4/9 - Added initialization to prevent WARNING - NO USED
+      data ipass/0/
+      if(ipass.eq.0) then
+      MINUS3 = 0            ! define + use both
+      IMPLUS = MINUS3
+      MINUS3 = IMPLUS
+      ipass  = 1
+      endif
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
 C-----NOTHING TO DO IF NO POINTS
@@ -1651,6 +1656,7 @@ C
 C     PURPOSE
 C     =======
 C     2019/11/16 - Always Round Energies to 10 Digits.
+C     2022/11/21 - No low energy cutoff - then works for eV or MeV or..
 c
 C     Assume resonances in eV to MeV range = ignore below 0.1 eV
 C
@@ -1668,19 +1674,20 @@ C-----ON FIRST CALL INITIALIZE POWERS OF 10
       DATA IPASS/0/
       IF(IPASS.eq.0) then
       IPASS=1
-c               12345678901
       TENS(0)=1.0D+00
       do I=1,99
       TENS( I)=TENS(I-1)*10.0D+00
       TENS(-I)=TENS(1-I)/10.0D+00
       enddo
       endif
+c***** DEBUG
 c-----------------------------------------------------------------------
 C
 C     No Rounding below 0.1 eV
 C
 c-----------------------------------------------------------------------
-      if(ZIN.lt.0.1d0) return
+c     if(ZIN.lt.0.1d0) return
+c***** DEBUG
 c-----------------------------------------------------------------------
 C
 C     Define Expoment and Normalized Mamtissa
@@ -3060,7 +3067,6 @@ c----- 2017/10/14 replaced INCLUDE
       implicit real*8 (a-h,o-z)
       implicit integer*4 (i-n)
       save
-      INTEGER*4 OUTP,OTAPE,OTAPE2
       CHARACTER*1  NAME1,digits
       dimension NAME1(20),digits(0:9)
       data digits/'0','1','2','3','4','5','6','7','8','9'/
@@ -3175,12 +3181,19 @@ c-----Non-Starting Default values.
       SUBROUTINE ENDIT
 C=======================================================================
 C
-C     Version 2021-1 (Jan. 2021)
+C     Version 2022-1 (Mar. 2022)
 C     ==================================================================
 C     PRINT EXECUTION TIME AND TERMINATE = NORMAL FINISH
 C
 C=======================================================================
+c-----2022/3/21 - Added CLOSE to ALL standard units
+      INTEGER*4 OUTP,OTAPE
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       CALL TIMER
+      if(INP.eq.   2) CLOSE(INP)
+      if(OUTP.eq.  3) CLOSE(OUTP)
+      if(ITAPE.eq.10.or.ITAPE.eq.11) CLOSE(ITAPE)
+      if(OTAPE.eq.10.or.OTAPE.eq.11) CLOSE(OTAPE)
       STOP
       ENTRY ENDERROR
 C=======================================================================
@@ -3189,6 +3202,10 @@ C     ENTRY POINT TO STOP ON ERROR.
 C
 C=======================================================================
       CALL TIMEERR
+      if(INP.eq.   2) CLOSE(INP)
+      if(OUTP.eq.  3) CLOSE(OUTP)
+      if(ITAPE.eq.10.or.ITAPE.eq.11) CLOSE(ITAPE)
+      if(OTAPE.eq.10.or.OTAPE.eq.11) CLOSE(OTAPE)
       STOP
       END
       SUBROUTINE TIMER
@@ -3289,6 +3306,8 @@ C=======================================================================
       IMPLICIT REAL*4 (A-H,O-Z) ! note REAL*4, not 8
       SAVE
       DIMENSION TARRAY(2)
+c-----2023/4/9 - added installation to prevent WARNING TARRAY NOT USED.
+      DATA TARRAY/0.0,0.0/
       SECONDS=ETIME(TARRAY)
       SECONDS=(TARRAY(1)+TARRAY(2))
       RETURN

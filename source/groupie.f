@@ -1,12 +1,4 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-C=======================================================================
+c====================================================================
 C
 C     PROGRAM GROUPIE
 C     ===============
@@ -266,6 +258,8 @@ C                                 prevents unresolved region calculation
 C                                *Added Target Isomer Flag
 C                                *Correct MULTBAND.LST output format.
 C     VERS. 2021-1 (Jan. 2021)   *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb. 2023)   *Decreased size page from 3,000,000
+C                                 to 120,000
 C
 C     2020-1 Acknowledgment
 C     =====================
@@ -377,7 +371,7 @@ C     BY THE ADDITION OF THREE COMMENT CARDS AT THE END OF EACH
 C     HOLLERITH SECTION TO DESCRIBE THE GROUP STRUCTURE AND WEIGHTING
 C     SPECTRUM, E.G.
 C
-C     ********************** PROGRAM GROUPIE (2021-1) ***************
+C     ********************** PROGRAM GROUPIE (2023-1) ***************
 C     UNSHIELDED GROUP AVERAGES USING   69 GROUPS (WIMS)
 C     MAXWELLIAN, 1/E, FISSION TO CONSTANT WEIGHTING SPECTRUM
 C
@@ -1743,7 +1737,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program GROUPIE (VERSION 2021-1)***********',
+     1 ' ***************** Program GROUPIE (VERSION 2023-1)***********',
      2 ' Unshielded Group Averages Using 12345 Groups                 ',
      3 ' Weighting Spectrum: Maxwellian,1/E,Fission,Constant Spectrum ',
      4 ' Weighting Spectrum: 1/E Spectrum                             ',
@@ -6339,6 +6333,20 @@ c-----------------------------------------------------------------------
   140 N=N+1
       ESPECT(N)=ETAB(5)
       SPECT(N)=SPECT(N-1)
+c***** DEBUG
+c
+c     Output Spectrum in PLOTTAB format
+c
+c     open(40,file='SPECT.CUR')
+c     write(40,400)
+c 400 format('Flux Weighting')
+c     write(40,410) (ESPECT(kkk),SPECT(kkk),kkk=1,N)
+c 410 format(1p2d11.4)
+c     write(40,420)
+c 420 format(30x,'(BLANK LINE)')
+c     close(40)
+c     stop
+c***** DEBUG
       RETURN
       END
       SUBROUTINE READIN
@@ -7014,7 +7022,7 @@ c-----Added on-line output
       WRITE(*   ,760)
       GO TO 550
   570 FORMAT(' Multi-Group and Multi-Band Parameters from',
-     1 ' ENDF/B Data (GROUPIE 2021-1)'/1X,78('-'))
+     1 ' ENDF/B Data (GROUPIE 2023-1)'/1X,78('-'))
   580 FORMAT(' Retrieval Criteria------------',7X,A4/
      1       ' Number of Energy Groups-------',I11,1X,A16/
      2       ' Maximum Number of Bands/Group-',I11,1X,A28/
@@ -7601,7 +7609,7 @@ c-----Re-Define standard ENDF Output unit and output ENDF TPID
       OPEN(OTAPE,file=urr1file)
       write(OTAPE,10) ZABCD
    10 format(12a1,' Unresolved Region 2-Band Data',
-     1 '  PREPRO/GROUPIE(2021-1)8000 0  0    0')
+     1 '  PREPRO/GROUPIE(2023-1)8000 0  0    0')
 c            12    345678901234567890123456789012
 c               1         2         3         4
 c       345678901234567890123456

@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM DICTIN (Renamed from DICTION to eliminate conflict with
@@ -81,6 +72,8 @@ C                                  3)     0 on MF = 0
 C     VERS. 2017-1 (May  2017)    *Updated based on user feedback.
 C     VERS. 2018-1 (Jan. 2018)    *Added on-line output for ALL ENDERROR
 C     VERS. 2020-1 (Feb. 2020)    *Identical to 2018-1.
+C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,000,000
+C                                  to 120,000
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -536,7 +529,7 @@ C
 c-----------------------------------------------------------------------
       NOSEQ=NXTSEQ(NOSEQ)
       WRITE(OTAPE,240) MAT,MF,MT,NOSEQ
-  240 FORMAT(' **************** Program DICTIN (VERSION 2020-1) ',
+  240 FORMAT(' **************** Program DICTIN (VERSION 2023-1) ',
      1       '****************',I4,I2,I3,I5)
       OCARD=OCARD+1
 C-----IF THERE IS AN OLD REACTION INDEX READ THE FIRST ENTRY TO
@@ -636,7 +629,7 @@ c-----------------------------------------------------------------------
   450 FORMAT(22X,4I11,I4,I2,I3,I5)
   460 FORMAT(22X,2I11,11X,I11,I4,I2,I3,I5)
   470 FORMAT(///'Over ',I5,' Sections---Execution Terminated')
-  480 FORMAT(' Create New Section Index (DICTIN 2020-1)'/1X,60('-'))
+  480 FORMAT(' Create New Section Index (DICTIN 2023-1)'/1X,60('-'))
   490 FORMAT(1X,60('-')/
      1 ' First Pass. Reading ENDF/B Data'/1X,60('-')/
      2 '  MAT   Messages'/1X,60('-'))

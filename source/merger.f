@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM MERGER
@@ -72,6 +63,7 @@ C                                  0 length = EOF at first read try.
 C     VERS. 2021-1 (Apr.  2021)   *Updated for FORTRAN 2018
 C                                 *Updated SEND/FEND/MEND/TEND Sequence
 C                                  number definition.
+C     VERS. 2023-1 (Feb.  2023)   *Idehntical to 2021-1.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -356,7 +348,8 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*60 ENDIN(2),FILE1
       CHARACTER*4 MESSY,ICARD,KCARD,BLANK
       INTEGER*4 OTAPE,OUTP,ZERO,TAPCRD
-      COMMON/ENDFIO/INP,OUTP,OTAPE,NUNIT
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/ENDFION/NUNIT
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       INCLUDE 'merger.h'
       DIMENSION MESSY(2),KCARD(17),ICARD(17,100),NCARD(3,100)
@@ -804,7 +797,7 @@ C-----LIST DATA RETRIEVED FOR EACH REQUEST.
       GO TO 420 ! CANNOT GET TO HERE.
   450 FORMAT(68X,'-1 0  0    0')
   460 FORMAT(66X,I4,I2,I3,I5)
-  470 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2021-1)'/
+  470 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2023-1)'/
      1 1X,72('*'))
   480 FORMAT(' Interpretation of Input Parameters'/1X,72('*'))
   490 FORMAT(' Retrieval Criteria-----------',7X,A4)
@@ -886,7 +879,8 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE,UPPER
-      COMMON/ENDFIO/INP,OUTP,OTAPE,NUNIT
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/ENDFION/NUNIT
       INCLUDE 'merger.h'
       DIMENSION UPPER(3),MDUMB(6)
 C-----DEFINE UPPER LIMIT FOR MAT/MF AND MT FIELDS.
@@ -968,12 +962,15 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       CHARACTER*72 FILE72
-      COMMON/ENDFIO/INP,OUTP,OTAPE,NUNIT
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/ENDFION/NUNIT
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       INCLUDE 'merger.h'
 C-----DEFINE INPUT AND OUTPUT UNITS.
       INP=2
       OUTP=3
+      ITAPE=11
+      OTAPE=10
 C-----DEFINE INPUT AND OUTPUT FILE NAMES.
       OPEN(OUTP,FILE='MERGER.LST',STATUS='UNKNOWN')
       OPEN(INP,FILE='MERGER.INP',STATUS='OLD',ERR=10)

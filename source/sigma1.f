@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SIGMA1
@@ -231,6 +222,8 @@ C                                 *Check Atomic Weight > 0
 C     VERS. 2021-1 (Mar. 2021)    *Updated for FORTRAN 2018
 C                                 *Minimum Cross Section is no longer
 C                                  an input option - set to 1.0d-30.
+C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,200,000
+C                                  to 120,000.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -367,7 +360,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF THREE COMMENTS CARDS AT THE END OF EACH
 C     HOLLERITH SECTION IN THE FORM
 C
-C     ***************** PROGRAM SIGMA1 (2021-1) ***************
+C     ***************** PROGRAM SIGMA1 (2023-1) ***************
 C     DATA DOPPLER BROADENED TO 300.0   KELVIN AND
 C     DATA THINNED TO WITHIN AN ACCURACY OF  0.1 PER-CENT
 C
@@ -849,7 +842,7 @@ C-----END ENDF/B FORMAT OUTPUT FILE.
   160 FORMAT(1X,79('-')/' No Unresolved Region',25X,'MAT Totals',2I9/
      1 1X,79('-'))
   170 FORMAT(1X,79('-')/45X,'Tape Totals',2I9/1X,79('-'))
-  180 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2021-1)'/
+  180 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2023-1)'/
      1 1X,79('-'))
   190 FORMAT(1X,79('-')/' ENDF/B Tape Label'/1X,79('-')/1X,16A4,A2,I4/
      1 1X,79('-')/
@@ -954,7 +947,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program SIGMA1 (VERSION 2021-1) ***********',
+     1 ' ***************** Program SIGMA1 (VERSION 2023-1) ***********',
      2 ' Data Doppler Broadened to12345678901 Kelvin                  ',
      3 ' for All Data Greater than12345678901 barns in Absolute Value ',
      4 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',

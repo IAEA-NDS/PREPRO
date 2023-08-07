@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     EVALPLOT COMMON
@@ -18,11 +9,16 @@ C
 C-----------------------------------------------------------------------
 C-----2017/02/17 - INCREASED PAGE SIZE TO 7,500,000, to handle new
 C-----             R-M (LRF=7) detailed angular distributions.
-      PARAMETER (MAXPOINT =  7500000) ! data point in memory
+c-----2023/2/7 - Decreasd page size from 7,500,000 to 120,000
+c     PARAMETER (MAXPOINT =  7500000) ! data point in memory
+      PARAMETER (MAXPOINT =   120000) ! data point in memory
 c----- 7,500,000 X 8 bytes X 2 arrays = 120,000,000 bytes
-      PARAMETER (MAXLEGE  =   150000) ! this MUST be MAXPOINT/MAXLEGC
+c-----   120,000 X 8 bytes X 2 arrays =   1,920,000 bytes
+c-----2023/2/7 - Decreasd page size from 150,000 to 120,000
+c     PARAMETER (MAXLEGE  =   150000) ! this MUST be MAXPOINT/MAXLEGC
+      PARAMETER (MAXLEGE  =   120000) ! this MUST be MAXPOINT/MAXLEGC
 c----- MAXLEGE is equivalenced = no additional memory.
-      PARAMETER (MAXLEGC  =       50) ! max. order coefficent = 30
+      PARAMETER (MAXLEGC  =       50) ! max. order coefficent = 50
       PARAMETER (MAXMAT   =     1000) ! MAT/MF/MT maximum
       PARAMETER (MAXGET   =      100) ! Requests
 C-----------------------------------------------------------------------

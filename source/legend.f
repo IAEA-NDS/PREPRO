@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM LEGEND
@@ -122,6 +113,8 @@ C                                  Previously assumed Y = 0 and deleted
 C                                  Now output whatever the Y value.
 C     VERS. 2020-1 (Feb.  2020)   *Identical to 2019-1.
 C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb.  2023)   *Decreased page size from 3,000,000
+C                                  to 120,000
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -836,7 +829,7 @@ c-----Print final WARNING if data not tabulated to same Maximum Energy
 c-----End of run - Normal
       CALL ENDIT
       GO TO 220      ! CANNOT GET TO HERE.
-  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2021-1)'/
+  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2023-1)'/
      1 1X,78('-'))
   240 FORMAT(' Allowable Accuracy----------',11A1,
      2 ' (',F9.4,' per-cent)'/
@@ -944,7 +937,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LEGEND (VERSION 2021-1) ***********',
+     1 ' ***************** Program LEGEND (VERSION 2023-1) ***********',
      2 ' Linearized Angular Distributions from Tables or Coefficients ',
      3 ' Allowable Error of12345678901 per-cent and123456 Max. Points ',
      4 ' Tabulated Data...Copied                                      ',

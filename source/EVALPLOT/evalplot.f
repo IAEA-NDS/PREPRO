@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM EVALPLOT
@@ -204,6 +195,15 @@ C     Vers. 2021-2 (Sept 2021)    *Corrected Angular (MF=4) and Energy
 C                                  (MF=5) plotting - 2021-1 skipped ALL
 C                                  remaining MF rather thsn just current
 C                                  MT - 2021-2 corrects this.
+C     Vers. 2022-1 (Feb. 2022)    *Corrected to plot MF3/MT=301-450.
+C     Vers. 2023-1 (Feb. 2023)    *Reduced page sizes to 120,00.
+C
+C     2022-1 Acknowledgment
+C     =====================
+C     I thank Jean-Christophe Sublet (NDS,IAEA,Vienna) for notifying
+C     me that EVALPLOT 2021 was not plotting MF3/MT=301-450 - compared
+C     to EVALPLOT 2019 that was. EVALPLOT 2022-1 now correctly plots
+C     MF3/MT=301-450.
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -1622,7 +1622,7 @@ C-----TERMINATE IF NO REQUESTS.
       CALL ENDERROR
   190 RETURN
   200 FORMAT(///' Plot Evaluated Data from the ENDF/B Format',
-     1 ' (EVALPLOT 2021-2)'/1X,72('-')/
+     1 ' (EVALPLOT 2023-1)'/1X,72('-')/
      2 ' Description of Plotter and Plots per Frame'/1X,72('-')/
      3 ' X Dimensions (X-Min to X-Max)-----------------',
      4 F11.4,' to ',F11.4,' Inches'/
@@ -2013,14 +2013,18 @@ C     Neutron Cross Sections
 C
    50 IF(MFH.ne.3) GO TO 60
       LOOP1=1      ! Plot entire range
-      LOOP2=19     ! Except radioiostopes
+c-----2022/2/9 = Corrected 19 to 20
+      LOOP2=20     ! Except radioiostopes
       GO TO 100
 C
 c     7/23/2011 - MF=10 include ALL.
 C
    60 IF(MFH.NE.10) GO TO 70
-      LOOP1=20     ! Only radioactive data
-      LOOP2=20
+c-----2020/2/9 = changed LOOP1 from 20 to 1  = entire range
+c     LOOP1=1      ! Plot entire range
+      LOOP1=21     ! Plot entire range
+c-----2020/2/9 = changed LOOP2 from 20 to 21 = entire range
+      LOOP2=21
       GO TO 100
 c
 c     Photon and Electron Interaction Cross Sections
@@ -2423,7 +2427,11 @@ c
 C-----01/18/07 - ADDED   MT=5
 C-----01/08/20 - ADDED   MT=3                     no (n,cp)
 C-----01/18/07 - Removed MT=5
-     1   1,  2,       3,  4,      16, 18,   102,102, ! Major
+c***** DEBUG
+c    1   1,  2,       3,  4,      16, 18,   102,102, ! Major
+C-----01/18/07 - ADDED   MT=5
+     1   1,  2,       3,  5,      16, 18,   102,102, ! Major
+c***** DEBUG
 C-----01/08/20 - ADDED MT=10-15 (12-15 not used),  38-45, 101, 152-218
 c-----2020/1/12- Added MT=18, and 102-117 (ENDF-102 Definition ???)
      2  10, 21,      22, 45,     101,117,   152,218, ! N Absorption
@@ -2459,8 +2467,8 @@ C-----01/08/20 - ADDED MT=533 (excitation - used for electrons)
 c
 c     Miscellaneous Neutron Data
 c
-     A   1,999,       0,  0,       0,  0,     0,  0, ! Energy Release
-     1 301,450,       0,  0,       0,  0,     0,  0/ ! Rad. Prod. X/C
+     A 301,450,       0,  0,       0,  0,     0,  0, ! Rad. Prod. X/C
+     1   1,999,       0,  0,       0,  0,     0,  0/ ! Energy Release
 c-----------------------------------------------------------------------
 C
 C     ENDF/B-V DEFINITIONS.
@@ -2496,8 +2504,8 @@ c
 c
 c     Miscellaneous Neutron Data
 c
-     A   1,999,       0,  0,       0,  0,     0,  0, ! Energy Release
-     1 301,450,       0,  0,       0,  0,     0,  0/ ! Rad. Prod. X/C
+     A 301,450,       0,  0,       0,  0,     0,  0, ! Rad. Prod. X/C
+     1   1,999,       0,  0,       0,  0,     0,  0/ ! Energy Release
 c-----------------------------------------------------------------------
 C
 C     SELECT DATA FOR CURRENT CATAGORY.
@@ -2932,7 +2940,7 @@ c     NTOP(k) = j    ! Insure correct
 c     enddo
 c     IPASS = 1
 c     endif
-c     stop
+c     call endit
 c***** DEBUG
 c-----------------------------------------------------------------------
 C
@@ -3640,7 +3648,7 @@ C-----STOP IF OVER 1000 = THIS WOULD BE CRAZY
       IF(N1IN.GT.1000) THEN
       WRITE(3,40) N1IN
    40 FORMAT(///' ERROR...LEGENDRE ORDER=',I5,' (EXCEEDS 1000)'///)
-      STOP
+      CALL ENDERROR
       ENDIF
       CALL LISTI(CTAB4,N1IN)
       DO 50 J=1,MAXLEGC
@@ -5617,6 +5625,8 @@ C-----DEFINE LENGTH OF MT DEFINITION.
    30 CONTINUE
       I=1001           ! new length
    40 MTLONG=I-1
+c-----2022/3/23 - added CLOSE
+      CLOSE(MTTAPE)
       RETURN
    50 FORMAT(4I4,1X,40A1)
       END
@@ -5798,6 +5808,8 @@ C-----DEFINE INDICES TO SPECIAL CHARACTER STROKE TABLE.
       GO TO 50
 C-----END OF DATA OR ERROR.
    40 ICHAR=ICHAR-1
+c-----2022/3/23 - added CLOSE
+      CLOSE(ISYM)
    50 RETURN
    60 FORMAT(1X,A1,I5)
    70 FORMAT(2F7.3,I5)
@@ -5866,7 +5878,7 @@ C-----(3) VERSES - CHARACTERS FOR I.D.
 C       12345678901234567890123456789012
       DATA VERSE1/
      1 'Program EVALPLOT                ',
-     2 '(Version 2021-2)                ',
+     2 '(Version 2023-1)                ',
      3 'by                              ',
      4 'Dermott E. Cullen               ',
      5 '(Present Contact Information)   ',
@@ -5874,7 +5886,7 @@ C       12345678901234567890123456789012
      7 '1466 Hudson Way                 ',
      8 'Livermore, CA 94550             ',
      9 'U.S.A.                          ',
-     A 'Tele: 925-443-1911              ',
+     A 'Tele: 925-321-4177              ',
      1 'E.Mail:redcullen1@comcast.net   ',
      2 'Web:redcullen1.net/HOMEPAGE.NEW ',
      3 '                                ',

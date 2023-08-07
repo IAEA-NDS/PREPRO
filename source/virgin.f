@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM VIRGIN
@@ -92,6 +83,8 @@ C                                 *Checked Maximum Tabulated Energy to
 C                                  insure it is the same for all MTs -
 C                                  if not, print WARNING messages.
 C     VERS. 2020-1 (Feb.  2020)   *Identical to 2019-1.
+C     VERS. 2023-1 (Feb.  2023)   *Decreasee page size from 1,500,000
+c                                  TO 120,000
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -1238,7 +1231,7 @@ C-----END OF RUN - PRINT CURRENT EXECUTION TIME
       GO TO 310  ! CANNOT GET TO HERE
   320 FORMAT(///1X,72('=')/
      1 ' UNCOLLIDED (I.E. VIRGIN) FLUX AND REACTION CALCULATION',
-     2 ' (VIRGIN 2020-1)'/1X,72('='))
+     2 ' (VIRGIN 2023-1)'/1X,72('='))
   330 FORMAT(' PROBLEM TITLE'/1X,72('-')/1X,18A4/1X,18A4/1X,72('-'))
   340 FORMAT(' INTERPRETATION OF INPUT PARAMETERS'/1X,72('-')/
      1 ' TOTAL ZA/MT/DENSITY-----',I6,'/',I4,'/',11A1/

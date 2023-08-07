@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM RECENT
@@ -352,6 +343,8 @@ C                                  prevent repeated energies in ENDF
 C                                  format output.
 C                                 *Corrected dummy arguments ,1) to ,*)
 C                                  Thank Arjan
+C     VERS. 2023-1 (Feb.  2023)   *Decreased page size from 1,200,000
+C                                  to 120,000.
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -496,7 +489,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF COMMENT CARDS AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** RECENT (VERSION 2021-1) ***************
+C     ***************** RECENT (VERSION 2023-1) ***************
 C     RESONANCE CONTRIBUTION RECONSTRUCTED TO WITHIN   0.100 PER-CENT
 C     COMBINED DATA NOT THINNED (ALL RESONANCE + BACKGROUND DATA KEPT)
 C
@@ -1374,13 +1367,13 @@ C     AT THE END OF SECTION, MF=1, MT=451, FOR A COMPLETE RECORD
 C     OF EACH RUN USING THIS PROGRAM. THIS SECTION WILL CONTAIN
 C     LINES OF THE FORM
 C
-C     ***************** PROGRAM RECENT (VERSION 2021-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
 C     ONLY PROCESS  0.00000+ 0 TO  3.00000+ 3 EV
-C     ***************** PROGRAM RECENT (VERSION 2021-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
 C     ONLY PROCESS  3.00000+ 3 TO  1.00000+ 4 EV
-C     ***************** PROGRAM RECENT (VERSION 2021-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
 C     ONLY PROCESS  1.00000+ 4 TO  8.00000+ 4 EV
-C     ***************** PROGRAM RECENT (VERSION 2021-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
 C     ONLY PROCESS  8.00000+ 4 TO  2.00000+ 7 EV
 C
 C     YOU SHOULD CHECK TO INSURE THAT THERE ARE NO OVERLAPPING ENERGY
@@ -1818,7 +1811,7 @@ C-----COPY REMAINDER OF MAT.
 C-----ENTIRE MATERIAL HAS PROCESSED. PROCEED TO NEXT MAT.
       GO TO 10
   130 FORMAT(' Calculate Cross Sections from Resonance Parameters',
-     1 ' (RECENT 2021-1)'/1X,78('='))
+     1 ' (RECENT 2023-1)'/1X,78('='))
   140 FORMAT(1X,78('=')/' ENDF/B Tape Label'/1X,78('=')/1X,16A4,A2,I4)
   150 FORMAT(1X,7('WARNING...'),'WARNING'/
      1 ' No Section MF=1, MT=451.'/
@@ -2318,7 +2311,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program RECENT (VERSION 2021-1) ***********',
+     1 ' ***************** Program RECENT (VERSION 2023-1) ***********',
      2 ' Only Process12345678901 to12345678901 eV                     ',
      3 ' for All Data Greater than12345678901 barns in Absolute Value ',
      4 ' Data Linearized to within an Accuracy of12345678901 per-cent ',

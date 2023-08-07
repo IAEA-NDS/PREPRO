@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM MIXER
@@ -106,6 +97,8 @@ C                                 *Min 1 File allowed,e.g. select MT
 C                                  Previously assumed 2 or more files
 C                                  needed for MIX.
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
+C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,200,000
+C                                  to 120,000
 C
 C     Acknowledgement 2019
 C     --------------------
@@ -218,7 +211,7 @@ C     THE FACT THAT THIS PROGRAM HAS COMBINED THE DATA IS DOCUMENTED
 C     IN THE OUTPUT ENDF/B FORMAT IN THE HOLLERITH SECTION BY FIRST
 C     IDENTIFYING THE VERSION OF THIS PROGRAM THAT WAS USED, IN THE FORM
 C
-C     ********************( PROGRAM MIXER 2021-1) **********************
+C     ********************( PROGRAM MIXER 2023-1) **********************
 C
 C     THIS IS FOLLOWED BY THE TWO LINE IDENTIFICATION INPUT BY THE USER.
 C     THIS IS FOLLOWED BY COMPOSITION INPUT BY THE USER.
@@ -578,7 +571,7 @@ c-----------------------------------------------------------------------
       CALL ENDIT
       GO TO 40    ! CANNOT GET TO HERE
    50 FORMAT(' Mix Energy Dependent ENDF/B Cross Sections',
-     1 ' (MIXER 2021-1)'/1X,78('-'))
+     1 ' (MIXER 2023-1)'/1X,78('-'))
       END
       SUBROUTINE READIN
 C=======================================================================
@@ -1291,7 +1284,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program MIXER (VERSION 2021-1) ************',
+     1 ' ***************** Program MIXER (VERSION 2023-1) ************',
      2 ' ----------------------------------------                     ',
      3 ' Composition                                                  ',
      4 ' ----------------------------------------                     ',
