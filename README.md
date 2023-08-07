@@ -78,7 +78,6 @@ Finally, after successful verification, move the executables to
 a place of your liking. Under Linux `/usr/local/bin` is usually
 a good place.
 
-
 :warning: **Warning:**  If PREPRO is being installed in a virtual environment (e.g. *conda, venv, pyenv*, etc.) or alongside *oneAPI*, then the `activate` code will clash with the `activate` command available in the environment. You can check which `activate` program you are running by inspecting the full path:
 ```
   which activate
@@ -86,31 +85,31 @@ a good place.
 If you run into this problem, the solution is to call the PREPRO code `activate` using it's full path, or to update the `$PATH` in your `.bashrc` script to ensure that the path containing the PREPRO executables is called before the path where the `activate` environment script is.
 
 
-#### Installation with Singularity
+#### Installation with Apptainer
 
-[Singularity] is a containerisation application similar to Docker.
-If Singularity is installed, you can run the following instructions
+[Apptainer] is a containerisation application similar to Docker.
+If Apptainer is installed, you can run the following instructions
 for installation:
 ```
     git clone https://github.com/IAEA-NDS/PREPRO.git
     cd PREPRO
-    singularity build --fakeroot prepro.sif singularity_PREPRO.def
+    apptainer build --fakeroot prepro.sif apptainer_PREPRO.def
     # alternatively:
-    # sudo singularity build prepro.sif singularity_PREPRO.def
+    # sudo apptainer build prepro.sif apptainer_PREPRO.def
 ```
 The same verification script as described above in the convential
 installation can be used to verify the proper working:
 ```
-    singularity run prepro.sif test
+    apptainer run prepro.sif test
 ```
 
 The PREPRO codes can be exetued by
 ```
-    singularity run prepro.sif <PREPRO-CODE>
+    apptainer run prepro.sif <PREPRO-CODE>
 ```
 For instance, `<PREPRO-CODE>` could be `endf2c` or `fixup`.
 
-[Singularity]: https://sylabs.io/
+[Apptainer]: https://sylabs.io/
 
 ### Supplementary material
 
