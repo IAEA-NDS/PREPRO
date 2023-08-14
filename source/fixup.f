@@ -185,6 +185,8 @@ C                                 *Decreased in-core array size from
 C                                  1,800,000 to 120,000 - enormous
 C                                  arrays merely make the code run
 C                                  longer I/O instead of calculations.
+C                                 *Removed last multiple DO loop to same
+C                                  CONTINUE to end.
 C
 C     2019-2 Acknowledgment
 C     =====================
@@ -2167,7 +2169,7 @@ C     USE EITHER FILE 3 OR 23 RECONSTRUCTION RULES.
 C
 c-----------------------------------------------------------------------
       MFHIN=MFH
-      IF(MFHIN.EQ.3) GO TO 60
+      IF(MFHIN.EQ.3) GO TO 70
 C-----SAVE FILE 3 RULES AND USE FILE 23 RULES.
       MAKES=MAKE
       DO 30 I=1,MAKE
@@ -2180,16 +2182,17 @@ C-----SAVE FILE 3 RULES AND USE FILE 23 RULES.
    20 CONTINUE
    30 CONTINUE
       MAKE=MAKEP
-      DO 50 I=1,MAKE
+      DO 60 I=1,MAKE
       MTMAKE(I)=MTMAKP(I)
       MTRANG(I)=MTRANP(I)
-      DO 40 J=1,2
+      DO 50 J=1,2
       DO 40 K=1,15
       MTADD(J,K,I)=MTADDP(J,K,I)
    40 CONTINUE
    50 CONTINUE
+   60 CONTINUE
 C-----READ ALL SECTION, EDIT AND COPY TO SCRATCH FILE TAPEC.
-   60 CALL PASS1
+   70 CALL PASS1
 C-----IF REQUESTED, CREATE UNIFORM ENERGY GRID.
       CALL PASS2
 C-----DEFINE ALL SUM CROSS SECTIONS.
@@ -2197,19 +2200,19 @@ C-----DEFINE ALL SUM CROSS SECTIONS.
 C-----OUTPUT ALL SECTIONS TO NEW ENDF FORMATTED FILE.
       CALL PASS4
 C-----IF NECESSARY RESTORE FILE 3 RULES.
-      IF(MFHIN.EQ.3) GO TO 100
+      IF(MFHIN.EQ.3) GO TO 110
       MAKE=MAKES
-      DO 90 I=1,MAKE
+      DO 100 I=1,MAKE
       MTMAKE(I)=MTMAKS(I)
       MTRANG(I)=MTRANS(I)
-      DO 80 K=1,15
-      DO 70 J=1,2
+      DO 90 K=1,15
+      DO 80 J=1,2
       MTADD(J,K,I)=MTADDS(J,K,I)
-   70 CONTINUE
-      MTADD(3,K,I)=0
    80 CONTINUE
+      MTADD(3,K,I)=0
    90 CONTINUE
-  100 RETURN
+  100 CONTINUE
+  110 RETURN
       END
       SUBROUTINE PASS1
 C=======================================================================
