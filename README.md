@@ -56,12 +56,14 @@ run the following commands from your command line:
 ```
 If successful, the executables will be available in `PREPRO/bin`.
 
+If you provide the argument `graphics=yes`, i.e.,
 ```
     make install graphics=yes
-    make clean
 ```
-Will also install the graphics packages that requires X11 in /usr for Linux or
-/opt for MacOS
+you will also install the graphics packages `evalplot`, `evalhard`, `evalhard1`, `complot`, `comhard`, `comhard1`.
+These packages require X11 in /usr for Linux or /opt for MacOS.
+If you want to produce a visual comparison between PREPRO2015 and 2023 results
+in the following verification step, you also need these packages.
 
 Verify the installation by changing into the directory `test`.
 There run the command
