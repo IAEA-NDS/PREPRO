@@ -72,7 +72,9 @@ At the very end of the execution, you will see the plots by
 *COMPLOT* comparing the result of PREPRO 2015 and PREPRO 2023.
 The difference between these
 versions should not exceed 2%, i.e., the plotted ratio should
-be between 0.98 and 1.02.
+be between 0.98 and 1.02. If there is any issue with the display
+of the plots, you can instead open the file `comhard1.ps`
+in a viewer that supports PostScript.
 
 Finally, after successful verification, move the executables to
 a place of your liking. Under Linux `/usr/local/bin` is usually
