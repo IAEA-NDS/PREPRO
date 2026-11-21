@@ -154,6 +154,12 @@
  457 457 457 457 Radioactive Decay                       *
  458 458 458 458 Fission Energy Release                  *
  459 459 459 459 Cumulative Fission Product Yield        *
+ 462 462 462 462 Total ]n\{-*fiss                        *dummy product
+ 465 465 465 465 Delayed ]n\{-*fiss                      *dummy product
+ 466 466 466 466 Prompt ]n\{-*fiss                       *dummy produce
+ 472 472 472 472 Total ]n\{-/fiss                        *dummy product
+ 475 475 475 475 Delayed ]n\{-/fiss                      *dummy product
+ 476 476 476 476 Prompt ]n\{-/fiss                       *dummy produce
    0   0 465 465 Delayed ]n\{- (Spontaneous)             *
    0   0 466 466 Prompt ]n\{- (Spontaneous)              *
  501 501 501 501 Total                                   *

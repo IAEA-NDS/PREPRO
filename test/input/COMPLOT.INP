@@ -1,30 +1,183 @@
-   0.0        12.5       0.0         10.0             1          1 1.5
-PREPRO23.OUT
-PREPRO15.OUT
-          0          0          0          0          4          1   1
- 1.0000E-04
-PREPRO2023
-PREPRO2015
+   0.0        12.5       0.0         10.0             1          1 1.6
+ENDFB.RECENT
+ENDFB.SIGMA1
+          0          2          0          0          4          1   1
+-1.00e-3     1.0000     1.0000d10 (1% difference) = input is MAX RATIO
+0 K
+293.6 K
      1 1  1             999999999                     0          0
  
  
+---------------------------------------------------
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+c:\red\point.all\point2025\point20215nozip\0k\za092238
+c:\red\point.all\point2025\point2025-nozip\293.6k\za092238
+recent
+sigma1
+za092238.recent
+za092238.sigma1.300k
  
  
-===(this line and below is not read)===================================
-constant.dat
-sigma1.out
-          0          0          0          0          3          1
- 1.0000E-04
-Analytical
-SIGMA1
-     1 3  1             9999 3999                     0          1
-     1 3  2             9999 3  2                     0          1
-     1 3 18             9999 3 18                     0          1
-     1 3102             9999 3102                     0          1
-     1 3  1 2000.0      9999 3  1 3000.0              0          1
-     1 3  2 2000.0      9999 3  2 3000.0              0          1
-     1 3 18 2000.0      9999 3 18 3000.0              0          1
-     1 3102 2000.0      9999 3102 3000.0              0          1
-     1 3  1             9999 3  1                     0          1
-     1 3  2             9999 3  2                     0          1
-     1 3102             9999 3102                     0          1
+c:\red\point.all\point2025\point2025-nozip\0k\za026058
+c:\red\point.all\point2025\point2025-nozip\293.6k\za026058
+          0          2          0          0          4          1   1
+ 9200023501 92235 3  1 1.000
+ 92235 3  1 9200023501 1.000
+sublet\Sr88\Sr088.NJOY.0K
+sublet\Sr88\sr88-ampx-jordan\Sr088.AMPX.0K
+MT-5\NJOY-2016\WIM-FIX\mo95.0k
+MT-5\ENDF.sigma1
+MT-5\ENDF.groupie
+sublet\Sr88\Sr088.recent
+sublet\Sr88\Sr088.NJOY.0k
+ 
+za092000-photo-atomic
+za092000-photo-nuc
+\red\compare2\eedl-red
+\red\compare2\eedl-bret
+\red\prepro-run\2022-iaea-proc-codes\za029063.A.recent
+\red\prepro-run\2022-iaea-proc-codes\za029063.B.recent
+\red\prepro-run\2022-thompson-ian\TOTAL.ENDF#2
+\red\prepro-run\2022-thompson-ian\TOTAL.ENDF
+ 
+\red\prepro-run\2022-iaea-proc-codes\Cu-prepro\cu63.shift.recent.0001
+\red\prepro-run\2022-iaea-proc-codes\U-PREPRO\U235.293.6K
+\red\prepro-run\2022-iaea-proc-codes\U-AMPX-Doro\try#2\U235.293.6K
+ 
+ 
+ 
+     1 3  1 0.1000    999999 3  1 .104713             0          0
+     1 3  1 1.0000    999999 3  1 1.04713             0          0
+     1 3  1 10.000    999999 3  1 10.4713             0          0
+     1 3  1 100.00    999999 3  1 104.713             0          0
+     1 3  1 1000.0    999999 3  1 1047.13             0          0
+     1 3  1 10000.    999999 3  1 10471.3             0          0
+ 
+ 
+ 
+ 
+ 
+ 92238 3  1 92000 3  1 1.000
+ 92000 3  1 92238 3  1 1.000
+ 92238 3  1 92235 3  1 1.000
+ 92235 3  1 92238 3  1 1.000
+ 
+ 
+ 
+ 
+za092000.u235-u238-mixed
+ 
+ 94239 3552 94239 3 18 1.000
+ 94239 3556 94239 3 18 1.000
+ 94239 3 18 94239 3552 1.000
+ 94239 3 18 94239 3556 1.000
+ 
+=(master)===(equate to this)=====
+RECENT.ORIGINAL
+RECENT.MOD
+2021-Andrej\SIGMA0-ORIGINAL\AMPX-DORO\Ta181_0K.ENDF
+2021-Andrej\SIGMA0-MOD-FIXUP\ZA073181.FIXUP.293.6k
+2021-Andrej\SIGMA0-MOD-FIXUP\za073181.NJOY.MOD.293.6k.EDGED
+2021-Andrej/TA181e80v01_NJOY.pen
+ZA073181.0k
+   0.0        12.5       0.0         10.0             1          1 2.1
+          0          2          0          0          4          1   1
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+     1 3600             9999 3600                     0          0
+     1 3800             9999 3800                     0          0
+-1.00e-4     1.0010     1.0000d10 (1% difference) = input is MAX RATIO
+Cu63_B STANDARD = Valentin (below)
+\red\prepro2021\sources\newman\run\cu063_A\za029063_A.RECENT.01
+\red\prepro2021\sources\newman\run\cu063_B\za029063_B.SAMRML.01
+2021-Valentin-GRUCON\try#2\029cu063_B.grucon
+2021-Kenichi-FRENDY\try#4\Ca040_FRENDY.pendf
+SAMMY  Red 0.01%
+2021-valentin-GRUCON\029Cu063.grucon
+za029063_A.SAMRML-red.01
+za029063_B.SAMRML.01
+za029063_B.NEWMAN.01
+2021-macfarlane#2\pendf-cu63-A
+2021-macfarlane#2\pendf-cu63-B
+za029063_B.SAMRML-Red.01
+=(master)===(equate to this)=====
+za029063_B.SAMRML.01
+za029063_B.NEWMAN.01
+          0          2          0          0          4          1   1
+-1.00e-4     1.0000     1.0000d10 (1% difference) = input is MAX RATIO
+SAMRML
+NEWMAN
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+     1 3600             9999 3600                     0          0
+     1 3800             9999 3800                     0          0
+za029063_A.samrml-red.01
+2021-bob-mac\cu63-0001-pendf
+recent.2020.out
+recent.out
+za029063_B.SAMRML-red.01
+     1 3  1             9999 3  2                     0          0
+     1 3102             9999 3102                     0          0
+     1 3600             9999 3600                     0          0
+     1 3800             9999 3800                     0          0
+ 
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+ 
+   0.0        12.5       0.0         10.0             2          2 1.8
+     1 3  1  7.07d3     9999 3  2  7.10d3             1          0
+     1 3102  7.07d3     9999 3102  7.10d3             1          0
+   0.0        12.5       0.0         10.0             1          1 2.1
+nu-bar.fission.endf
+nu-bar.fission.endf.k293.6
+2020-cu63-verify\za029063_A.Jordan
+2020-cu63-verify\za029063_A.notB.jordan
+2020-cu63-verify\za029063_B.Andrej#2
+2020-cu63-verify\za029063_B.Bob
+2020-cu63-verify\za029063_B.Jeremy
+2020-cu63-verify\za029063_A.VIII.RECENT.01
+2020-cu63-verify\za029063_A.doro
+2020-cu63-verify\za029063_A.Andrej#2
+za029063.0k.shift-red
+za029063.0k.noshift-red
+za029063.0k-mcdonnell
+2020-mcdonnell\Shift.FL3
+2020-mcdonnell\NoShift.FL3
+complot.in1
+complot.in2
+za029063.VIII.0K
+RECENT.OUT
+          0          2          0          2          4          1   1
+0 K
+293.6 K
+endfb.mf3
+fixup.outx
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+2019-jeremy\andrej\tape42
+za092238.recent2020.pc01
+2019-jeremy\try#2\U238\U238.PENDF
+2019-jeremy\try#2\U238\za092238.recent2020.pc01
+2019-jeremy\try#2\U238\za092238.recent2020.pc1
+     1 3  1 19000.      9999 3  2 19900.              0          0
+     1 3 18 19000.      9999 3 18 19900.              0          0
+     1 3102 19000.      9999 3102 19900.              0          0
+     1 3  1             9999 3  2                     0          0
+     1 3 18             9999 3 18                     0          0
+     1 3102             9999 3102                     0          0
+za094239.fixup.01pc
+za094239.fixup.01pcx9
+NJOY (0.10%)
+za094239.sigma1.01pc
+\red\point.all\point2018\0k\za094239
+\red\point.all\point2018\0k\za094239
+2019-jeremy\u238.rendf
+2019-jeremy\pu239.rendf
+\red\epics2017-eedl-fixup\eedl2017.all
+\red\epics2017-eedl-fixup\eedl2017.linear

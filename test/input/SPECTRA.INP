@@ -1,6 +1,6 @@
           0          0 0.0                 0
-FIXUP.OUT
-SPECTRA.OUT
+ENDFB.SIGMA1
+ENDFB.SPECTRA
      0 0  0  999999999
                         (BLANK CARD TERMINATES MAT REQUEST RANGES)
  0.0000E000 1.0000E-03
