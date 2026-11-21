@@ -47,11 +47,11 @@ all: $(PROG) $(UTILITY_PROG) $(GRAPH_PROG)
 $(PROG): %: %.f
 	$(FORT) $(FLAGS) -o $@ $< $(COMMON_SRC)
 
-convert: UTILITY/convert.f UTILITY/endfio.f
-	$(FORT) $(FLAGS) -IUTILITY -o $@ $^
+convert: convert.f endfio.f
+	$(FORT) $(FLAGS) -o $@ $^
 
-relabel: UTILITY/relabel.f UTILITY/endfio.f
-	$(FORT) $(FLAGS) -IUTILITY -o $@ $^
+relabel: relabel.f endfio.f
+	$(FORT) $(FLAGS) -o $@ $^
 
 .PHONY: COMPLOT EVALPLOT
 COMPLOT EVALPLOT:
