@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SPECTRA
@@ -158,6 +149,7 @@ C     VERS. 2020-1 (Mar. 2020)    *Added Target Isomer State
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 3,000,000
 C                                  to 120,000
+C     VERS. 2026-1 (June 2026)    *No Sequence # - columns 76-80 BLANK
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -245,7 +237,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM SPECTRA (2023-1) ****************
+C     ***************** PROGRAM SPECTRA (2026-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-10 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -621,7 +613,7 @@ C-----08/08/2012 DEFINE CODE NAME
       INTEGER*4 OUTP,OTAPE
       CHARACTER*4 CARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
       COMMON/COPI/MFIELD(3)
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
@@ -769,7 +761,7 @@ c-----End of Run - Normal
      4 2X,78('-'))
   100 FORMAT(2X,78('-')/48X,'Tape Totals',2I7/2X,78('-'))
   110 FORMAT('  Linearize ENDF/B Spectra',
-     1 ' (SPECTRA 2023-1)'/2X,78('-'))
+     1 ' (SPECTRA 2026-1)'/2X,78('-'))
   120 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -817,7 +809,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' **************** Program SPECTRA (VERSION 2023-1) ***********',
+     1 ' **************** Program SPECTRA (VERSION 2026-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',
@@ -922,7 +914,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
       COMMON/HOLFMT/FMTHOL
@@ -1011,7 +1003,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
       COMMON/HOLFMT/FMTHOL
@@ -1272,7 +1264,7 @@ C     LF   =  1 = ARBITRARY TABULATED FUNCTION
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/LASTE/ELAST
@@ -1301,7 +1293,7 @@ C                 F(E,E') = G(X); X = E'/THETA(E)
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/PARAMS5A/ETHETA(1000),THETA(1000),IT5,NT5
@@ -1349,7 +1341,7 @@ C                 F(E,E') = SQRT(E')*EXP[-E'/THETA(E)]
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/PARAMS5A/ETHETA(1000),THETA(1000),IT5,NT5
@@ -1399,7 +1391,7 @@ C                 F(E,E') = E'*EXP[-E'/THETA(E)]; E' = 0 TO E' - U
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/PARAMS5A/ETHETA(1000),THETA(1000),IT5,NT5
@@ -1444,7 +1436,7 @@ C                 F(E,E') = EXP[-E'/A(E)]*SINH[SQART*B*E')]
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/PARAMS5A/ETHETA(1000),THETA(1000),IT5,NT5
@@ -1502,7 +1494,7 @@ C                            3[EFk* TM(E)]^1/2
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NBTINT5/NBT5(100),INT5(100),NR5
       COMMON/CON5COM/U5,EFL,EFH,LF5,IMSMOOTH
@@ -1554,7 +1546,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OKERR3/ERRXC3,KERR3,MAXER3,ENER3(21),ER3(21)
       COMMON/HOLFMT/FMTHOL
@@ -1585,7 +1577,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/NBTINT/NBT(100),INT(100)
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/OLDTAB/IXYLOW,IXYHI,LEFT
       COMMON/THRESE/ETHRES
@@ -1925,7 +1917,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/NBTINT/NBT(100),INT(100)
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/OLDTAB/IXYLOW,IXYHI,LEFT
       COMMON/THRESE/ETHRES
@@ -2417,7 +2409,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
@@ -2704,7 +2696,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/OLDTAB/IXYLOW,IXYHI,LEFT
       COMMON/PAGER/NPAGE,NPAGE2,NP1P1,NP2M1
@@ -2749,7 +2741,7 @@ C=======================================================================
       CHARACTER*4 FMTHOL
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
@@ -3208,7 +3200,7 @@ C=======================================================================
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MFMIN(101),MTMIN(101),
      1 MATMAX(101),MFMAX(101),MTMAX(101)
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/IZA
       COMMON/HOLFMT/FMTHOL
       COMMON/TEMPO/TEMP3,IVERSE
@@ -3288,7 +3280,6 @@ C-----RETURN NEGATIVE MATH AS END OF RUN INDICATOR.
   100 MATH=-1
       MFH=0
       MTH=0
-      NOSEQ=0
       MATIN=0
       MATOUT=0
       RETURN
@@ -3319,9 +3310,8 @@ C
 C     START OF NEW MAT.
 C
 c-----------------------------------------------------------------------
-C-----INITIALIZE SEQUENCE NUMBER AND POINT COUNTS FOR NEW MAT.
-  120 NOSEQ=1
-      MATIN=0
+C-----INITIALIZE POINT COUNTS FOR NEW MAT.
+  120 MATIN=0
       MATOUT=0
 C-----BLANK OUTPUT ENDF/B FORMAT I.D., INITIALIZE TO ENDF/B-V FORMAT AND
 C-----FILE 3 TEMPERATURE TO ZERO.

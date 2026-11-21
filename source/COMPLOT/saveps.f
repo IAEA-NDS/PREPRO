@@ -1,16 +1,8 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
       SUBROUTINE STARPLOT
 C=======================================================================
 C
-C     Version 2021-1 (Jan. 2021)
+C     Version 2026-1 (June 2026)
+C     same as 2021-1 (Jan. 2021)
 C     ==================================================================
 C     2014 - Andrej Trkov Additions
 C            MONEF = 0 =   1 plot   per file (old convention)

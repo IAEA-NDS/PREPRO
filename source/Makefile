@@ -14,7 +14,6 @@ FLAGS = -O0 -static-libgfortran
 
 PROG = \
 activate \
-convert \
 dictin \
 endf2c \
 fixup \
@@ -24,11 +23,12 @@ linear \
 merger \
 mixer \
 recent \
-relabel \
 sigma1 \
 sixpak \
 spectra \
 virgin
+
+UTILITY_PROG = convert relabel
 
 ifeq ($(graphics),yes)
 	GRAPH_PROG = COMPLOT EVALPLOT
@@ -42,17 +42,23 @@ PREFIX ?= $(CWD)/../
 COMMON_SRC = endfio.f scratchb.f 
 
 .PHONY: all
-all: $(PROG) $(GRAPH_PROG)
+all: $(PROG) $(UTILITY_PROG) $(GRAPH_PROG)
 
 $(PROG): %: %.f
 	$(FORT) $(FLAGS) -o $@ $< $(COMMON_SRC)
+
+convert: UTILITY/convert.f UTILITY/endfio.f
+	$(FORT) $(FLAGS) -IUTILITY -o $@ $^
+
+relabel: UTILITY/relabel.f UTILITY/endfio.f
+	$(FORT) $(FLAGS) -IUTILITY -o $@ $^
 
 .PHONY: COMPLOT EVALPLOT
 COMPLOT EVALPLOT:
 	$(MAKE) -C $@
 
 .PHONY: install
-install:: $(PROG)
+install:: $(PROG) $(UTILITY_PROG)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp $^ $(DESTDIR)$(PREFIX)/bin
 
@@ -65,6 +71,6 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f $(PROG)
+	rm -f $(PROG) $(UTILITY_PROG)
 	$(MAKE) -C COMPLOT clean
 	$(MAKE) -C EVALPLOT clean

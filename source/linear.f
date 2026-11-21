@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM LINEAR
@@ -163,6 +154,7 @@ C                                 *Minimum Cross Section is no longer
 C                                  an input option = set to 1.0d-30.
 C     VERS. 2023-1 (Feb. 2023)    *Decreased in-core page size from
 C                                  6,000,000 ro 120,000
+C     VERS. 2026-1 (June 2026)    *No Sequence # = columns 76-80 BLANK
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -250,7 +242,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM LINEAR (2023-1) ****************
+C     ***************** PROGRAM LINEAR (2026-1) ****************
 C     FOR ALL DATA GREATER THAN 1.00000-30 IN ABSOLUTE VALUE
 C     DATA LINEARIZED TO WITHIN AN ACCURACY OF  0.1  PER-CENT
 C
@@ -626,7 +618,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/NAMECODE/CODENAME
       CHARACTER*4 CARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
       COMMON/COPI/MFIELD(3)
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
@@ -796,7 +788,7 @@ C-----END OF RUN - NORMAL
      4'       In      Out'/2X,78('-'))
   110 FORMAT(2X,78('-')/48X,'Tape Totals',2I9/2X,78('-'))
   120 FORMAT('  Linearize ENDF/B Cross Sections',
-     1 ' (LINEAR 2023-1)'/2X,78('-'))
+     1 ' (LINEAR 2026-1)'/2X,78('-'))
   130 FORMAT('  WARNING - No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Linearized or Written to Output File.'/
@@ -845,7 +837,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LINEAR (VERSION 2023-1) ***********',
+     1 ' ***************** Program LINEAR (VERSION 2026-1) ***********',
      2 ' For All Data Greater than12345678901 barns in Absolute Value ',
      3 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
      4 ' Data Linearized Using Energy Dependent Uncertainty           ',
@@ -958,7 +950,7 @@ C=======================================================================
       CHARACTER*4 FMTHOL
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
       COMMON/OKERR3/ENER3(21),ER3(21),KERR3,MAXER3
@@ -1216,7 +1208,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/OLDTAB/IXYLOW,IXYHI,LEFT
       COMMON/STARTE/ESTART
@@ -1600,7 +1592,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
@@ -1887,7 +1879,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/OLDTAB/IXYLOW,IXYHI,LEFT
       COMMON/PAGER/NPAGE,NPAGE2,NP1P1,NP2M1
@@ -1934,7 +1926,7 @@ C=======================================================================
       CHARACTER*4 FMTHOL
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2IN,MAT,MF,MT
       COMMON/NEWTAB/N2CORE,N2SCR,N2TOT,N2P1,N2P2
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
@@ -2365,7 +2357,7 @@ C=======================================================================
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MFMIN(101),MTMIN(101),
      1 MATMAX(101),MFMAX(101),MTMAX(101)
       COMMON/COUNTS/MATNOW,MFNOW,MATIN,MATOUT,N2TOTI,N2TOTO
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/IZA
       COMMON/HOLFMT/FMTHOL
       COMMON/TEMPO/TEMP3,IVERSE
@@ -2445,7 +2437,6 @@ C-----RETURN NEGATIVE MATH AS END OF RUN INDICATOR.
   100 MATH=-1
       MFH=0
       MTH=0
-      NOSEQ=0
       MATIN=0
       MATOUT=0
       RETURN
@@ -2478,8 +2469,7 @@ C     START OF NEW MAT.
 C
 c-----------------------------------------------------------------------
 C-----INITIALIZE SEQUENCE NUMBER AND POINT COUNTS FOR NEW MAT.
-  120 NOSEQ=1
-      MATIN=0
+  120 MATIN=0
       MATOUT=0
 C-----BLANK OUTPUT ENDF/B FORMAT I.D., INITIALIZE TO ENDF/B-V FORMAT AND
 C-----FILE 3 TEMPERATURE TO ZERO.

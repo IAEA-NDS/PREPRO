@@ -1,13 +1,17 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
+C
+C     PREPRO 2026-1 (June 2026)
+C     ==================================================================
+C     1) No Sequence # = cols. 76-80 blank
+C     2) Simplified 66 column output
+C     3) Added INCORE9 and INCORE7
+C     4) Added BLOCK DATA to control rounding and MF=2 defintion
+C     5) Only 9 or 10 digit output
+C=======================================================================
+C
+C     PREPRO 2023-1
+C     ==================================================================
+C     IDENTICAL to 2021-1.
 C
 C     PREPRO 2021-1
 C     ==================================================================
@@ -109,7 +113,7 @@ c----- 2017/10/14 replaced INCLUDE
       CHARACTER*1 FIELD2
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION FIELD2(11,2)
 C-----READ FLOATING POINT FIELDS AS CHARACTERS
       READ(ITAPE,20,END=10) FIELD2,L1H,L2H,N1H,N2H,MATH,MFH,MTH
@@ -146,7 +150,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD2
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION FIELD2(11,2)
 C-----LAST MAT NUMBER - USED TO RESET SEQUENCE NUMBER
       DATA LASTMAT/-100000/
@@ -167,14 +171,10 @@ C-----ELIMINATE -0
 C-----IF NEW MAT RESET SEQUENCE NUMBER
       IF(MATH.eq.LASTMAT) go to 20
       LASTMAT=MATH
-      NOSEQ=1
 C-----OUTPUT LINE IMAGE.
-   20 IF(NOSEQ.LE.0) NOSEQ=1
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      WRITE(OTAPE,30) FIELD2,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+   20 WRITE(OTAPE,30) FIELD2,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       RETURN
-   30 FORMAT(22A1,4I11,I4,I2,I3,I5)
+   30 FORMAT(22A1,4I11,I4,I2,I3)
       END
       SUBROUTINE CARDI(C1,C2,L1,L2,N1,N2)
 C=======================================================================
@@ -215,7 +215,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD2
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION FIELD2(11,2)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
@@ -231,12 +231,9 @@ C-----ELIMINATE -0
       IF(IABS(N1).LE.0) N1=0
       IF(IABS(N2).LE.0) N2=0
 C-----OUTPUT LINE.
-      IF(NOSEQ.LE.0) NOSEQ=1
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      WRITE(OTAPE,20) FIELD2,L1,L2,N1,N2,MATH,MFH,MTH,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+      WRITE(OTAPE,20) FIELD2,L1,L2,N1,N2,MATH,MFH,MTH
       RETURN
-   20 FORMAT(22A1,4I11,I4,I2,I3,I5)
+   20 FORMAT(22A1,4I11,I4,I2,I3)
       END
       SUBROUTINE TERPTEST(NBT,INT,N1,N2,MYPATH)
 C=======================================================================
@@ -256,7 +253,7 @@ c----- 2017/10/14 replaced INCLUDE
       save
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1X,C2X,L1X,L2X,N1X,N2X,MAT,MF,MT
       DIMENSION NBT(N1),INT(N1)
 c-----2019/1/5 - MAXTERP = Interpolation Law Dimension for ALL PREPRO
@@ -448,7 +445,7 @@ c----- 2017/10/14 replaced INCLUDE
       save
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION NBT(N1),INT(N1)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
@@ -456,21 +453,20 @@ C-----LOOP OVER RANGES - UP TO 3 PER LINE
       DO 50 I1=1,N1,3
       I2=I1+2
       IF(I2.GT.N1) I2=N1
-C-----OUTPUT LINE
+C-----OUTPUT LINE = 1, 2 o 3 pairs
       IOUT=(I2-I1)+1
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
       GO TO (10,20,30),IOUT
-   10 WRITE(OTAPE,60) NBT(I1),INT(I1),MATH,MFH,MTH,NOSEQ
+   10 WRITE(OTAPE,60) NBT(I1),INT(I1),MATH,MFH,MTH
       GO TO 40
-   20 WRITE(OTAPE,70) (NBT(II),INT(II),II=I1,I2),MATH,MFH,MTH,NOSEQ
+   20 WRITE(OTAPE,70) (NBT(II),INT(II),II=I1,I2),MATH,MFH,MTH
       GO TO 40
-   30 WRITE(OTAPE,80) (NBT(II),INT(II),II=I1,I2),MATH,MFH,MTH,NOSEQ
-   40 NOSEQ=NXTSEQ(NOSEQ)
+   30 WRITE(OTAPE,80) (NBT(II),INT(II),II=I1,I2),MATH,MFH,MTH
+   40 CONTINUE
    50 CONTINUE
       RETURN
-   60 FORMAT(2I11,44X,I4,I2,I3,I5)
-   70 FORMAT(4I11,22X,I4,I2,I3,I5)
-   80 FORMAT(6I11    ,I4,I2,I3,I5)
+   60 FORMAT(2I11,44X,I4,I2,I3)
+   70 FORMAT(4I11,22X,I4,I2,I3)
+   80 FORMAT(6I11    ,I4,I2,I3)
       END
       SUBROUTINE POINTI(X,Y,IXY)
 C=======================================================================
@@ -490,7 +486,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LASTE/ELAST
       DIMENSION X(IXY),Y(IXY),FIELD6(11,6)
       DATA OKDIFF/1.0D-09/
@@ -595,16 +591,27 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/FLAGS/MINUS3,IMPLUS
+c-----Incore and Outout Rounding
       DIMENSION X(IXY),Y(IXY),FIELD6(11,6)
       DATA ZEROD/0.0D+00/
+c-----2023/4/9 - Added initialization to prevent WARNING - NO USED
+      data ipass/0/
+      if(ipass.eq.0) then
+      MINUS3 = 0            ! define + use both
+      IMPLUS = MINUS3
+      MINUS3 = IMPLUS
+      ipass  = 1
+      endif
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
 C-----NOTHING TO DO IF NO POINTS
       IF(IXY.LE.0) RETURN
 C-----SET UP LOOP OVER LINES (UP TO 3 POINTS PER LINE).
-      DO 60 I1=1,IXY,3
+      DO 80 I1=1,IXY,3
+c-----2026/2/16 - blank out 66 columns
+      CALL BLANK66(FIELD6)
       I2=I1+2
       IF(I2.GT.IXY) I2=IXY
 c-----------------------------------------------------------------------
@@ -615,7 +622,7 @@ C
 c-----------------------------------------------------------------------
 C-----CONVERT DATA TO NORMAL FORM.
       K=0
-      DO 10 II=I1,I2
+      DO 60 II=I1,I2
 C-----Negative Imaginary Anomalous Scattering is O.K.
       IF(MFH.ne.27.or.MTH.ne.506) then
 C-----COUNT IF CROSS SECTION IS NEGATIVE.
@@ -630,33 +637,27 @@ c     2017/10/30 - OUT10 only for MF=3 neutron cross section energy
 c
 c-----------------------------------------------------------------------
       if(MFH.eq.3) then
-c-----2013/1/12 - changed ENERGY to OUT10 from OUT9.
-      CALL OUT10(X(II),FIELD6(1,K))    ! MF=3
+C-----------------------------------------------------------------------
+C
+c     2026/2/24 - Select 10, 9 or 7 Digit Output
+C     2026/6/04 - only 10 digit
+C
+C-----------------------------------------------------------------------
+c-----MF = 3
+   20 CALL OUT10(X(II),FIELD6(1,K)) ! 10 digit E
       else
+c-----ALL others = NOT MF=3
       CALL OUT9G(X(II),FIELD6(1,K))    ! All others
       endif
       K=K+1
 C-----CHANGED CROSS SECTION TO 9 DIGIT OUTPUT
       CALL OUT9G(Y(II),FIELD6(1,K))
-   10 CONTINUE
-C-----OUTPUT ONE LINE.
-      IOUT=(I2-I1)+1
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      GO TO (20,30,40),IOUT
-   20 WRITE(OTAPE,70) ((FIELD6(M,II),M=1,11),II=1,2),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 50
-   30 WRITE(OTAPE,80) ((FIELD6(M,II),M=1,11),II=1,4),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 50
-   40 WRITE(OTAPE,90) ((FIELD6(M,II),M=1,11),II=1,6),
-     1 MATH,MFH,MTH,NOSEQ
-   50 NOSEQ=NXTSEQ(NOSEQ)
    60 CONTINUE
+C-----2026/2/16 - SIMPLIFIED OUTPUT ONE LINE.
+      WRITE(OTAPE,70) FIELD6,MATH,MFH,MTH
+   70 FORMAT(66A1    ,I4,I2,I3)
+   80 CONTINUE
       RETURN
-   70 FORMAT(22A1,44X,I4,I2,I3,I5)
-   80 FORMAT(44A1,22X,I4,I2,I3,I5)
-   90 FORMAT(66A1    ,I4,I2,I3,I5)
       END
       SUBROUTINE POINTO9(X,Y,IXY)
 C=======================================================================
@@ -672,7 +673,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/FLAGS/MINUS3,IMPLUS
       DIMENSION X(IXY),Y(IXY),FIELD6(11,6)
       DATA ZEROD/0.0D+00/
@@ -681,7 +682,9 @@ C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
 C-----NOTHING TO DO IF NO POINTS
       IF(IXY.LE.0) RETURN
 C-----SET UP LOOP OVER LINES (UP TO 3 POINTS PER LINE).
-      DO 60 I1=1,IXY,3
+      DO 30 I1=1,IXY,3
+c-----2026/2/16 blank out 66 columns
+      CALL BLANK66(FIELD6)
       I2=I1+2
       IF(I2.GT.IXY) I2=IXY
 c-----------------------------------------------------------------------
@@ -710,24 +713,11 @@ c-----2015/7/30 - Changed OUT9 to OIUT9G.
 C-----CHANGED CROSS SECTION TO 9 DIGIT OUTPUT
       CALL OUT9G(Y(II),FIELD6(1,K))
    10 CONTINUE
-C-----OUTPUT ONE LINE.
-      IOUT=(I2-I1)+1
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      GO TO (20,30,40),IOUT
-   20 WRITE(OTAPE,70) ((FIELD6(M,II),M=1,11),II=1,2),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 50
-   30 WRITE(OTAPE,80) ((FIELD6(M,II),M=1,11),II=1,4),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 50
-   40 WRITE(OTAPE,90) ((FIELD6(M,II),M=1,11),II=1,6),
-     1 MATH,MFH,MTH,NOSEQ
-   50 NOSEQ=NXTSEQ(NOSEQ)
-   60 CONTINUE
+C-----2026/2/16 - SIMPLIFIED DUTPUT ONE LINE.
+      WRITE(OTAPE,20) FIELD6,MATH,MFH,MTH
+   20 FORMAT(66A1    ,I4,I2,I3)
+   30 CONTINUE
       RETURN
-   70 FORMAT(22A1,44X,I4,I2,I3,I5)
-   80 FORMAT(44A1,22X,I4,I2,I3,I5)
-   90 FORMAT(66A1    ,I4,I2,I3,I5)
       END
       SUBROUTINE LISTIO(X,IX)
 C=======================================================================
@@ -868,14 +858,16 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION X(IX),FIELD6(11,6)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
 C-----NOTHING TO DO IF NO POINTS TO OUTPUT
       IF(IX.LE.0) RETURN
 C-----SET UP LOOP OVER CARDS.
-      DO 90 I1=1,IX,6
+      DO 30 I1=1,IX,6
+c-----2026/2/16 - blank out 66 columns
+      CALL BLANK66(FIELD6)
       I2=I1+5
       IF(I2.GT.IX) I2=IX
 C-----CONVERT DATA TO NORMAL FORM.
@@ -890,35 +882,11 @@ c-----2013/1/12 - changed to OUT10 from OUT9.
       CALL OUT9 (X(L),FIELD6(1,K))
       endif
    10 CONTINUE
-C-----OUTPUT ONE LINE.
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      GO TO (20,30,40,50,60,70),K
-   20 WRITE(OTAPE,100)   (FIELD6(M,1),M=1,11),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   30 WRITE(OTAPE,110) ((FIELD6(M,II),M=1,11),II=1,2),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   40 WRITE(OTAPE,120) ((FIELD6(M,II),M=1,11),II=1,3),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   50 WRITE(OTAPE,130) ((FIELD6(M,II),M=1,11),II=1,4),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   60 WRITE(OTAPE,140) ((FIELD6(M,II),M=1,11),II=1,5),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   70 WRITE(OTAPE,150) ((FIELD6(M,II),M=1,11),II=1,6),
-     1 MATH,MFH,MTH,NOSEQ
-   80 NOSEQ=NXTSEQ(NOSEQ)
-   90 CONTINUE
+C-----2026/2/16 - SIMPLIFIED OUTPUT ONE LINE.
+      WRITE(OTAPE,20) FIELD6,MATH,MFH,MTH
+   20 FORMAT(66A1    ,I4,I2,I3)
+   30 CONTINUE
       RETURN
-  100 FORMAT(11A1,55X,I4,I2,I3,I5)
-  110 FORMAT(22A1,44X,I4,I2,I3,I5)
-  120 FORMAT(33A1,33X,I4,I2,I3,I5)
-  130 FORMAT(44A1,22X,I4,I2,I3,I5)
-  140 FORMAT(55A1,11X,I4,I2,I3,I5)
-  150 FORMAT(66A1    ,I4,I2,I3,I5)
       END
       SUBROUTINE LISTO9(X,IX)
 C=======================================================================
@@ -935,14 +903,16 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DIMENSION X(IX),FIELD6(11,6)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
 C-----NOTHING TO DO IF NO POINTS TO OUTPUT
       IF(IX.LE.0) RETURN
 C-----SET UP LOOP OVER CARDS.
-      DO 90 I1=1,IX,6
+      DO 30 I1=1,IX,6
+c-----2026/2/16 - blank out 66 columns
+      CALL BLANK66(FIELD6)
       I2=I1+5
       IF(I2.GT.IX) I2=IX
 C-----CONVERT DATA TO NORMAL FORM.
@@ -952,35 +922,11 @@ C-----CONVERT DATA TO NORMAL FORM.
 c-----USE OUT9G - NOT OUT10.
       CALL OUT9G(X(L),FIELD6(1,K))
    10 CONTINUE
-C-----OUTPUT ONE LINE.
-      IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      GO TO (20,30,40,50,60,70),K
-   20 WRITE(OTAPE,100)   (FIELD6(M,1),M=1,11),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   30 WRITE(OTAPE,110) ((FIELD6(M,II),M=1,11),II=1,2),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   40 WRITE(OTAPE,120) ((FIELD6(M,II),M=1,11),II=1,3),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   50 WRITE(OTAPE,130) ((FIELD6(M,II),M=1,11),II=1,4),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   60 WRITE(OTAPE,140) ((FIELD6(M,II),M=1,11),II=1,5),
-     1 MATH,MFH,MTH,NOSEQ
-      GO TO 80
-   70 WRITE(OTAPE,150) ((FIELD6(M,II),M=1,11),II=1,6),
-     1 MATH,MFH,MTH,NOSEQ
-   80 NOSEQ=NXTSEQ(NOSEQ)
-   90 CONTINUE
+C-----2026/2/16 - SIMPLIFIED OUTPUT ONE LINE.
+      WRITE(OTAPE,20) FIELD6,MATH,MFH,MTH
+   20 FORMAT(66A1    ,I4,I2,I3)
+   30 CONTINUE
       RETURN
-  100 FORMAT(11A1,55X,I4,I2,I3,I5)
-  110 FORMAT(22A1,44X,I4,I2,I3,I5)
-  120 FORMAT(33A1,33X,I4,I2,I3,I5)
-  130 FORMAT(44A1,22X,I4,I2,I3,I5)
-  140 FORMAT(55A1,11X,I4,I2,I3,I5)
-  150 FORMAT(66A1    ,I4,I2,I3,I5)
       END
       SUBROUTINE LINEIN
 C=======================================================================
@@ -995,7 +941,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*4 CARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
       READ(ITAPE,10) CARD,MATH,MFH,MTH
       RETURN
@@ -1014,7 +960,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*4 CARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
@@ -1022,11 +968,9 @@ C-----USE STANDARD FORM FOR END LINES
       IF(MTH.GT.0) GO TO 10
       CALL OUTS(MATH,MFH)
       RETURN
-   10 IF(MTH.eq.0.and.MFH.ne.0) NOSEQ = 99999
-      WRITE(OTAPE,20) CARD,MATH,MFH,MTH,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+   10 WRITE(OTAPE,20) CARD,MATH,MFH,MTH
       RETURN
-   20 FORMAT(16A4,A2,I4,I2,I3,I5)
+   20 FORMAT(16A4,A2,I4,I2,I3)
       END
       SUBROUTINE COPYT
 C=======================================================================
@@ -1050,7 +994,7 @@ c----- 2017/10/14 replaced INCLUDE
       INTEGER*4 OUTP,OTAPE
       CHARACTER*4 CARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
       COMMON/COPI/MFIELD(3)
    10 READ(ITAPE,150) CARD,MFIELD
@@ -1058,9 +1002,7 @@ c----- 2017/10/14 replaced INCLUDE
       IF(MFIELD(3).GT.0) GO TO 20
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 30
-   20 IF(MFIELD(3).eq.0.and.MFIELD(2).ne.0) NOSEQ = 99999
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+   20 WRITE(OTAPE,150) CARD,MFIELD
 C-----NEED MAT < 0
    30 IF(MFIELD(1).ge.0) go to 10
       RETURN
@@ -1075,9 +1017,7 @@ C=======================================================================
       IF(MFIELD(3).GT.0) GO TO 50
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 60
-   50 IF(MFIELD(3).eq.0.and.MFIELD(2).ne.0) NOSEQ = 99999
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+   50 WRITE(OTAPE,150) CARD,MFIELD
 C-----NEED MAT <= 0
    60 IF(MFIELD(1).gt.0) go to 40
       RETURN
@@ -1092,9 +1032,7 @@ C=======================================================================
       IF(MFIELD(3).GT.0) GO TO 80
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 90
-   80 IF(MFIELD(3).eq.0.and.MFIELD(2).ne.0) NOSEQ = 99999
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+   80 WRITE(OTAPE,150) CARD,MFIELD
 C-----NEED MF <= 0
    90 IF(MFIELD(2).gt.0) go to 70
       RETURN
@@ -1109,9 +1047,7 @@ C=======================================================================
       IF(MFIELD(3).GT.0) GO TO 110
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 120
-  110 IF(MFIELD(3).eq.0.and.MFIELD(2).ne.0) NOSEQ = 99999
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+  110 WRITE(OTAPE,150) CARD,MFIELD
 C-----NEED MT <= 0
   120 IF(MFIELD(3).gt.0) go to 100
       RETURN
@@ -1123,14 +1059,11 @@ C=======================================================================
       ENTRY COPYL
       READ(ITAPE,150) CARD,MFIELD
       IF(OTAPE.LE.0) RETURN
-C-----MF/MT/NOSEQ = 0 ON TEND LINE
-      NOSEQ=0
 C-----USE STANDARD TAPE NUMBER IF INPUT = 0
       IF(MFIELD(1).EQ.0) MFIELD(1)=7000      ! 2014/4/20 6000 to 7000
       MFIELD(2)=0
       MFIELD(3)=0
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+      WRITE(OTAPE,150) CARD,MFIELD
       RETURN
 C=======================================================================
 C
@@ -1143,11 +1076,9 @@ C=======================================================================
       IF(MFIELD(3).GT.0) GO TO 130
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 140
-  130 IF(MFIELD(3).eq.0.and.MFIELD(2).ne.0) NOSEQ = 99999
-      WRITE(OTAPE,150) CARD,MFIELD,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+  130 WRITE(OTAPE,150) CARD,MFIELD
   140 RETURN
-  150 FORMAT(16A4,A2,I4,I2,I3,I5)
+  150 FORMAT(16A4,A2,I4,I2,I3)
       END
       SUBROUTINE OUTT
 C=======================================================================
@@ -1168,7 +1099,7 @@ c----- 2017/10/14 replaced INCLUDE
       save
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
       WRITE(OTAPE,10)
@@ -1182,8 +1113,6 @@ C=======================================================================
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
       WRITE(OTAPE,20)
-C-----RESET NOSEQ AFTER MEND OUTPUT
-      NOSEQ=1
       RETURN
 C=======================================================================
 C
@@ -1194,7 +1123,6 @@ C=======================================================================
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
       WRITE(OTAPE,30) MATOUT
-      NOSEQ=1
       RETURN
 C=======================================================================
 C
@@ -1204,18 +1132,16 @@ C=======================================================================
       ENTRY OUTS(MATOUT,MFOUT)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
-C-----NOSEQ = 0 ON FEND/MEND/TEND LINE
       IF(MFOUT.LE.0) then
       WRITE(OTAPE,30) MATOUT
       else
-      WRITE(OTAPE,40) MATOUT,MFOUT  ! NOSEQ = 99999
+      WRITE(OTAPE,40) MATOUT,MFOUT
       endif
-      NOSEQ=1
       RETURN
-   10 FORMAT(66X,'  -1 0  0    0')
-   20 FORMAT(66X,'   0 0  0    0')
-   30 FORMAT(66X,I4, ' 0  0    0')
-   40 FORMAT(66X,I4,I2,'  099999')
+   10 FORMAT(66X,'  -1 0  0')
+   20 FORMAT(66X,'   0 0  0')
+   30 FORMAT(66X,I4, ' 0  0')
+   40 FORMAT(66X,I4,I2,'  0')
       END
       SUBROUTINE SKIPT
 C=======================================================================
@@ -1289,7 +1215,7 @@ C=======================================================================
       ENTRY SKIP1
       READ(ITAPE,50) MFIELD
       RETURN
-   50 FORMAT(66X,I4,I2,I3,I5)
+   50 FORMAT(66X,I4,I2,I3)
       END
       SUBROUTINE HOLLYI(LINE66)
 C=======================================================================
@@ -1302,11 +1228,12 @@ c----- 2017/10/14 replaced INCLUDE
       implicit integer*4 (i-n)
       save
       CHARACTER*1 LINE66
+      DIMENSION   LINE66(66)
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       READ(ITAPE,10) LINE66
       RETURN
-   10 FORMAT(66A1,I4,I2,I3,I5)
+   10 FORMAT(66A1,I4,I2,I3)
       END
       SUBROUTINE HOLLYO(LINE66)
 C=======================================================================
@@ -1319,16 +1246,15 @@ c----- 2017/10/14 replaced INCLUDE
       implicit integer*4 (i-n)
       save
       CHARACTER*1 LINE66
+      DIMENSION   LINE66(66)
       INTEGER*4 OUTP,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      DIMENSION LINE66(66)
 C-----NO OUTPUT IF OUTPUT UNIT IS TURNED OFF
       IF(OTAPE.LE.0) RETURN
-      WRITE(OTAPE,10) LINE66,MATH,MFH,MTH,NOSEQ
-      NOSEQ=NXTSEQ(NOSEQ)
+      WRITE(OTAPE,10) LINE66,MATH,MFH,MTH
       RETURN
-   10 FORMAT(66A1,I4,I2,I3,I5)
+   10 FORMAT(66A1,I4,I2,I3)
       END
       FUNCTION NXTSEQ(NNSEQ)
 C=======================================================================
@@ -1653,6 +1579,9 @@ C
 C     PURPOSE
 C     =======
 C     2019/11/16 - Always Round Energies to 10 Digits.
+C     2022/11/21 - No low energy cutoff - then works for eV or MeV or..
+C     12345.67890-use first column
+C     12345.67890
 c
 C     Assume resonances in eV to MeV range = ignore below 0.1 eV
 C
@@ -1663,14 +1592,15 @@ C
 C=======================================================================
       implicit real*8 (a-h,o-z)
       implicit integer*4 (i-n)
+c-----2026/2/26 - Incore and ENDF output rounding
       integer*8 I10
       save
       DIMENSION TENS(-99:99)
+      DATA ROUND10/5.0D-10/
 C-----ON FIRST CALL INITIALIZE POWERS OF 10
       DATA IPASS/0/
       IF(IPASS.eq.0) then
       IPASS=1
-c               12345678901
       TENS(0)=1.0D+00
       do I=1,99
       TENS( I)=TENS(I-1)*10.0D+00
@@ -1678,20 +1608,36 @@ c               12345678901
       enddo
       endif
 c-----------------------------------------------------------------------
+c
+c     Select 10 , 9 or 7 digit INCORE rounding
+c
+c-----------------------------------------------------------------------
+c-----2026/6/8 - No rounding if ZIN = 0
+      if(ZIN.eq.0.0d0) return
+c-----------------------------------------------------------------------
 C
-C     No Rounding below 0.1 eV
+C     Cannot do 10 digit with negative number - use INCORE9
 C
 c-----------------------------------------------------------------------
-      if(ZIN.lt.0.1d0) return
+c-----2026/6/8 - only neee < or > = no 3 way IF
+      if(ZIN.gt.0.0d0) go to 70 ! > 0 = 10 digit
+   20 CALL INCORE9(ZIN)
+   30 RETURN
 c-----------------------------------------------------------------------
 C
-C     Define Expoment and Normalized Mamtissa
+c     10, 9, or 7 digit INCORE rounding
+c-----only 10 digit allowed
 C
 c-----------------------------------------------------------------------
-      IEXP=DLOG10(ZIN)
+c-----------------------------------------------------------------------
+C
+C     10 digit - Define Exponent and Normalized Mamtissa
+C
+c-----------------------------------------------------------------------
+   70 IEXP=DLOG10(ZIN)            ! 10 Digit
       IF(ZIN.LT.1.0D+00) IEXP = IEXP - 1
       IF(iabs(IEXP).gt.99) return       ! no 3 digit exponents
-      ZNORM=ZIN*TENS(-IEXP) + 0.5d-9
+      ZNORM=ZIN*TENS(-IEXP) + ROUND10
       if(ZNORM.ge.10.0d0) then          ! Does rounding exceed 10
       IEXP=IEXP+1
       ZNORM=1.0d0
@@ -1713,7 +1659,168 @@ C
 C     Convert from 10 digit back to rounded floating
 C
 C-----------------------------------------------------------------------
-      ZIN = Z10*TENS(IEXP-9)
+c----- Z10 now 1.234567891
+      ZIN = Z10*TENS(IEXP-9)   ! ZIN is positive
+      RETURN
+      END
+      SUBROUTINE INCORE9(ZIN)
+C=======================================================================
+C
+C     PURPOSE
+C     =======
+C     2019/11/16 - Always Round Energies to 9 Digits.
+C     2022/11/21 - No low energy cutoff - then works for eV or MeV or..
+C     ^12345.6789
+C     12345678901
+c
+C     Assume resonances in eV to MeV range = ignore below 0.1 eV
+C
+C     ARGUMENTS
+C     =========
+C     ZIN      = NUMBER OF BE ROUNDED (INPUT/OUTPUT)
+C
+C=======================================================================
+      implicit real*8 (a-h,o-z)
+      implicit integer*4 (i-n)
+c-----2026/2/26 - Incore and ENDF output rounding
+      integer*8 I9
+      save
+      DIMENSION TENS(-99:99)
+      DATA ROUND9 /5.0D-09/
+C-----ON FIRST CALL INITIALIZE POWERS OF 10
+      DATA IPASS/0/
+      IF(IPASS.eq.0) then
+      IPASS=1
+      TENS(0)=1.0D+00
+      do I=1,99
+      TENS( I)=TENS(I-1)*10.0D+00
+      TENS(-I)=TENS(1-I)/10.0D+00
+      enddo
+      endif
+c-----------------------------------------------------------------------
+C
+C     Check for zero or negative number
+C
+c-----------------------------------------------------------------------
+      if(ZIN.eq.0.0d0) return           ! 0 = no rouunding
+      PZIN = DABS(ZIN)
+c-----------------------------------------------------------------------
+C
+C     Define Exponent and Normalized Mamtissa
+C
+c-----------------------------------------------------------------------
+      IEXP=DLOG10(PZIN)                 ! always positive
+      IF(PZIN.LT.1.0D+00) IEXP = IEXP - 1
+      IF(iabs(IEXP).gt.99) return       ! no 3 digit exponents
+      ZNORM=PZIN*TENS(-IEXP) + ROUND9
+      if(ZNORM.ge.10.0d0) then          ! Does rounding exceed 10
+      IEXP=IEXP+1
+      ZNORM=1.0d0
+      endif
+c-----------------------------------------------------------------------
+C
+C     ZNORM is now in Normal Form 1.234567890123
+C
+C-----------------------------------------------------------------------
+C
+C     Convert from 1 to 9 digit integer
+c     now 1.2345678...
+C
+C-----------------------------------------------------------------------
+      Z9  = ZNORM*TENS(8)
+c----- now 123456789.
+c           12345678
+      I9  = Z9
+      Z9  = I9
+C-----------------------------------------------------------------------
+C
+C     Convert from 9 digit back to rounded floating
+C
+C-----------------------------------------------------------------------
+c----- correct for negative ZIN
+      if(ZIN.lt.0.0d0) Z9 = - Z9   ! neagtive number
+c----- Z9 now 1.23456789
+      ZIN = Z9* TENS(IEXP-8)
+      RETURN
+      END
+      SUBROUTINE INCORE7(ZIN)
+C=======================================================================
+C
+C     PURPOSE
+C     =======
+C     2019/11/16 - Always Round Energies to 7 Digits.
+C     2022/11/21 - No low energy cutoff - then works for eV or MeV or..
+c      1.23456E+n
+C     ^
+C     12345678901
+c
+C     Assume resonances in eV to MeV range = ignore below 0.1 eV
+C
+C     ARGUMENTS
+C     =========
+C     ZIN      = NUMBER OF BE ROUNDED (INPUT/OUTPUT)
+C
+C=======================================================================
+      implicit real*8 (a-h,o-z)
+      implicit integer*4 (i-n)
+c-----2026/2/26 - Incore and ENDF output rounding
+      integer*8 I7
+      save
+      DIMENSION TENS(-99:99)
+      DATA ROUND7 /5.0D-07/
+C-----ON FIRST CALL INITIALIZE POWERS OF 10
+      DATA IPASS/0/
+      IF(IPASS.eq.0) then
+      IPASS=1
+      TENS(0)=1.0D+00
+      do I=1,99
+      TENS( I)=TENS(I-1)*10.0D+00
+      TENS(-I)=TENS(1-I)/10.0D+00
+      enddo
+      endif
+c-----------------------------------------------------------------------
+C
+C     Check for zero or negative number
+C
+c-----------------------------------------------------------------------
+      if(ZIN.eq.0.0d0) return           ! no INCORE rounding
+      PZIN = DABS(ZIN)
+c-----------------------------------------------------------------------
+C
+C     Define Exponent and Normalized Mamtissa
+C
+c-----------------------------------------------------------------------
+      IEXP=DLOG10(PZIN)
+      IF(PZIN.LT.1.0D+00) IEXP = IEXP - 1
+      IF(iabs(IEXP).gt.99) return       ! no 3 digit exponents
+      ZNORM=PZIN*TENS(-IEXP) + ROUND7
+      if(ZNORM.ge.10.0d0) then          ! Does rounding exceed 10
+      IEXP=IEXP+1
+      ZNORM=1.0d0
+      endif
+c-----------------------------------------------------------------------
+C
+C     ZNORM is now in Normal Form 1.234567890123
+C
+C-----------------------------------------------------------------------
+C
+C     Convert from 1 to 7 digit integer
+c     now 1.23456789...
+C
+C-----------------------------------------------------------------------
+      Z7  = ZNORM*TENS(6)
+c----- now 1234567.
+      I7  = Z7
+      Z7  = I7
+C-----------------------------------------------------------------------
+C
+C     Convert from 10 digit back to rounded floating
+C
+C-----------------------------------------------------------------------
+c----- correct for negative ZIN
+      if(ZIN.lt.0.0d0) Z7 = -Z7
+c----- now 1.234567
+      ZIN = Z7*TENS(IEXP-6)
       RETURN
       END
       SUBROUTINE OUT9(ZIN,FIELD)
@@ -1721,18 +1828,15 @@ C=======================================================================
 C
 C     PURPOSE
 C     =======
-C     FORMAT NUMBER FOR OUTPUT TO INCLUDE AS MANY DIGITS OF
-C     ACCURACY AS POSSIBLE.
-C     12/18/2012 - EXTENDED FOR 3 DIGIT EXPONENT
-C                  No test for 4 or more digit exponent
-C     06/12/2013 - BACK tO 2 digit exponent - 3 digits caused
-C                  problems on several different types of computers.
+C     FORMAT NUMBER FOR OUTPUT TO INCLUDE 9 DIGITS OF OUTPUT.
+C
+C     11/22/2005 - EXXTENDED 7 Digit (50 years old) to 9 Digits
 C     10/25/2014 - Changed from D to E exponential form to improve
 C                  compatibility between computer languages
 C
-C     040923 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
-C              NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
-C              FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
+C     04/09/2023 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
+C                  NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
+C                  FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
 C
 C     ARGUMENTS
 C     =========
@@ -1932,8 +2036,8 @@ C     X.XXXXXE+NN = 6 DIGITS
 C     X.XXXXXXE+N = 7 DIGITS
 c
 c-----------------------------------------------------------------------
-C-----Negative?
-  160 IF(ZIN.lt.0.0d+0) go to 180
+c-----2026/2/21 - Always lesve column 1 blank
+  160 GO TO 180
 C-----------------------------------------------------------------------
 c
 c     POsitive. Use first column - Decimal point is always in column 2
@@ -2018,17 +2122,310 @@ C-----------------------------------------------------------------------
       FIELD(10)=DIGITS(KEXP)
       IEXP=MOD(IEXP,10)
   250 FIELD(11)=DIGITS(IEXP)
-C-----------------------------------------------------------------------
+      RETURN
+      END
+      SUBROUTINE OUT7(ZIN,FIELD)
+C=======================================================================
+C
+C     PURPOSE
+C     =======
+C     FORMAT NUMBER FOR OUTPUT TO INCLUDE 7 DIGITS OF OUTPUT.
+C
+C     11/22/2005 - EXXTENDED 7 Digit (50 years old) to 9 Digits
+C     10/25/2014 - Changed from D to E exponential form to improve
+C                  compatibility between computer languages
+C     1234.567E+n
+C     12345678901
+C
+C     04/09/2023 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
+C                  NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
+C                  FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
+C
+C     ARGUMENTS
+C     =========
+C     Z        = FLOATING POINT NUMBER OF BE OUTPUT (INPUT)
+C     FIELD    = 11A1 CHARACTERS TO OUTPUT          (OUTPUT)
+C
+C     METHOD
+C     ======
+C     COLUMNS            12345678901     ACCURACY
+C     -------------------------------------------
+C     0 TO 10^-9          1.2345E-12     5 DIGITS
+C     10^-9 TO 10^-3      1.23456E-8     6 DIGITS
+C     10^-3 TO 10^-2      .001234567     7 DIGITS
+C     10^-2 TO 10^-1      .012345678     8 DIGITS
+C     10^-1 TO 1          .123456789     9 DIGITS
+C     1 TO 10^9           12345.6789     9 DIGITS
+C     10^9 TO 10^10       1.23456E+9     6 DIGITS
+C     10^10 >             1.2345E+12     5 DIGITS
+C
+C     OUTPUT WILL BE IN 11 COLUMN FORMAT
+C
+C     WARNING - THIS IS NOT A GENERAL ROUNDING ROUTINE WHICH WILL WORK
+C               FOR ROUNDING TO ANY NUMBER OF DIGITS - IT WILL ONLY
+C               WORK PROPERLY FOR THE RANGES INDICATED ABOVE, FOR
+C               11 COLUMN OUTPUT.
+C
+C=======================================================================
+      implicit real*8 (a-h,o-z)
+      implicit integer*4 (i-n)
+      save
+c-----2017/5/3 - Add INNEXT = must be INTEGER*8
+c-----INTEGER*8 for long integers
+      integer*8 INMANT,INMAN9,INMAN8,INMAN7,INMAN6,INMAN5,INMAN4,INNEXT
+c-----2017/5/3 - Add INNEXT = must be INTEGER*8
+      CHARACTER*1 FIELD,DIGITS,ZEROH
+C-----12/18/2012 - EXTENDED FOR 3 DIGIT EXPONENT
+C-----06/12/2013 - BACK tO 2 digit exponent - 3 digits caused problems
+      DIMENSION DIGITS(0:9),FIELD(11),ZEROH(11),
+     1 TENS(-99:99),ROUNDER(-99:99)
+      DATA DIGITS/
+     1 '0','1','2','3','4','5','6','7','8','9'/
+C-----RETURN FOR = 0
+      DATA ZEROH/
+     1 ' ','0','.','0',' ',' ',' ',' ',' ',' ',' '/
+C-----LOWER TRANSITION POINT FROM 7 TO 9 DIGIT OUTPUT
+      DATA ZLOW/1.0D-03/
+C-----UPPER TRANSITION POINT FROM 9 TO 7 DIGIT OUTPUT
+      DATA ZHIGH/1.0D+09/
+      DATA TENTH/1.0D-01/
+c-----------------------------------------------------------------------
 c
-c     If using column 1 but mantissa ends in 0, move mantissa right.
+c     ON FIRST CALL INITIALIZE POWERS OF 10
 c
-C-----------------------------------------------------------------------
-      if(KDOT.eq.2.and.FIELD(ID).eq.'0') then
-      do k=ID-1,1,-1
-      FIELD(k+1)=FIELD(k)
-      enddo
-      FIELD(1) = ' '
+c-----------------------------------------------------------------------
+      DATA IPASS/0/
+      IF(IPASS.NE.0) GO TO 50
+      IPASS=1
+c-----INTEGER*8 for long integers
+      INMAN4  = 10000
+      INMAN5  = 10*INMAN4
+      INMAN6  = 10*INMAN5
+      INMAN7  = 10*INMAN6
+      INMAN8  = 10*INMAN7
+      INMAN9  = 10*INMAN8
+      TENS(0)=1.0D+00
+C-----12/18/2012 - EXTENDED FOR 3 DIGIT EXPONENT
+C-----06/12/2013 - BACK tO 2 digit exponent - 3 digits caused problems
+      DO 10 I=1,99
+      TENS( I)=TENS(I-1)*10.0D+00
+      TENS(-I)=TENS(1-I)/10.0D+00
+      ROUNDER(I)  = 5.001D-05
+   10 CONTINUE
+      DO 20 I=-99,-10
+      ROUNDER(I)  = 5.001D-05
+   20 CONTINUE
+      DO 30 I=-9,-4
+      ROUNDER(I)  = 5.001D-06
+   30 CONTINUE
+      ROUNDER(-3) = 5.001D-07
+      ROUNDER(-2) = 5.001D-08
+      ROUNDER(-1) = 5.001D-09
+      ROUNDER( 0) = 5.001D-09
+      DO 40 I=1,8
+      ROUNDER(I)  = 5.001D-09
+   40 CONTINUE
+      ROUNDER(9)  = 5.001D-06
+c-----------------------------------------------------------------------
+C
+C     IMMEDIATELY RETURN 0.00000+00.
+C
+c-----------------------------------------------------------------------
+C-----02/14/04 - ADDED, JUST IN CASE
+   50 IF(DABS(ZIN).le.0.0D+0) GO TO 60
+      IF(DABS(ZIN).lt.1.0D-99) GO TO 60    ! Only 2 digit exponents
+      IF(DABS(ZIN).gt.1.0D+99) GO TO 60
+c----- ZIN = 0 handled above
+      IF(ZIN.lt.0.0d+0) go to 80
+      go to 90
+c-----Return 0
+   60 DO 70 I=1,11
+      FIELD(I)=ZEROH(I)
+   70 CONTINUE
+      RETURN
+c-----------------------------------------------------------------------
+C
+C     DEFINE SIGN OF MANTISSA AND ABSOLUTE MANTISSA
+C
+c-----------------------------------------------------------------------
+C-----NEGATIVE.
+   80 FIELD(1)='-'
+      Z=-ZIN
+      GO TO 100
+C-----POSITIVE.
+   90 FIELD(1)=' '
+      Z=ZIN
+c-----------------------------------------------------------------------
+c
+c     DEFINE EXPONENT AND NORMALIZED MANTISSA
+c
+c-----------------------------------------------------------------------
+  100 IEXP=DLOG10(Z)
+      IF(Z.LT.1.0D+00) IEXP = IEXP - 1
+c-----11/22/2013 - Decide here on F or E Output
+c-----11/26/2013 - Restrict to 2 digit exponent - may change by 1 or 2
+      if(IABS(IEXP).gt.97) go to 60
+      if(ZIN.lt.0.0D+0) then
+      ZN=Z*TENS(-IEXP) + ROUNDER(IEXP)       ! Standard
+      else
+      if(Z.LE.ZLOW.OR.Z.GE.ZHIGH) then       ! F or E Format?
+      ZN=Z*TENS(-IEXP) + TENTH*ROUNDER(IEXP) ! Extra Digit
+      else
+      ZN=Z*TENS(-IEXP) + ROUNDER(IEXP)       ! Standard
       endif
+      endif
+      IF(ZN.eq.1.0D+00) go to 120            ! Test rounding underflow
+      IF(ZN.gt.1.0D+00) go to 110            ! Test rounding underflow
+      IEXP=IEXP-1         ! MUST be < 1
+      GO TO 120
+  110 IF(ZN.lt.10.0D+00) go to 120           ! Test rounding overflow
+      IEXP=IEXP+1         ! MUST be >= 10
+      ZN=ZN/10.0D+00
+  120 Z = ZN*TENS(IEXP)
+c-----------------------------------------------------------------------
+C
+C     SELECT F OR E FORMAT
+C
+c-----------------------------------------------------------------------
+c-----OUT7 - Always use 7 digits
+      GO TO 160
+c-----------------------------------------------------------------------
+C
+C     F FORMAT
+C
+C     12345678901
+C      X.XXXXXXXX = 9 DIGITS
+C      .001234567
+C      123456789.
+C
+c-----------------------------------------------------------------------
+C-----DEFINE 6 TO 9 DIGIT MANTISSA WITH ROUNDING
+      IPOWER=8-IEXP
+      IF(IEXP.LT.0) IPOWER=8
+      INMANT=Z*TENS(IPOWER)
+C-----CHECK FOR OVERFLOW DUE TO ROUNDING
+      if(INMANT.lt.INMAN9) go to 130
+      INMANT=INMAN8
+      IEXP=IEXP+1
+C-----DECIMAL POINT.
+  130 IDOT=3+IEXP
+      IF(IDOT.LE.2) THEN
+C----- IF < 1, MOVE DECIMAL POINT TO COLUMN 2 AND ADD A DIGIT
+      IDOT=2
+      INMANT=Z*10.0D+00*TENS(IPOWER)
+      ENDIF
+      FIELD(IDOT)='.'
+C-----MANTISSA - LAST DIGIT TO FIRST.
+      II=11
+      DO 150 I=2,11
+      IF(II.EQ.IDOT) GO TO 140
+      INNEXT=INMANT/10
+      I3=INMANT-10*INNEXT
+      FIELD(II)=DIGITS(I3)
+      INMANT=INNEXT
+  140 II=II-1
+  150 CONTINUE
+      RETURN
+c-----------------------------------------------------------------------
+C
+C     E FORMAT
+C
+C     12345678901
+C      X.XXXXE+NN = 5 DIGITS
+C      X.XXXXXE+N = 6 DIGITS
+C
+C     11/22/2013 - If not negative, use first column
+C     12345678901
+C     X.XXXXXE+NN = 6 DIGITS
+C     X.XXXXXXE+N = 7 DIGITS
+c
+c-----------------------------------------------------------------------
+c-----2026/2/21 - Only negative cannot use column 1
+  160 if(ZIN.le.0.0d0) go to 180
+C-----------------------------------------------------------------------
+c
+c     POsitive. Use first column - Decimal point is always in column 2
+c
+C-----------------------------------------------------------------------
+      FIELD(2)='.'
+      KDOT    = 2
+      ISTART  = 1
+      IF(IABS(IEXP).GE.10) GO TO 170
+      ID=8                               ! 1 Digit exponent
+      INMANT=(1.0D+06)*ZN
+      IF(INMANT.lt.INMAN7) go to 200
+      INMANT=INMAN6
+      IEXP=IEXP+1
+      IF(IABS(IEXP).LT.10) GO TO 200
+  170 ID=7                               ! 2 Digit exponent
+      INMANT=(1.0D+05)*ZN
+C-----CHECK FOR OVERFLOW DUE TO ROUNDING
+      IF(INMANT.lt.INMAN6) go to 200
+      INMANT=INMAN5
+      IEXP=IEXP+1
+C-----------------------------------------------------------------------
+c
+c     Negative Number - Cannot use first column
+c
+C-----------------------------------------------------------------------
+C-----DECIMAL POINT IS ALWAYS IN COLUMN 3
+  180 FIELD(3)='.'
+      KDOT    = 3
+      ISTART  = 2
+      IF(IABS(IEXP).GE.10) GO TO 190
+      ID=8                                 ! 1 Digit Exponent
+      INMANT=(1.0D+05)*ZN
+      IF(INMANT.lt.INMAN6) go to 200
+      INMANT=INMAN5
+      IEXP=IEXP+1
+      IF(IABS(IEXP).LT.10) GO TO 200
+  190 ID=7                                 ! 2 Digit Exponent
+      INMANT=(1.0D+04)*ZN
+      IF(INMANT.lt.INMAN5) go to 200
+      INMANT=INMAN4
+      IEXP=IEXP+1
+C-----------------------------------------------------------------------
+C
+C     DEFINE MANTISSA
+C
+C-----------------------------------------------------------------------
+  200 IEXPS=ID+1
+      II=ID
+      DO 220 I=ISTART,ID
+      IF(II.EQ.KDOT) GO TO 210
+      INNEXT=INMANT/10
+      I3=INMANT-10*INNEXT
+      FIELD(II)=DIGITS(I3)
+      INMANT=INNEXT
+  210 II=II-1
+  220 CONTINUE
+C-----------------------------------------------------------------------
+C
+C     E
+C
+C-----------------------------------------------------------------------
+      FIELD(IEXPS) = 'E'
+      IEXPS = IEXPS + 1
+C-----------------------------------------------------------------------
+C
+C     SIGN OF EXPONENT
+C
+C-----------------------------------------------------------------------
+      IF(IEXP.ge.0) go to 230
+      IEXP=-IEXP
+      FIELD(IEXPS)='-'
+      GO TO 240
+  230 FIELD(IEXPS)='+'
+C-----------------------------------------------------------------------
+C
+C     EXPONENT
+C
+C-----------------------------------------------------------------------
+  240 IF(IEXP.lt.10) go to 250
+      KEXP=IEXP/10
+      FIELD(10)=DIGITS(KEXP)
+      IEXP=MOD(IEXP,10)
+  250 FIELD(11)=DIGITS(IEXP)
       RETURN
       END
       SUBROUTINE OUT9G(ZIN,FIELD)
@@ -2039,26 +2436,12 @@ C     =======
 C     20915/7/28 - same as OUT9, but column 1 is always '-' or blank.
 C                  Used by GROUPIE to simplify listings.
 C
-C     FORMAT NUMBER FOR OUTPUT TO INCLUDE AS MANY DIGITS OF
-C     ACCURACY AS POSSIBLE.
-C     12/18/2012 - EXTENDED FOR 3 DIGIT EXPONENT
-C                  No test for 4 or more digit exponent
-C     06/12/2013 - BACK tO 2 digit exponent - 3 digits caused
-C                  problems on several different types of computers.
+C     11/22/2005 - EXXTENDED 7 Digit (50 years old) to 9 Digits
 C     10/25/2014 - Changed from D to E exponential form to improve
 C                  compatibility between computer languages
 C
-C     040923 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
-C              NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
-C              FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
-C
 C     ARGUMENTS
 C     =========
-C     Z        = FLOATING POINT NUMBER OF BE OUTPUT (INPUT)
-C     FIELD    = 11A1 CHARACTERS TO OUTPUT          (OUTPUT)
-C
-C     METHOD
-C     ======
 C     COLUMNS            12345678901     ACCURACY
 C     -------------------------------------------
 C     0 TO 10^-9          1.2345E-12     5 DIGITS
@@ -2310,18 +2693,15 @@ C=======================================================================
 C
 C     PURPOSE
 C     =======
-C     FORMAT NUMBER FOR OUTPUT TO INCLUDE AS MANY DIGITS OF
-C     ACCURACY AS POSSIBLE.
-C     12/18/2012 - EXTENDED FOR 3 DIGIT EXPONENT
-C                  No test for 4 or more digit exponent
-C     06/12/2013 - BACK tO 2 digit exponent - 3 digits caused
-C                  problems on several different types of computers.
+C     FORMAT NUMBER FOR OUTPUT TO INCLUDE 10 DIGITS OF OUTPUT.
+C
+C     11/22/2005 - EXXTENDED 7 Digit (50 years old) to 10 Digits
 C     10/25/2014 - Changed from D to E exponential form to improve
 C                  compatibility between computer languages
 C
-C     040923 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
-C              NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
-C              FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
+C     04/09/2023 - CHANGED ZLOW FROM 1.0D-4 TO 1.0D-3
+C                  NEAR 1.0D-3 PRECISION GOES FROM 999,999 TO 1,000,000
+C                  FOR SMOOTHEST TRANSITION FROM 6 TO 7 DIGITS
 C
 C     ARGUMENTS
 C     =========
@@ -2367,7 +2747,7 @@ C-----RETURN FOR = 0
       DATA ZEROH/
      1 ' ','0','.','0',' ',' ',' ',' ',' ',' ',' '/
 C-----LOWER TRANSITION POINT FROM 7 TO 9 DIGIT OUTPUT
-      DATA ZLOW/1.0D-03/
+      DATA ZLOW/1.0D-03/    ! normal
 C-----UPPER TRANSITION POINT FROM 9 TO 7 DIGIT OUTPUT
       DATA ZHIGH/1.0D+09/
       DATA TENTH/1.0D-01/
@@ -2500,17 +2880,6 @@ C-----MANTISSA - LAST DIGIT TO FIRST.
       INMANT=INNEXT
   130 II=II-1
   140 CONTINUE
-c-----------------------------------------------------------------------
-c
-c     If 10 digit ends in 0, shift right = leave column 1 blank
-c
-c-----------------------------------------------------------------------
-      if(FIELD(1).ne.'-'.and.FIELD(11).eq.'0') then
-      do k=10,1,-1
-      FIELD(k+1)=FIELD(k)
-      enddo
-      FIELD(1) = ' '
-      endif
       RETURN
 c-----------------------------------------------------------------------
 C
@@ -2613,17 +2982,6 @@ c-----------------------------------------------------------------------
       FIELD(10)=DIGITS(KEXP)
       IEXP=MOD(IEXP,10)
   240 FIELD(11)=DIGITS(IEXP)
-c-----------------------------------------------------------------------
-c
-c     If using column 1 but mantissa ends in 0, move mantissa right.
-c
-c-----------------------------------------------------------------------
-      if(KDOT.eq.2.and.FIELD(ID).eq.'0') then
-      do k=ID-1,1,-1
-      FIELD(k+1)=FIELD(k)
-      enddo
-      FIELD(1) = ' '
-      endif
       RETURN
       END
       SUBROUTINE IN9(E,FIELD)
@@ -3062,7 +3420,6 @@ c----- 2017/10/14 replaced INCLUDE
       implicit real*8 (a-h,o-z)
       implicit integer*4 (i-n)
       save
-      INTEGER*4 OUTP,OTAPE,OTAPE2
       CHARACTER*1  NAME1,digits
       dimension NAME1(20),digits(0:9)
       data digits/'0','1','2','3','4','5','6','7','8','9'/
@@ -3186,10 +3543,10 @@ c-----2022/3/21 - Added CLOSE to ALL standard units
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       CALL TIMER
-      if(INP.gt.  0) CLOSE(INP)
-      if(OUTP.gt. 0) CLOSE(OUTP)
-      if(ITAPE.gt.0) CLOSE(ITAPE)
-      if(OTAPE.gt.0) CLOSE(OTAPE)
+      if(INP.eq.   2) CLOSE(INP)
+      if(OUTP.eq.  3) CLOSE(OUTP)
+      if(ITAPE.eq.10.or.ITAPE.eq.11) CLOSE(ITAPE)
+      if(OTAPE.eq.10.or.OTAPE.eq.11) CLOSE(OTAPE)
       STOP
       ENTRY ENDERROR
 C=======================================================================
@@ -3198,10 +3555,10 @@ C     ENTRY POINT TO STOP ON ERROR.
 C
 C=======================================================================
       CALL TIMEERR
-      if(INP.gt.  0) CLOSE(INP)
-      if(OUTP.gt. 0) CLOSE(OUTP)
-      if(ITAPE.gt.0) CLOSE(ITAPE)
-      if(OTAPE.gt.0) CLOSE(OTAPE)
+      if(INP.eq.   2) CLOSE(INP)
+      if(OUTP.eq.  3) CLOSE(OUTP)
+      if(ITAPE.eq.10.or.ITAPE.eq.11) CLOSE(ITAPE)
+      if(OTAPE.eq.10.or.OTAPE.eq.11) CLOSE(OTAPE)
       STOP
       END
       SUBROUTINE TIMER
@@ -3302,7 +3659,112 @@ C=======================================================================
       IMPLICIT REAL*4 (A-H,O-Z) ! note REAL*4, not 8
       SAVE
       DIMENSION TARRAY(2)
+c-----2023/4/9 - added installation to prevent WARNING TARRAY NOT USED.
+      DATA TARRAY/0.0,0.0/
       SECONDS=ETIME(TARRAY)
       SECONDS=(TARRAY(1)+TARRAY(2))
       RETURN
+      END
+      SUBROUTINE LIST2(RES1,RES2,URES1,URES2)
+C=======================================================================
+C
+C     List Resonance Region Energy Limits
+c     1) to report if OUTP > 0
+C     2) on screenn if ENDF output
+C
+C=======================================================================
+      IMPLICIT REAL*8 (A-H,O-Z)
+      INTEGER*4 OUTP,OTAPE
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+c-----In output file if one is defined
+      if(OUTP.gt.0) then
+      WRITE(OUTP,10) RES1,RES2,URES1,URES2
+      ENDIF
+c-----On-screen ONLY if ENDF Output = NONE for Graphics c9des
+      if(OTAPE.gt.0) then
+      WRITE(*,   10) RES1,RES2,URES1,URES2
+      ENDIF
+   10 FORMAT(
+     5 1x,79('=')/
+     1 ' Resolved   Resonance Region Lowes Energy Limit',1pd11.4,' eV'/
+     1 ' Resolved   Resonance Region Upper Energy Limit',1pd11.4,' eV'/
+     1 ' Unresolved Resonance Region Lowes Energy Limit',1pd11.4,' eV'/
+     1 ' Unresolved Resonance Region Upper Energy Limit',1pd11.4,' eV'/
+     5 1x,79('='))
+      RETURN
+      END
+      SUBROUTINE LIST2G(RES1,RES2,URES1,URES2)
+C=======================================================================
+C
+C     List Resonance Region Energy Limits
+c     1) to report if OUTP > 0
+C     2) ALWAYS on screen - GROUPIE
+C
+C=======================================================================
+      IMPLICIT REAL*8 (A-H,O-Z)
+      INTEGER*4 OUTP,OTAPE
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+c-----In output file if one is defined
+      if(OUTP.gt.0) then
+      WRITE(OUTP,10) RES1,RES2,URES1,URES2
+      ENDIF
+c-----On-screen ALWAYS
+      WRITE(*,   10) RES1,RES2,URES1,URES2
+   10 FORMAT(
+     5 1x,79('=')/
+     1 ' Resolved   Resonance Region Lowes Energy Limit',1pd11.4,' eV'/
+     1 ' Resolved   Resonance Region Upper Energy Limit',1pd11.4,' eV'/
+     1 ' Unresolved Resonance Region Lowes Energy Limit',1pd11.4,' eV'/
+     1 ' Unresolved Resonance Region Upper Energy Limit',1pd11.4,' eV'/
+     5 1x,79('='))
+      RETURN
+      END
+      SUBROUTINE BLANK66(FIELD6)
+c=======================================================================
+c
+c     Blank 66 Columns
+c
+c=======================================================================
+      CHARACTER*1 FIELD6
+      DIMENSION FIELD6(11,6)
+      do ii=1,6
+      do kk=1,11
+      FIELD6(kk,ii) = ' '
+      enddo
+      enddo
+      RETURN
+      END
+      BLOCK DATA DIGITS
+c=======================================================================
+C
+c     2026/2/28 - Block Data Added
+C
+C-----------------------------------------------------------------------
+C
+C     WARNING: BLOCK DATA is intended only for yesting by author
+C              PLEASE do not change options.
+C
+C=======================================================================
+C     ENDF Incore and Output Rounding
+C     ===============================
+C     IMIN     0 = No        INCORE rounding
+c              1 = 10 dIGITs
+C              2 =  9 Digits
+C              3 =  7 Digits
+C
+C     IMOUT =  1 = 10 Digits
+C              2 =  9 Digits
+C              3 =  7 Digits
+C
+C     Does evaluation include MF=2 - Required for Doppler Broadening
+C     ==============================================================
+C     MATMF2 = MAT of lsst MF=2 read - for SIGMA1
+c              Cannot Doppler Broaden without MF=2 Resonance Data
+C
+c-----------------------------------------------------------------------
+      COMMON/INOUTCOM/IMIN,IMOUT
+      COMMON/MATMF2COM/MATMF2
+      DATA IMIN /1/         ! Initialize to 10 digits
+      DATA IMOUT/1/         ! Initialize to 10 digits
+      DATA MATMF2/0/         ! Initialixe MAT of last MF=2 Data - SIGMA1
       END

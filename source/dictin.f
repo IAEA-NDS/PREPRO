@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM DICTIN (Renamed from DICTION to eliminate conflict with
@@ -83,6 +74,7 @@ C     VERS. 2018-1 (Jan. 2018)    *Added on-line output for ALL ENDERROR
 C     VERS. 2020-1 (Feb. 2020)    *Identical to 2018-1.
 C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,000,000
 C                                  to 120,000
+C     VERS. 2026-1 (June 2026)    *No Sequence # = columns 76-80 BLANK
 C
 C     2015-2 Acknowledgment
 C     =====================
@@ -263,7 +255,7 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*4 CARD1,CARD2,CARD3,CARD4,CARD5,FMTHOL
       INTEGER*4 OTAPE,OUTP,OCARD
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       INCLUDE 'dictin.h'
       DIMENSION CARD1(20),CARD2(14),CARD3(11),CARD4(11),
@@ -412,7 +404,7 @@ C-----COPY TAPE LABEL LINE.
       WRITE(OTAPE,380) CARD1
       OCARD=1
 C-----INITIALIZE SEQUENCE NUMBER AT BEGINNING OF EACH MAT.
-  150 NOSEQ=0
+  150 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     COPY TO BEGINNING OF NEXT SECTION (COPY INTERVENING SEND, FEND
@@ -425,13 +417,8 @@ c-----------------------------------------------------------------------
 C-----COPY TO BEGINNING OF NEXT SECTION.
   160 READ(ITAPE,410) CARD2,N2,MAT,MF,MT
       ICARD=ICARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
       IF(MT.gt.0) go to 170
-C-----SET SEQUENCE NUMBER TO ZERO ON TAPE END (TEND) LINE.
-C-----2015-2: Corrected Sequence Number.
-      NOSEQ = 99999
-      IF(MF.le.0) NOSEQ = 0
-      WRITE(OTAPE,420) MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,420) MAT,MF,MT
       OCARD=OCARD+1
       IF(MAT.lt.0) go to 370
       IF(MAT.eq.0) go to 150
@@ -468,19 +455,16 @@ C
 c-----------------------------------------------------------------------
       READ(ITAPE,430) CARD4,NWD,NXCOLD,MAT,MF,MT
       ICARD=ICARD+1
-      WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) CARD3,IZERO,N3,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD3,IZERO,N3,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) CARD4,NWD,NXCOLD,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD4,NWD,NXCOLD,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
       READ(ITAPE,430) CARD4,NWD,NXCOLD,MAT,MF,MT
       ICARD=ICARD+1
 C-----INCREMENT LINE COUNT FOR ADDED DOCUMENTATION LINE
-      WRITE(OTAPE,430) CARD4,NWD+1,NXC,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD4,NWD+1,NXC,MAT,MF,MT
       OCARD=OCARD+1
       IVERSE=3
       GO TO 220
@@ -492,14 +476,12 @@ C
 c-----------------------------------------------------------------------
   200 READ(ITAPE,430) CARD4,NWD,NXCOLD,MAT,MF,MT
       ICARD=ICARD+1
-      WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,430) CARD3,IZERO,N3,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD3,IZERO,N3,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
 C-----INCREMENT LINE COUNT FOR ADDED DOCUMENTATION LINE
-      WRITE(OTAPE,430) CARD4,NWD+1,NXC,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD4,NWD+1,NXC,MAT,MF,MT
       OCARD=OCARD+1
       IVERSE=2
       GO TO 220
@@ -509,11 +491,10 @@ C     ENDF/B-IV FORMAT (OUTPUT 2 LINES WITH NEW REACTION INDEX SECTION
 C     COUNT).
 C
 c-----------------------------------------------------------------------
-  210 WRITE(OTAPE,410) CARD2,NXC,MAT,MF,MT,NOSEQ
+  210 WRITE(OTAPE,410) CARD2,NXC,MAT,MF,MT
       OCARD=OCARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
 C-----INCREMENT LINE COUNT FOR ADDED DOCUMENTATION LINE
-      WRITE(OTAPE,430) CARD3,NWD+1,N3,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,430) CARD3,NWD+1,N3,MAT,MF,MT
       OCARD=OCARD+1
       IVERSE=1
 c-----------------------------------------------------------------------
@@ -527,8 +508,7 @@ C-----COPY COMMENT LINES.
       DO 230 J=1,NWD
       READ(ITAPE,440) CARD5
       ICARD=ICARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,440) CARD5,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,440) CARD5,MAT,MF,MT
       OCARD=OCARD+1
   230 CONTINUE
 c-----------------------------------------------------------------------
@@ -536,10 +516,9 @@ C
 C     ADD 1 DOCUMENTATION LINE.
 C
 c-----------------------------------------------------------------------
-      NOSEQ=NXTSEQ(NOSEQ)
-      WRITE(OTAPE,240) MAT,MF,MT,NOSEQ
-  240 FORMAT(' **************** Program DICTIN (VERSION 2023-1) ',
-     1       '****************',I4,I2,I3,I5)
+      WRITE(OTAPE,240) MAT,MF,MT
+  240 FORMAT(' **************** Program DICTIN (VERSION 2026-1) ',
+     1       '****************',I4,I2,I3)
       OCARD=OCARD+1
 C-----IF THERE IS AN OLD REACTION INDEX READ THE FIRST ENTRY TO
 C-----INITIALIZE.
@@ -551,7 +530,6 @@ C-----INSERT NEW REACTION INDEX. READ OLD REACTION INDEX (IF ANY) AND
 C-----USE THE OLD MOD NUMBER IN CORRESPONDING SECTION OF NEW REACTION
 C-----INDEX.
   250 DO 320 J=NDEX,ITOP
-      NOSEQ=NXTSEQ(NOSEQ)
 C-----CORRECT MF=1, MT=451 LINE COUNT FOR REMOVAL OF OLD SECTION
 C-----INDEX AND INSERTION OF NEW ONE.
       IF(MFTAB(J).EQ.1.AND.MTTAB(J).EQ.451) NCARD(J)=NCARD(J)+NXC-NXCOLD
@@ -583,15 +561,12 @@ C-----INCREMENT MF/MT=1/451 LINE COUNT FOR ADDED DOCUMENTATION LINE
       WRITE(*   ,510) FMTHOL(IVERSE),MATTAB(J),MFTAB(J),MTTAB(J),
      1 NCARD(J),MOD
   310 WRITE(OTAPE,450) MFTAB(J),MTTAB(J),NCARD(J),MOD,
-     1 MAT,MF,MT,NOSEQ
+     1 MAT,MF,MT
       OCARD=OCARD+1
   320 CONTINUE
       NDEX=ITOP+1
 C-----WRITE SECTION END (SEND) LINE.
-C-----2015-2: Corrected Sequence Number.
-      NOSEQ=99999
-      IF(MF.le.0) NOSEQ = 0
-      WRITE(OTAPE,420) MAT,MF,MTZERO,NOSEQ
+      WRITE(OTAPE,420) MAT,MF,MTZERO
       OCARD=OCARD+1
 C-----SKIP TO SEND LINE IN ORDER TO DELETE OLD SECTION INDEX, IF ANY.
   330 READ(ITAPE,400) MT
@@ -599,22 +574,15 @@ C-----SKIP TO SEND LINE IN ORDER TO DELETE OLD SECTION INDEX, IF ANY.
       IF(MT.le.0) go to 160
       go to 330
 C-----SECTION IS NOT MF=1, MT=451. COPY SECTION.
-C-----2015-2: Corrected Sequence Number.
-  340 if(MT.le.0) NOSEQ = 99999
-      if(MF.le.0) NOSEQ = 0
-      WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT,NOSEQ
+  340 WRITE(OTAPE,410) CARD2,N2,MAT,MF,MT
       OCARD=OCARD+1
   350 READ(ITAPE,440) CARD5,MAT,MF,MT
       ICARD=ICARD+1
-      NOSEQ=NXTSEQ(NOSEQ)
       IF(MT.le.0) go to 360
-      WRITE(OTAPE,440) CARD5,MAT,MF,MT,NOSEQ
+      WRITE(OTAPE,440) CARD5,MAT,MF,MT
       OCARD=OCARD+1
       GO TO 350
-C-----2015-2: Corrected Sequence Number.
-  360 NOSEQ = 99999
-      if(MF.le.0) NOSEQ = 0
-      WRITE(OTAPE,420) MAT,MF,MT,NOSEQ
+  360 WRITE(OTAPE,420) MAT,MF,MT
       OCARD=OCARD+1
       GO TO 160
 c-----------------------------------------------------------------------
@@ -631,14 +599,14 @@ c-----------------------------------------------------------------------
   380 FORMAT(20A4)
   390 FORMAT(66X,I4,I2,I3)
   400 FORMAT(72X,I3)
-  410 FORMAT(13A4,A3,I11,I4,I2,I3,I5)
-  420 FORMAT(66X,I4,I2,I3,I5)
-  430 FORMAT(11A4,2I11,I4,I2,I3,I5)
-  440 FORMAT(16A4,A2,I4,I2,I3,I5)
-  450 FORMAT(22X,4I11,I4,I2,I3,I5)
-  460 FORMAT(22X,2I11,11X,I11,I4,I2,I3,I5)
+  410 FORMAT(13A4,A3,I11,I4,I2,I3)
+  420 FORMAT(66X,I4,I2,I3)
+  430 FORMAT(11A4,2I11,I4,I2,I3)
+  440 FORMAT(16A4,A2,I4,I2,I3)
+  450 FORMAT(22X,4I11,I4,I2,I3)
+  460 FORMAT(22X,2I11,11X,I11,I4,I2,I3)
   470 FORMAT(///'Over ',I5,' Sections---Execution Terminated')
-  480 FORMAT(' Create New Section Index (DICTIN 2023-1)'/1X,60('-'))
+  480 FORMAT(' Create New Section Index (DICTIN 2026-1)'/1X,60('-'))
   490 FORMAT(1X,60('-')/
      1 ' First Pass. Reading ENDF/B Data'/1X,60('-')/
      2 '  MAT   Messages'/1X,60('-'))

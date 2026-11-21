@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM LEGEND
@@ -124,6 +115,9 @@ C     VERS. 2020-1 (Feb.  2020)   *Identical to 2019-1.
 C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb.  2023)   *Decreased page size from 3,000,000
 C                                  to 120,000
+C     VERS. 2026-1 (June  2026)   *No Sequence # -- columns 76-80 BLANK
+C                                 *Corrected tart MTH=-9999
+C                                 *Corrected storage/legendre vs. cosine
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -557,7 +551,7 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*1 FIELD6
       CHARACTER*4 CARD
       CHARACTER*60 NAMEIN,NAMEOUT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/MAXIE/ERRMAX,ERROK,ERRUSE,LOOPE
@@ -838,7 +832,7 @@ c-----Print final WARNING if data not tabulated to same Maximum Energy
 c-----End of run - Normal
       CALL ENDIT
       GO TO 220      ! CANNOT GET TO HERE.
-  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2023-1)'/
+  230 FORMAT(' Linearized ENDF/B Angular Distributions (LEGEND 2026-1)'/
      1 1X,78('-'))
   240 FORMAT(' Allowable Accuracy----------',11A1,
      2 ' (',F9.4,' per-cent)'/
@@ -946,7 +940,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program LEGEND (VERSION 2023-1) ***********',
+     1 ' ***************** Program LEGEND (VERSION 2026-1) ***********',
      2 ' Linearized Angular Distributions from Tables or Coefficients ',
      3 ' Allowable Error of12345678901 per-cent and123456 Max. Points ',
      4 ' Tabulated Data...Copied                                      ',
@@ -1020,7 +1014,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE,TYPED
       CHARACTER*1 FIELD6
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR
@@ -1117,7 +1111,6 @@ c-----------------------------------------------------------------------
    80 REWIND ISCR
 C-----SWITCH OUTPUT TO SCRATCH AND SAVE LINE SEQUENCE NUMBER
       OTAPE = ISCR
-      NOSEQNOW = NOSEQ
       CALL CARDI(C1,C2,L1,L2,N1,N2)
       CALL CARDO(C1,C2,L1,L2,N1,N2)
 C-----LOW ENERGY LEGENDRE COEFFICIENTS
@@ -1165,7 +1158,6 @@ C-----SWITCH INPUT FROM SCRATCH, OUTPUT TO FINAL FILE, AND RESTORE
 C-----LINE SEQUENCE NUMBER.
       ITAPE = ISCR
       OTAPE = NTAPE2
-      NOSEQ = NOSEQNOW
       GO TO 120
 c-----------------------------------------------------------------------
 C
@@ -2628,7 +2620,7 @@ C     SKIP TO START OF NEXT SELECTED SECTION.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----READ NEXT LINE.
    10 CALL CONTI
 C-----SKIP SEND/FEND/MEND - END ON TEND.
@@ -2656,21 +2648,20 @@ C     WRITE ENDF/B HEADER RECORD.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       DATA LSTMAT/-9999/
       DATA LSTMF/-999/
+c-----2026/5/25 - skipped at start MTH = -99999
+      if(LSTMAT.eq.-9999) go to 10
 C-----ADD FEND AND MEND LINES AS NECESSARY.
-      IF(LSTMAT.LE.0) GO TO 10
-      IF(LSTMF.EQ.MFH.AND.LSTMAT.EQ.MATH) GO TO 20
+      IF(LSTMF.EQ.MFH.AND.LSTMAT.EQ.MATH) GO TO 10
 C-----OUTPUT FEND.
       CALL OUTF(LSTMAT)
-      IF(LSTMAT.EQ.MATH) GO TO 20
+      IF(LSTMAT.EQ.MATH) GO TO 10
 C-----OUTPUT MEND.
       CALL OUTM
-C-----INITIALIZE SEQUENCE NUMBER.
-   10 NOSEQ=1
 C-----SAVE CURRENT MAT/MF.
-   20 LSTMAT=MATH
+   10 LSTMAT=MATH
       LSTMF=MFH
       CALL CONTO
       RETURN
@@ -2743,8 +2734,8 @@ C     DEFINE ENDF/B DATA FILE NAMES.
 C
 c-----------------------------------------------------------------------
 C-----DEFINE ENDF/B DATA FILENAMES.
-      OPEN(OTAPE,FILE=NAMEOUT,STATUS='UNKNOWN')
       OPEN(ITAPE,FILE=NAMEIN ,STATUS='OLD',ERR=20)
+      OPEN(OTAPE,FILE=NAMEOUT,STATUS='UNKNOWN')
       ISTAT2 = 0
       RETURN
    20 ISTAT2 = 1

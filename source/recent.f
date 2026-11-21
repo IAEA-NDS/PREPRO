@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM RECENT
@@ -354,6 +345,8 @@ C                                 *Corrected dummy arguments ,1) to ,*)
 C                                  Thank Arjan
 C     VERS. 2023-1 (Feb.  2023)   *Decreased page size from 1,200,000
 C                                  to 120,000.
+C     VERS. 2026-1 (June  2026)   *No sequence # = columns 76-80 BLANK
+C                                 *SKIPPED 38-Sr-088 RUBBISH MODEL
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -498,7 +491,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF COMMENT CARDS AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** RECENT (VERSION 2023-1) ***************
+C     ***************** RECENT (VERSION 2026-1) ***************
 C     RESONANCE CONTRIBUTION RECONSTRUCTED TO WITHIN   0.100 PER-CENT
 C     COMBINED DATA NOT THINNED (ALL RESONANCE + BACKGROUND DATA KEPT)
 C
@@ -1376,13 +1369,13 @@ C     AT THE END OF SECTION, MF=1, MT=451, FOR A COMPLETE RECORD
 C     OF EACH RUN USING THIS PROGRAM. THIS SECTION WILL CONTAIN
 C     LINES OF THE FORM
 C
-C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2026-1) *************
 C     ONLY PROCESS  0.00000+ 0 TO  3.00000+ 3 EV
-C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2026-1) *************
 C     ONLY PROCESS  3.00000+ 3 TO  1.00000+ 4 EV
-C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2026-1) *************
 C     ONLY PROCESS  1.00000+ 4 TO  8.00000+ 4 EV
-C     ***************** PROGRAM RECENT (VERSION 2023-1) *************
+C     ***************** PROGRAM RECENT (VERSION 2026-1) *************
 C     ONLY PROCESS  8.00000+ 4 TO  2.00000+ 7 EV
 C
 C     YOU SHOULD CHECK TO INSURE THAT THERE ARE NO OVERLAPPING ENERGY
@@ -1671,7 +1664,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/NAMECODE/CODENAME
       CHARACTER*4 LINE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/MAXIE/NEDSEC,NEDRES,NEDNOD
       COMMON/PAGER/NPAGE,NPAGP1,NPAGM1
       COMMON/CONJOB/PI,PI2,ZERO,HALF,ONE,TWO,THREE,FOUR,EIGHT,TEN
@@ -1820,7 +1813,7 @@ C-----COPY REMAINDER OF MAT.
 C-----ENTIRE MATERIAL HAS PROCESSED. PROCEED TO NEXT MAT.
       GO TO 10
   130 FORMAT(' Calculate Cross Sections from Resonance Parameters',
-     1 ' (RECENT 2023-1)'/1X,78('='))
+     1 ' (RECENT 2026-1)'/1X,78('='))
   140 FORMAT(1X,78('=')/' ENDF/B Tape Label'/1X,78('=')/1X,16A4,A2,I4)
   150 FORMAT(1X,7('WARNING...'),'WARNING'/
      1 ' No Section MF=1, MT=451.'/
@@ -2210,7 +2203,7 @@ C=======================================================================
       CHARACTER*4 FMT5,FMTHOL
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MATMAX(101)
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/IZANOW,MATNOW,TEMP3,IVERSE,INT45
       COMMON/HOLFMT/FMTHOL,ZABCD(12)
       COMMON/LISOCOM/LISO
@@ -2261,8 +2254,7 @@ C     PRESENT THE ENDF/B VERSION NUMBER WILL BE RE-DEFINED BASED
 C     ON THE FORMAT OF MF=1, MT=451).
 c
 c-----------------------------------------------------------------------
-   70 NOSEQ=1
-      MATNOW=MATH
+   70 MATNOW=MATH
       FMTHOL=FMT5
       IVERSE=6
       TEMP3=0.0d0
@@ -2296,7 +2288,7 @@ C=======================================================================
       CHARACTER*1 ZABCD,FIELD,PROGDOC1
       CHARACTER*4 FMTHOL,FMTTAB
       CHARACTER*66 PROGDOC
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/OKERR3/ENER3(1000),ER3(1000),MAXER3,NOERR
       COMMON/ERRORCOM/ERRXC3,ERMINMAX,ERMT2,ERMT102,ERSOFT,XCLOW
@@ -2320,7 +2312,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program RECENT (VERSION 2023-1) ***********',
+     1 ' ***************** Program RECENT (VERSION 2063-1) ***********',
      2 ' Only Process12345678901 to12345678901 eV                     ',
      3 ' for All Data Greater than12345678901 barns in Absolute Value ',
      4 ' Data Linearized to within an Accuracy of12345678901 per-cent ',
@@ -2586,9 +2578,14 @@ C=======================================================================
       common/outmt/QREACT(11),MTREACT(11),NEGTAB(11),NREACT,IMFISSY,LRF7
       COMMON/NEG1COM/NEG1    ! 2014/11/02 - add to FILE2 and FILE3
       COMMON/THRESCOM/NTHRES(11)
+      COMMON/RMBAKCOM/RMBK(5,20),ISKIP,NSKIP,KBK
 C-----2/14/04 - ADDED INCLUDE
       INCLUDE 'recent.h'
       DATA IUSE2/0/
+c-----2026/1/27 - Initiaize Reich-Moore Background Parameters
+      ISKIP = 0
+      NSKIP = 0
+      KBK   = 0
 c-----reset LRF=7 used and IMFISSY flags for each evaluation
       call same0
 C-----READ ALL FILE 2 PARAMETERS.
@@ -2729,13 +2726,6 @@ C-----SUB-INTERVAL HAS NOT YET BEEN SUB-DIVIDED.
 C-----CALCULATE CROSS SECTION AT END OF SUB-INTERVAL.
    80 ETAB2(KPTP1)=ESUB(ISUB)
       CALL SIGMA(ETAB2(KPTP1),SIG2(1,KPTP1))
-c***** DEBUG
-c     if(ETAB2(KPTP1).ge.83664.99.and.
-c    1   ETAB2(KPTP1).le.83665.01) then
-c     write(3,3456) KPTp1,ETAB2(KPTP1),SIG2(1,KPTP1)
-c3456 format(' k/e/s=',i8,1p2d12.5,' #1')
-c     endif
-c***** DEBUG
 C-----SKIP IF NO ITERATION
       IF(NOERR.GT.0) GO TO 140
 c-----------------------------------------------------------------------
@@ -3127,7 +3117,10 @@ C-----OUTPUT SUMMARY OF TOTAL NUMBER OF POINTS GENERATED.
      4 ' Messages'/1X,78('='))
   480 FORMAT(1X,78('=')/' No Resonance Contribution to Add to',
      1 ' Background Cross Section. MAT Copied.')
-  490 FORMAT(25X,I10,11A1,' to',11A1,' eV',F11.2,' Sec.')
+c***** DEBUG
+c 490 FORMAT(25X,I10,   11A1,' to',11A1,' eV',F11.2,' Sec.')
+  490 FORMAT(25X,I10,1X,11A1,' to',11A1,' eV',F10.2,' Sec.')
+c***** DEBUG
       END
       SUBROUTINE ERROK2(E)
 C=======================================================================
@@ -3195,7 +3188,7 @@ C=======================================================================
       CHARACTER*1 FIELD
       CHARACTER*28 FISLST,REGLST,RTYPE,UTYPE,HOLNRO,HOLNAP
       COMMON/WHATZA/IZANOW,MATNOW,TEMP3,IVERSE,INT45
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/NAPRHO/NRO,NAPS
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
@@ -3214,6 +3207,7 @@ C=======================================================================
       COMMON/LISOCOM/LISO
       CHARACTER*1 ZABCDI
       COMMON/ZABCDCOM/ZABCDI(12)
+      CHARACTER*1 LINE66(66)
 C-----2/14/04 - ADDED INCLUDE
       INCLUDE 'recent.h'
       DIMENSION FISLST(3),REGLST(4),RTYPE(8),
@@ -3644,6 +3638,11 @@ C-----DEFINE CUMULATIVE LFWX FLAG.
   310 if(LFWX.gt.0) LFWSUM = 1
       IF(LFWSUM.GT.0.OR.LFWX.GT.0) LFWX=1
   320 CONTINUE
+c***** DEBUG
+c-----2026/01/24 - SKIP to SEND (MT = 0)
+      CALL RMBACK(2,NDUM,LINE66)
+c-----2024=91/25 - List ALL Reich-Moore Parameters
+      CALL LISTRMBK
 C-----ALL PARAMETERS READ. COPY TO END OF FILE 2.
       CALL COPYF
 c-----------------------------------------------------------------------
@@ -3816,7 +3815,7 @@ C=======================================================================
       CHARACTER*8 REACTS,RSORT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR2,ISCR23
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/POINTN/NPOINT,KPOINT
       COMMON/FILE2COM/ZA,AWR,ZAI,ABN,SPI,AP,AWRI,QX,NRS,NIS,LFW,NER,
@@ -11176,7 +11175,7 @@ c
       DATA Deuteron /2.01410177811d0/
       DATA Triton   /3.01604920000D0/
       DATA He3      /3.01602930000d0/
-      DATA Alpha    /4.0015061791270/
+      DATA Alpha    /4.00150617912d0/
 c-----------------------------------------------------------------------
       CALL CARDIO(C1x, C2x, L1x, L2x, NLx, L2x)
 c-----initialize - only on first region
@@ -11336,6 +11335,10 @@ c-----2021/2/19 - Added Tables
       dimension MTTITLE(11)
       character*1 FIELD(11,12)
       character*4 MTBCD
+      character*1 LINE66
+      DIMENSION   LINE66(66)
+c-----2025 - ERROR Messagw for Sr-088
+      DATA MYSKIP/0/
       DATA MTBCD/'MT='/
 c-----2014/2/20 - multi-region - sum groups and resonances
       Ngr1   = KgrSum + 1
@@ -11354,8 +11357,19 @@ c-----2014/2/20 - Extended for Multiple Energy Ranges.
       DO Igroup=Ngr1,Ngr2
 c-----2021/2/26  Added tables
       NTABLE = NTABLE + 1
+c-----------------------------------------------------------------------
+c
+c     2024/10/29 - CARDIO changed to Character Read to Find IchanP1 > 0
 C
-      CALL CARDIO(Spin(Igroup), Parity(Igroup),L1x, L2x, N1x, IchanP1)
+c-----------------------------------------------------------------------
+c  15 CALL CARDIO(Spin(Igroup), Parity(Igroup),L1x, L2x, N1x, IchanP1)
+c-----------------------------------------------------------------------
+c-----2026/1/27 - added RMBACK to read & save Reich-Moore Background
+      call RMBACK(1,IchanP1,LINE66)
+c-----2026/1/27 - added RMBACK to read & save Reich-Moore Background
+      call IN9(SPIN  (igroup),LINE66( 1))
+      call IN9(Parity(igroup),lINE66(12))
+c***** DEBUG
       call OUT9(Spin(Igroup)  ,FIELD(1,1))
       call OUT9(Parity(Igroup),FIELD(1,2))
       write( 3,20) Igroup, ((FIELD(II,JJ),II=1,11),JJ=1,2), IchanP1
@@ -13874,5 +13888,115 @@ C
       Yinv(2,KJ) = Dummy(2,J)
       ENDDO
       ENDDO
+      RETURN
+      END
+      SUBROUTINE RMBACK(MYPATH,N2X,LINE66)
+c=======================================================================
+c
+c     Count & save RM Background parameters
+c     MYPATH = 1 - N2 < 2 or N2 > 8    = SKIP
+C            = 2 - at end MT > 0       = SKIP
+c
+c=======================================================================
+      implicit real*8 (a-h,o-z)
+      character*1 LINE66(66)
+      INTEGER*4 OUTP,OTAPE
+      COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
+      COMMON/LEADER/C1 ,C2 ,L1 ,L2 ,N1 ,N2 ,MAT ,MF ,MT
+      COMMON/RMBAKCOM/RMBK(5,20),ISKIP,NSKIP,KBK
+c-----initialize skipped line count
+      ISKIP = 0
+c-----Read/write next line
+   10 READ( ITAPE,20) LINE66,MAT,MF,MT
+      WRITE(OTAPE,20) LINE66,MAT,MF,MT
+   20 FORMAT(66A1,I4,I2,I3)
+c-----------------------------------------------------------------------
+c     Select path
+c-----------------------------------------------------------------------
+      if(MYPATH.eq.1) go to 30           ! Need N2 = 2 to 8
+      if(MYPATH.eq.2) go to 40          ! Need MT = 0
+c-----------------------------------------------------------------------
+c     N2 < 2 or N2 < 8
+c-----------------------------------------------------------------------
+   30 call IN9(X2,LINE66(56))
+      N2X = X2
+      if(N2X.ge.2.and.N2X.le.8) go to 90 ! # of Channels
+      go to 50                           ! Skip
+c-----------------------------------------------------------------------
+c     MT > 0
+c-----------------------------------------------------------------------
+   40 if(MT.le.0) go to 90               ! SEND?
+      go to 50                           ! Skip
+c-----------------------------------------------------------------------
+c     SKIP  - long message once at first
+c     #2 N1 = 5
+c     #3 5 Parameters
+c-----------------------------------------------------------------------
+   50 ISKIP = ISKIP + 1                   ! increment SKIP # Print
+      WRITE(3,60) LINE66
+   60 format(' SKIP=',66A1)
+c----- #1 just skip ----------------------------------------------------
+      if(ISKIP.eq.1) go to 10
+c----- #2 N1 = 5? ------------------------------------------------------
+      if(ISKIP.ne.2) go to 70
+      call IN9(XN1,LINE66(45))
+      N1X = XN1
+c***** DEBUG
+c-----2026/6/8 - expect NX = 5 - if not print WARNING
+c     if(N1X.ne.5) pause
+c***** DEBUG
+      if(N1X.ne.5) then
+      write(*,3000) N1X
+      write(3,3000) N1X
+ 3000 format(' WARNING - Expect 5 extra words - found',i3)
+      endif
+c***** DEBUG
+      go to 10
+c----- #3 Increment NSKIP & translate 5 fields -------------------------
+   70 if(ISKIP.ne.3) go to 80
+      NSKIP = NSKIP + 1
+      kk=1
+      do k=1,5
+      call in9(RMBK(k,NSKIP),LINE66(kk))
+      kk = kk + 11
+      enddo
+c----- # > 3 ERROR = CONTINUE
+   80 go to 10
+c-----End of SKIP
+   90 RETURN
+      ENTRY LISTRMBK
+c=======================================================================
+c
+c     List Background Parameters
+c
+c=======================================================================
+c-----Loop over SKIPPED Groups - if any
+      if(NSKIP.le.0) return
+c-----------------------------------------------------------------------
+c     Print detailed WARNING only once
+c-----------------------------------------------------------------------
+      write(3,100)
+c-----Include on-line WARNING
+      write(*,100)
+  100 format(1x,72('=')/
+     2 ' WARNING - Nonsense background parameters with MF=2'/
+     3 '           Resonance Parameters ignored = NOT included'/
+     4 '           in tabulated MF=3 Cross Sections - PREPRO/RECENT'/
+     5 '           has no intention of encouraging or supporting'/
+     6 '           this type of change in the ENDF-102 definitions -'/
+     7 '           DO NOT USE THE OUTPUT IN ANY APPLICATIONS'/
+     9        1x,72('='))
+c-----------------------------------------------------------------------
+c     Print table of parameters.
+c-----------------------------------------------------------------------
+      write(3,110)
+  110 format(1x,71('=')/' Reich-Moore Background Parameters'/
+     1       1x,71('='))
+      do N=1,NSKIP
+      write(3,120) N,(RMBK(K,N),K=1,5)
+  120 format(i3,1x,1p5d11.4)
+      enddo
+      write(3,130)
+  130 format(1x,71('='))
       RETURN
       END

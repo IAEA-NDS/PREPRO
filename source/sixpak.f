@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SIXPAK
@@ -121,6 +112,7 @@ C                                 *Added Target Isomer State
 C     VERS. 2021-1 (Jan.  2021)   *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb.  2023)   *Decreased page siZe from 600,000
 C                                  to 120,000
+C     VERS. 2026-1 (June  2026)   *No Sequence # 76-80
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -1060,7 +1052,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/HIGHE45/N2X4,N2X5,I2X4,I2X5
       COMMON/LEADMT5/C1MT5 ,C2MT5 ,L1MT5 ,L2MT5 ,N1MT5 ,N2MT5
       DATA LSTMAT/-9999/
-      DATA LABOUT/' Program SIXPAK (2023-1) Output'/
+      DATA LABOUT/' Program SIXPAK (2026-1) Output'/
 C-----08/08/2012 DEFINE CODE NAME
       CODENAME = 'SIXPAK  '
 C-----INITIALIZE TIMER
@@ -1315,7 +1307,7 @@ c-----End of run - Normal
   170 CALL ENDIT
       go to 170
   180 FORMAT(' Process ENDF/B Double Differential Data - MF=6',
-     1 ' (SIXPAK 2023-1)'/1X,78('='))
+     1 ' (SIXPAK 2026-1)'/1X,78('='))
   190 FORMAT(1X,78('=')/' Terminology'/1X,78('-')/
      1 ' LCT  = Reference System (Lab or Center-of-Mass)'/
      2 ' LIP  = Product Modifier, e.g., for Isomeric States'/

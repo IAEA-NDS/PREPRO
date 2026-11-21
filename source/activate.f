@@ -1,13 +1,3 @@
-
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM ACTIVATE
@@ -55,7 +45,8 @@ C                                  inconsistent.
 C                                 *Added Target Isomer State
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb. 2023)    *Reduced page size from 6,000,000
-C                                  to 120,000
+C     VERS. 2026-1 (June 2026)    *No Sequence # - columns 76-80 BLANL
+C                                 *Reduced page size to 120,000
 C
 C     Acknowledgement 2015
 C     --------------------
@@ -163,7 +154,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF 3 COMMENT LINES AT THE END OF EACH HOLLERITH
 C     SECTION IN THE FORM
 C
-C     ***************** PROGRAM ACTIVATE (2023-1) ****************
+C     ***************** PROGRAM ACTIVATE (2026-1) ****************
 C     FILE 10 ACTIVATION CROSS SECTIONS HAVE BEEN DEFINED BY COMBINING
 C     FILE 3 CROSS SECTIONS AND FILE 9 MULTIPLIERS. FILE 9 DELETED.
 C
@@ -330,7 +321,7 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COPC/CARD(17)
       COMMON/COPI/MFIELD(3)
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
@@ -526,7 +517,6 @@ C-----READ/WRITE FIRST LINE TO FORCE OUTPUT REPORT FOR PRECEDING
 C-----MAT, IF ANY.
       ITAPE = ISCR1
       CALL CONTI
-      NOSEQ = 1
       CALL CONTOG
       ITAPE = ISAVE
    60 READ(ISCR1,210,END=180) LINE66,MATH,MFH,MTH
@@ -534,8 +524,7 @@ C-----MAT, IF ANY.
       IF(MTH.LE.0) THEN
       CALL OUTS(MATH,MFH)
       ELSE
-      WRITE(OTAPE,210) LINE66,MATH,MFH,MTH,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,210) LINE66,MATH,MFH,MTH
       LSTMAT = MATH
       LSTMF  = MFH
       ENDIF
@@ -699,7 +688,7 @@ C                ! included here only avoid compiler ERROR Messages.
      4 1X,78('-'))
   240 FORMAT(1X,78('-')/45X,'Tape Totals',2I7/1X,78('-'))
   250 FORMAT(' ENDF Activation Cross Sections',
-     1 ' (ACTIVATE 2023-1)'/1X,78('-'))
+     1 ' (ACTIVATE 2026-1)'/1X,78('-'))
       END
       SUBROUTINE CREATE10
 C=======================================================================
@@ -713,7 +702,7 @@ C=======================================================================
       CHARACTER*1 LINE66
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
 c-----2019/1/5 - Increased to 100 from 50 = PREPRO Standard
       COMMON/NBTINT/NBT(100),INT(100)
@@ -845,8 +834,7 @@ c-----Copy section to Output.
    80 IF(MTH.LE.0) THEN
       CALL OUTS(MATH,MFH)
       ELSE
-      WRITE(OTAPE,130) LINE66,MATH,MFH,MTH,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,130) LINE66,MATH,MFH,MTH
       ENDIF
 c-----Continue to MT=0 (SEND)
       IF(MTH.LE.0) GO TO 90
@@ -903,7 +891,7 @@ C=======================================================================
       CHARACTER*1 ZABCD
       INTEGER OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
 c-----2019/1/5 - Increased to 100 from 50 = PREPRO Standard
       COMMON/NBTINT/NBT(100),INT(100)
@@ -937,7 +925,7 @@ C=======================================================================
       CHARACTER*1 LINE66
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/HOLFMT/FMTHOL
       COMMON/FIELDC/FIELD(11,6)
@@ -1001,8 +989,7 @@ C-----RE-NORMALIZE MF=3 CROSS SECTION AND PUT BACK ON OUTPUT LINE
       KK=KK+22
    50 CONTINUE
 C-----OUTPUT LINE OF UP TO 3 ENERGY POINTS
-      WRITE(OTAPE,90) LINE66,MATH,MFH,MTH,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,90) LINE66,MATH,MFH,MTH
    60 CONTINUE
 c-----2019/3/9 - Maximum tabulated MF=3 energy and value
       CALL MAXIE2(ENOW,XCNOW)
@@ -1079,7 +1066,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' *************** PROGRAM ACTIVATE (VERSION 2023-1) ***********',
+     1 ' *************** PROGRAM ACTIVATE (VERSION 2026-1) ***********',
      2 ' MF=10 Activation Cross Sections Defined by Combining MF=3    ',
      3 ' Cross Section and MF=9 Multiplier. MF=9 Deleted/MF=8 Updated.'/
 C-----FILL IN REMAINDER OF FIRST LINE.
@@ -1150,7 +1137,7 @@ C=======================================================================
       CHARACTER*1 LINE66
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/CLINE66/LINE66(66)
 C-----------------------------------------------------------------------
@@ -1163,12 +1150,10 @@ C-----------------------------------------------------------------------
       IO1 = OTAPE
       IO2 = ISCR2
 C-----HEADER CARD HAS ALREADY BEEN READ - OUTPUT IT.
-      NOSEQ = 1
       CALL CONTOG
 C-----ALSO OUTPUT TO SCRATCH
       OTAPE = IO2
       CALL CONTO
-      NOSEQ = 2     ! Reset NOSEQ due to above CONTO to Scratch.
       OTAPE = IO1
 C-----COPY TO END OF MF=3
    10 READ(ISCR1,30) LINE66,MATH,MFH,MTH
@@ -1176,8 +1161,7 @@ C-----COPY TO END OF MF=3
       IF(MTH.LE.0) THEN
       CALL OUTS(MATH,MFH)
       ELSE
-      WRITE(OTAPE,30) LINE66,MATH,MFH,MTH,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,30) LINE66,MATH,MFH,MTH
       ENDIF
       WRITE(ISCR2 ,30) LINE66,MATH,MFH,MTH
       GO TO 10
@@ -1197,15 +1181,13 @@ C=======================================================================
       CHARACTER*1 LINE66
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/CLINE66/LINE66(66)
 C-----------------------------------------------------------------------
 C
 C     INITIALIZE SCRATCH FILE
 C
 C-----------------------------------------------------------------------
-C-----SAVE STARTING SEQUENCE NUMBER
-      INSEQ = NOSEQ
       REWIND ISCR3
       IO1 = OTAPE
 C-----HEADER CARD HAS ALREADY BEEN READ.
@@ -1218,8 +1200,6 @@ C-----COPY TO END OF MF=9
       IF(MFH.GT.0) GO TO 10
       ENDFILE ISCR3
       REWIND ISCR3
-C-----RESTORE STARTING SEQUENCE NUMBER
-      NOSEQ = INSEQ
       RETURN
    20 FORMAT(66A1,I4,I2,I3,I5)
       END
@@ -1234,15 +1214,13 @@ C=======================================================================
       CHARACTER*1 LINE66
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCR1,ISCR2,ISCR3,ISCR4
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/CLINE66/LINE66(66)
 C-----------------------------------------------------------------------
 C
 C     INITIALIZE SCRATCH FILE
 C
 C-----------------------------------------------------------------------
-C-----SAVE STARTING SEQUENCE NUMBER
-      INSEQ = NOSEQ
       REWIND ISCR4
       IO1 = OTAPE
 C-----HEADER CARD HAS ALREADY BEEN READ.
@@ -1255,8 +1233,6 @@ C-----COPY TO END OF MF=10
       IF(MFH.GT.0) GO TO 10
       ENDFILE ISCR4
       REWIND ISCR4
-C-----RESTORE STARTING SEQUENCE NUMBER
-      NOSEQ = INSEQ
       RETURN
    20 FORMAT(66A1,I4,I2,I3,I5)
       END
@@ -1330,7 +1306,7 @@ C=======================================================================
       CHARACTER*1 ZABCD
       CHARACTER*4 FMTHOL
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/HOLFMT/FMTHOL
       COMMON/LISOCOM/LISO
       COMMON/BCDZA/ZABCD(12)
@@ -1354,7 +1330,6 @@ C-----RETURN NEGATIVE MATH AS END OF RUN INDICATOR.
    20 MATH  =-1
       MFH   =0
       MTH   =0
-      NOSEQ =0
       N2MATI=0
       N2MATO=0
       RETURN
@@ -1407,7 +1382,7 @@ C=======================================================================
       CHARACTER*1 ZABCD2
       INTEGER OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/LSTCOM/LSTIZA,LSTMAT,LSTMF
       COMMON/LSTCOMC/ZABCD2(12)
@@ -1433,7 +1408,6 @@ C-----------------------------------------------------------------------
       N2MATI=0
       N2MATO=0
       CALL OUTM
-      NOSEQ=1
 C-----------------------------------------------------------------------
 c
 c     SAVE LAST ZA/MAT/MF FOR OUTPUT AT END OF CURRENT MAT.
@@ -1456,7 +1430,7 @@ C=======================================================================
       CHARACTER*1 ZABCD2
       INTEGER OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/COUNTS/IZANOW,MATNOW,N2MATI,N2MATO,N2TOTI,N2TOTO
       COMMON/LSTCOM/LSTIZA,LSTMAT,LSTMF
       COMMON/LSTCOMC/ZABCD2(12)

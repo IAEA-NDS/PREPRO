@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM COMPLOT
@@ -218,6 +209,8 @@ C                                  plotting area.
 C                                 *Updated for FORTRAN 2018
 C     Vers. 2023-1 (Feb. 2023)    *Reduced page size from 2,400,000 to
 C                                  120,000
+C     Vers. 2026-1 (June 2026)    *No Sequence # - columns 76-80 BLABK
+C                                 *No Energy Range Checks
 C
 C     2020-1 Acknowledgment
 C     =====================
@@ -1149,7 +1142,7 @@ C-----2017/4/2 - Add IZOOM to control DEFAULT X axis scaling
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/PAGLIM/XYLIMS(2,2,10),MTDEX1(10),MTDEX2(10)
       COMMON/WHERE1/IZA1,MAT1,MF1,MT1
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----11/22/2013 - Substituted OUT9 output for NORMX
       CHARACTER*1 FIELD11
       COMMON/NORMCC/FIELD11(11,6)
@@ -1286,10 +1279,6 @@ C-----END OF DATA. PRINT COUNT OF NUMBER OF PLOTS GENERATED.
    30 PCDIFF=100.0d0*DIFFOK
       NPAGE=IABS(NPAGE-NPAGE1)
       WRITE(OUTP,600) NPAGE,PCDIFF
-c-----Check MT list for any preceding MAT
-      if(MATLST.gt.0) then
-      CALL MAXIE3(0)
-      endif
 C-----------------------------------------------------------------------
 C
 C     IF NO PLOTS, NOTIFY USERS.
@@ -1300,7 +1289,7 @@ C-----ON SCREEN GRAPHICS MESSAGE
       IF(IMHARD.LE.0) CALL NOPLOTS
 C-----ON SCREEN TEXT MESSAGE
       IF(IMHARD.GT.0) WRITE(*,40)
-   40 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2023-1)'/
+   40 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2026-1)'/
      1 1X,97('-')/
      2 ' All Data Agreed within input Allowable Uncertainty.'/
      3 ' So NO Plots were Generated. See the output file'/
@@ -1308,12 +1297,10 @@ C-----ON SCREEN TEXT MESSAGE
       ELSE
 C-----ON SCREEN TEXT MESSAGE
       IF(IMHARD.GT.0) WRITE(*,50)
-   50 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2023-1)'/
+   50 FORMAT(//' Comparison of Evaluated Data (COMPLOT 2026-1)'/
      1 1X,97('-')/
      2 ' See output file COMPLOT.LST for Details of the Comparisons.')
       ENDIF
-c-----Print final WARNING if data not tabulated to same Maximum Energy
-      CALL MAXIE4(0)
 C-----End of Run - Normal
       CALL ENDIT
 C-----------------------------------------------------------------------
@@ -1324,12 +1311,6 @@ C-----------------------------------------------------------------------
 C-----INITIALIZE RESONANCE REGION LIMITS AND ENDF/B FORMAT VERSION
 C-----WHEN NEW MAT IS FOUND.
    60 IF(MATH.EQ.MATLST) GO TO 70
-c-----If any preceding MAT check MT Maximum Energy
-      if(MATLST.gt.0) then
-      CALL MAXIE3(0)
-      endif
-c-----Initialize MT table for new MAT
-      CALL MAXIE0
       MATLST=MATH
       RLIMIT(1,1)=0.0d0
       RLIMIT(2,1)=0.0d0
@@ -1355,6 +1336,7 @@ C-----2016/11/25 - Added to insure only resonance parameters are read.
       IF(MTH.NE.151) GO TO 110
 C-----DEFINE RESONANCE REGION ENERGY LIMITS.
       CALL FILE2(RLIMIT(1,1),RLIMIT(2,1),RLIMIT(1,2),RLIMIT(2,2))
+      CALL LIST2(RLIMIT(1,1),RLIMIT(2,1),RLIMIT(1,2),RLIMIT(2,2))
       GO TO 110
   100 IF(MFH.EQ. 3) GO TO 140
       IF(MFH.EQ.10) GO TO 140
@@ -1953,7 +1935,7 @@ C-----2017/5/6 - Initialize character fields for input
       FIELD5(i) = ' '
       enddo
 C-----PRINT HEADING FOR OUTPUT LISTING.
-      WRITE(OUTP,370)
+      WRITE(OUTP,380)
 c-----------------------------------------------------------------------
 C
 C     DEFINE SIZE OF PLOTTER.
@@ -2007,42 +1989,42 @@ C-----DEFINE PLOT ORIENTATION.
       IF(XYPLOT(2,1).LT.0.0d0) NFLIP=1
       XYPLOT(2,1)=DABS(XYPLOT(2,1))
 C-----IF PLOT SIZE IS NOT GIVEN USE STANDARD SIZE.
-      DO 55 I=1,2
+      DO 60 I=1,2
       DO 50 J=1,2
       IF(XYPLOT(I,J).EQ.0.0d0) XYPLOT(I,J)=XYEDGE(I,J)
    50 CONTINUE
-   55 CONTINUE
+   60 CONTINUE
       IF(NSMALX.LT.1) NSMALX=1
       IF(NSMALY.LT.1) NSMALY=1
-      WRITE(OUTP,380) XYPLOT,NSMALX,NSMALY
+      WRITE(OUTP,390) XYPLOT,NSMALX,NSMALY
 c-----2014/7/20 - Restricted character size multiplier to 0.5 to 1.5
 c-----Otherwise MF=10 titles do not fit on plot.
 c-----2019/4/09 - Changed to Default = 1.5 and Range      0.5 to 2.5
       IF(HTMULT.LE.0.0d0) HTMULT=1.5d0  ! Default 1.5
       IF(HTMULT.LT.0.5d0) HTMULT=0.5d0  ! Minimum
       IF(HTMULT.GT.2.5d0) HTMULT=2.5d0  ! Maximum
-      WRITE(OUTP,460) HTMULT
-      IF(NFLIP.EQ.0) WRITE(OUTP,400)
-      IF(NFLIP.NE.0) WRITE(OUTP,410)
+      WRITE(OUTP,470) HTMULT
+      IF(NFLIP.EQ.0) WRITE(OUTP,410)
+      IF(NFLIP.NE.0) WRITE(OUTP,420)
 c-----------------------------------------------------------------------
 C
 C     READ FILENAMES - USE STANDARD IF BLANK.
 C
 c-----------------------------------------------------------------------
-      IF(ISTAT1.EQ.1) GO TO 70
-      READ(INP,60,END=70,ERR=70) NAMEIN1
+      IF(ISTAT1.EQ.1) GO TO 80
+      READ(INP,70,END=80,ERR=80) NAMEIN1
       IF(NAMEIN1.EQ.' ') NAMEIN1 = 'ENDFB.IN1'
-      READ(INP,60,END=80,ERR=80) NAMEIN2
-   60 FORMAT(A72)
+      READ(INP,70,END=90,ERR=90) NAMEIN2
+   70 FORMAT(A72)
       IF(NAMEIN2.EQ.' ') NAMEIN2 = 'ENDFB.IN2'
-      GO TO 90
+      GO TO 100
 C-----USE DEFAULT IF NO INPUT
-   70 NAMEIN1 = 'ENDFB.IN1'
-   80 NAMEIN2 = 'ENDFB.IN2'
+   80 NAMEIN1 = 'ENDFB.IN1'
+   90 NAMEIN2 = 'ENDFB.IN2'
       ISTAT1 = 1
 C-----PRINT FINAL FILENAMES
-   90 WRITE(OUTP,100) NAMEIN1,NAMEIN2
-  100 FORMAT(' Data Filenames'/
+  100 WRITE(OUTP,110) NAMEIN1,NAMEIN2
+  110 FORMAT(' Data Filenames'/
      1 1X,97('-')/' Data1=',A72/' Data2=',A72/1X,97('-'))
 C-----OPTIONALLY OPEN ENDF/B DATA FILES.
       CALL FILIO2
@@ -2056,13 +2038,13 @@ C     (4) LINE THICKNESS
 C     (5) PLOT MODPLT (-1 TO 4).
 C
 c-----------------------------------------------------------------------
-      IF(ISTAT1.EQ.1) GO TO 120
-      READ(INP,110,END=120,ERR=120)
+      IF(ISTAT1.EQ.1) GO TO 130
+      READ(INP,120,END=130,ERR=130)
      1 MODGET,NGRID,NBORD,NTHICK,MODPLT,NPAGE,MYPAL
-  110 FORMAT(6I11,I4)
-      GO TO 130
+  120 FORMAT(6I11,I4)
+      GO TO 140
 C-----DEFINE DEFAULT VALUES
-  120 ISTAT1 = 1
+  130 ISTAT1 = 1
       MODGET = 0
       NGRID  = 0
       NBORD  = 0
@@ -2071,7 +2053,7 @@ C-----DEFINE DEFAULT VALUES
       NPAGE  = 0
       MYPAL  = 0
 C-----CHECK INPUT VALUES
-  130 IF(MODGET.LE.0) MODGET=0
+  140 IF(MODGET.LE.0) MODGET=0
       IF(MODGET.GT.0) MODGET=1
       IF(NGRID.LE.0.OR.NGRID.GT.5) NGRID=0
       IF(NBORD.LT.0.OR.NBORD.GT.2) NBORD=0
@@ -2080,20 +2062,20 @@ C-----CHECK INPUT VALUES
       IF(IABS(NTHICK).GT.5) NTHICK=0
       KTHICK=IABS(NTHICK)
       IF(MODPLT.LT.-1.OR.MODPLT.GT.4) MODPLT=-1
-      WRITE(OUTP,390) MESS1(MODGET+1),GRIDTYPE(NGRID+1),
+      WRITE(OUTP,400) MESS1(MODGET+1),GRIDTYPE(NGRID+1),
      1 KBORD,KTHICK
-      IF(MODPLT.EQ.-1) WRITE(OUTP,500)
-      IF(MODPLT.EQ.0) WRITE(OUTP,510)
-      IF(MODPLT.EQ.1) WRITE(OUTP,520)
-      IF(MODPLT.EQ.2) WRITE(OUTP,530)
-      IF(MODPLT.EQ.3) WRITE(OUTP,540)
-      IF(MODPLT.EQ.4) WRITE(OUTP,550)
+      IF(MODPLT.EQ.-1) WRITE(OUTP,510)
+      IF(MODPLT.EQ.0) WRITE(OUTP,520)
+      IF(MODPLT.EQ.1) WRITE(OUTP,530)
+      IF(MODPLT.EQ.2) WRITE(OUTP,540)
+      IF(MODPLT.EQ.3) WRITE(OUTP,550)
+      IF(MODPLT.EQ.4) WRITE(OUTP,560)
       IF(NPAGE.LT.0) NPAGE=0
-      WRITE(OUTP,560) NPAGE
+      WRITE(OUTP,570) NPAGE
       IF(MYPAL.EQ.0) THEN
-      WRITE(OUTP,570)
-      ELSE
       WRITE(OUTP,580)
+      ELSE
+      WRITE(OUTP,590)
       ENDIF
       NPAGE1=NPAGE
 c-----------------------------------------------------------------------
@@ -2103,25 +2085,25 @@ C     (1) ALLOWABLE UNCERTAINTY
 C     (2) MAXIMUM RANGE OF RATIOS.
 C
 c-----------------------------------------------------------------------
-      IF(ISTAT1.EQ.1) GO TO 150
+      IF(ISTAT1.EQ.1) GO TO 160
 c***** 2017/5/6 - changed all floating to character.
-      READ(INP,140,END=150,ERR=150) FIELD1,FIELD2,FIELD3
-  140 FORMAT(33A1)
+      READ(INP,150,END=160,ERR=160) FIELD1,FIELD2,FIELD3
+  150 FORMAT(33A1)
       CALL IN9(DIFFOK,FIELD1)
       CALL IN9(RATMAX,FIELD2)
       CALL IN9( XCMAX,FIELD3)
 c***** 2017/5/6 - changed all floating to character.
-      GO TO 160
+      GO TO 170
 C-----DEFINE DEFAULT VALUES
-  150 ISTAT1 = 1
+  160 ISTAT1 = 1
       DIFFOK = DIFUSE
       RATMAX = 1.0d0
       XCMAX  = XCUSE
 C-----CHECK INPUT VALUES (10/3/15 - Now allow 0)
-  160 IF(DIFFOK.EQ.0.0d0) DIFFOK=DIFUSE
+  170 IF(DIFFOK.EQ.0.0d0) DIFFOK=DIFUSE
       IF(XCMAX.eq.0.0d0)  XCMAX = XCUSE
       PCDIFF=100.0d0*DIFFOK
-      WRITE(OUTP,420) DIFFOK,PCDIFF
+      WRITE(OUTP,430) DIFFOK,PCDIFF
 c-----------------------------------------------------------------------
 C
 C     DEFINE MINIMUM RANGE FOR RATIOS
@@ -2131,7 +2113,7 @@ c-----------------------------------------------------------------------
       IF(RATMAX.LE.0.0d0.OR.RATMAX.EQ.1.0d0) THEN
       RATMAX = 1.0d0
       RATMIN = 1.0d0
-      WRITE(OUTP,430)
+      WRITE(OUTP,440)
       ELSE
       IF(RATMAX.LT.1.0d0) RATMAX = 1.0d0/RATMAX
       DDD = RATMAX - 1.0d0
@@ -2140,10 +2122,10 @@ c-----------------------------------------------------------------------
       RATMIN = 1.0d0/RATMAX
       IF(DDD.LT.DYMIN) DYMIN = DDD
       PCRAT=100.0d0*(RATMAX-1.0d0)
-      WRITE(OUTP,440) RATMAX,PCRAT
+      WRITE(OUTP,450) RATMAX,PCRAT
       ENDIF
       CALL OUT9(XCMAX,FIELD3(1))
-      WRITE(OUTP,450) FIELD3
+      WRITE(OUTP,460) FIELD3
 c-----------------------------------------------------------------------
 C
 C     READ AND DEFINE LENGTH OF THE TWO EVALUATION IDENTIFICATIONS.
@@ -2152,15 +2134,15 @@ c-----------------------------------------------------------------------
       EVALID84(1) = DATA1
       EVALID84(2) = DATA2
       EVALID84(3) = BLANK84
-      IF(ISTAT1.EQ.1) GO TO 180
-      READ(INP,170,END=180,ERR=180) (EVALID(J,1),J=1,40)
-      READ(INP,170,END=190,ERR=190) (EVALID(J,2),J=1,40)
-  170 FORMAT(40A1)
-      GO TO 200
-  180 EVALID84(1) = 'Data 1'
-  190 EVALID84(2) = 'Data 2'
+      IF(ISTAT1.EQ.1) GO TO 190
+      READ(INP,180,END=190,ERR=190) (EVALID(J,1),J=1,40)
+      READ(INP,180,END=200,ERR=200) (EVALID(J,2),J=1,40)
+  180 FORMAT(40A1)
+      GO TO 210
+  190 EVALID84(1) = 'Data 1'
+  200 EVALID84(2) = 'Data 2'
       ISTAT1 = 1
-  200 WRITE(OUTP,600) ((EVALID(J,I),J=1,40),I=1,2)
+  210 WRITE(OUTP,610) ((EVALID(J,I),J=1,40),I=1,2)
 c-----------------------------------------------------------------------
 C
 C     DEFINE IDENTIFICATION FOR RATIO...THE TWO IDENTIFICATIONS
@@ -2169,15 +2151,15 @@ C
 c-----------------------------------------------------------------------
       CALL LONGX(EVALID(1,1),IT1,40)
       CALL LONGX(EVALID(1,2),IT2,40)
-      DO 210 J=1,IT2
+      DO 220 J=1,IT2
       EVALID(J,3)=EVALID(J,2)
-  210 CONTINUE
+  220 CONTINUE
       IT3=IT2+1
       EVALID(IT3,3)=DIVIDE
-      DO 220 J=1,IT1
+      DO 230 J=1,IT1
       IT3=IT3+1
       EVALID(IT3,3)=EVALID(J,1)
-  220 CONTINUE
+  230 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     READ SELECTION RANGES (EITHER MAT OR ZA AND MT AND ENERGY - EV).
@@ -2187,15 +2169,15 @@ C     SET MAXIMUM EQUAL TO MINIMUM (I.E., ONLY RETRIEVE THE MAT OR ZA
 C     INDICATED BY THE LOWER LIMIT).
 C
 C-----------------------------------------------------------------------
-      IF(MODGET.EQ.0) WRITE(OUTP,470)
-      IF(MODGET.EQ.1) WRITE(OUTP,480)
-      IF(ISTAT1.EQ.1) GO TO 240
-      READ(INP,230,END=240,ERR=240) MATMIN(1),MFMIN(1),MTMIN(1),FIELD1,
+      IF(MODGET.EQ.0) WRITE(OUTP,480)
+      IF(MODGET.EQ.1) WRITE(OUTP,490)
+      IF(ISTAT1.EQ.1) GO TO 250
+      READ(INP,240,END=250,ERR=250) MATMIN(1),MFMIN(1),MTMIN(1),FIELD1,
      1 MATMAX(1),MFMAX(1),MTMAX(1),FIELD2,IIPONT(1)
-  230 FORMAT(I6,I2,I3,11A1,I6,I2,I3,11A1,2I11)
-      GO TO 250
+  240 FORMAT(I6,I2,I3,11A1,I6,I2,I3,11A1,2I11)
+      GO TO 260
 C-----DEFINE DEFAULT VALUES
-  240 ISTAT1    = 1
+  250 ISTAT1    = 1
       MATMIN(1) = 0
       MFMIN(1)  = 0
       MTMIN(1)  = 0
@@ -2206,12 +2188,12 @@ C-----DEFINE DEFAULT VALUES
       ERMAX(1)  = EBIG
       IIPONT(1) = 0
       MYZOOM(1) = 0
-      GO TO 260
-  250 CALL IN9(ERMIN(1),FIELD1)
+      GO TO 270
+  260 CALL IN9(ERMIN(1),FIELD1)
       CALL IN9(ERMAX(1),FIELD2)
       MYZOOM(1) = 0
       if(ERMIN(1).gt.0.0d0.or.ERMAX(1).gt.0.0d0) MYZOOM(1) = 1
-  260 MACTV(1)=MYACTION
+  270 MACTV(1)=MYACTION
       IF(MFMIN(1).LE.0) MFMIN(1)=0
       IF(MFMAX(1).LE.0) MFMAX(1)=99
       IF(MTMIN(1).LE.0) MTMIN(1)=0
@@ -2230,29 +2212,29 @@ C-----DEFINE DEFAULT VALUES
       CALL OUT9(ES,FIELD11(1,1))
       ES=ERMAX(1)
       CALL OUT9(ES,FIELD11(1,2))
-      IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 270
+      IF(MATMIN(1).GT.0.OR.MATMAX(1).GT.0) GO TO 280
       MATMIN(1)=0
       MATMAX(1)=9999
       MODGET=0
-      WRITE(OUTP,490) MATMIN(1),MFMIN(1),MTMIN(1),
+      WRITE(OUTP,500) MATMIN(1),MFMIN(1),MTMIN(1),
      1 (FIELD11(kk,1),kk=1,11),
      1 MATMAX(1),MFMAX(1),MTMAX(1),(FIELD11(kk,2),kk=1,11),
      2 KPOINT,KACTV
       NMATZA=2
-      GO TO 320
-  270 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
-      WRITE(OUTP,490) MATMIN(1),MFMIN(1),MTMIN(1),
+      GO TO 330
+  280 IF(MATMAX(1).LT.MATMIN(1)) MATMAX(1)=MATMIN(1)
+      WRITE(OUTP,500) MATMIN(1),MFMIN(1),MTMIN(1),
      1 (FIELD11(kk,1),kk=1,11),
      1 MATMAX(1),MFMAX(1),MTMAX(1),(FIELD11(kk,2),kk=1,11),
      2 KPOINT,KACTV
-      DO 310 NMATZA=2,101
-      IF(ISTAT1.EQ.1) GO TO 280
-      READ(INP,230,END=280,ERR=280)
+      DO 320 NMATZA=2,101
+      IF(ISTAT1.EQ.1) GO TO 290
+      READ(INP,240,END=290,ERR=290)
      1 MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),FIELD1,
      2 MATMAX(NMATZA),MFMAX(NMATZA),MTMAX(NMATZA),FIELD2,IIPONT(NMATZA)
-      GO TO 290
+      GO TO 300
 C-----DEFINE DEFAULT VALUES
-  280 ISTAT1          = 1
+  290 ISTAT1          = 1
       MATMIN(NMATZA)  = 0
       MFMIN (NMATZA)  = 0
       MTMIN (NMATZA)  = 0
@@ -2263,14 +2245,14 @@ C-----DEFINE DEFAULT VALUES
       ERMAX (NMATZA)  = EBIG
       IIPONT(NMATZA)  = 0
       MYZOOM(NMATZA)  = 0
-      GO TO 300
-  290 CALL IN9(ERMIN(NMATZA),FIELD1)
+      GO TO 310
+  300 CALL IN9(ERMIN(NMATZA),FIELD1)
       CALL IN9(ERMAX(NMATZA),FIELD2)
       MYZOOM(NMATZA) = 0
       if(ERMIN(NMATZA).gt.0.0d0.or.ERMAX(NMATZA).gt.0.0d0)
      1 MYZOOM(NMATZA) = 1
-  300 MACTV(NMATZA)=MYACTION
-      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 320
+  310 MACTV(NMATZA)=MYACTION
+      IF(MATMIN(NMATZA).LE.0.AND.MATMAX(NMATZA).LE.0) GO TO 330
       IF(MATMAX(NMATZA).LT.MATMIN(NMATZA)) MATMAX(NMATZA)=MATMIN(NMATZA)
       IF(MFMIN(NMATZA).LE.0) MFMIN(NMATZA)=0
       IF(MFMAX(NMATZA).LE.0) MFMAX(NMATZA)=99
@@ -2289,15 +2271,15 @@ C-----DEFINE DEFAULT VALUES
       IF(IIPONT(NMATZA).EQ.0) KPOINT=NO
       KACTV=YES
       IF(MACTV(1).EQ.0) KACTV=NO
-      WRITE(OUTP,490) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
+      WRITE(OUTP,500) MATMIN(NMATZA),MFMIN(NMATZA),MTMIN(NMATZA),
      1 (FIELD11(kk,1),kk=1,11),MATMAX(NMATZA),MFMAX(NMATZA),
      2 MTMAX(NMATZA),(FIELD11(kk,2),kk=1,11),KPOINT,KACTV
-  310 CONTINUE
+  320 CONTINUE
 C-----OVER 100 MAT OR ZA RANGES. PRINT ERROR MESSAGE AND TERMINATE.
-      WRITE(OUTP,590)
+      WRITE(OUTP,600)
       CALL ENDERROR
 C-----END OF REQUEST LIST REACHED. DEFINE NUMBER OF REQUESTS.
-  320 NMATZA=NMATZA-1
+  330 NMATZA=NMATZA-1
 C-----------------------------------------------------------------------
 C
 C     READ (ZA,MT) EQUIVALENCE LIST.
@@ -2305,92 +2287,92 @@ C
 C-----------------------------------------------------------------------
       IF(ISTAT1.EQ.1) THEN
       IQUATE = 1
-      GO TO 360
+      GO TO 370
       ENDIF
-      DO 340 IQUATE=1,101
+      DO 350 IQUATE=1,101
 c***** 2017/5/6 - changed all floating to character.
-      READ(INP,330,END=350,ERR=350)
+      READ(INP,340,END=360,ERR=360)
      1 IZAQ1(IQUATE),MFQ1(IQUATE),MTQ1(IQUATE),
      2 IZAQ2(IQUATE),MFQ2(IQUATE),MTQ2(IQUATE),FIELD1
-  330 FORMAT(I6,I2,I3,I6,I2,I3,11A1)
+  340 FORMAT(I6,I2,I3,I6,I2,I3,11A1)
       CALL IN9(TIMES(IQUATE),FIELD1)
 c***** 2017/5/6 - changed all floating to character.
       IF(IZAQ1(IQUATE).LE.0.AND.
      1 MFQ1(IQUATE).LE.0.AND.MTQ1(IQUATE).LE.0.AND.
      1 IZAQ2(IQUATE).LE.0.AND.
-     1 MFQ2(IQUATE).LE.0.AND.MTQ2(IQUATE).LE.0) GO TO 360
-      IF(IQUATE.EQ.1) WRITE(OUTP,610)
+     1 MFQ2(IQUATE).LE.0.AND.MTQ2(IQUATE).LE.0) GO TO 370
+      IF(IQUATE.EQ.1) WRITE(OUTP,620)
       IF(DABS(TIMES(IQUATE)).LE.0.0d0) TIMES(IQUATE)=1.0d0
       CALL OUT9(TIMES(IQUATE),FIELD11(1,1))
-      WRITE(OUTP,620) IZAQ1(IQUATE),MFQ1(IQUATE),MTQ1(IQUATE),
+      WRITE(OUTP,630) IZAQ1(IQUATE),MFQ1(IQUATE),MTQ1(IQUATE),
      1 IZAQ2(IQUATE),MFQ2(IQUATE),MTQ2(IQUATE),(FIELD11(kk,1),kk=1,11)
-  340 CONTINUE
+  350 CONTINUE
 C-----OVER 100 EQUIVALENCES. PRINT ERROR MESSAGE AND TERMINATE.
-      WRITE(OUTP,630)
+      WRITE(OUTP,640)
       CALL ENDERROR
 C-----END OF REQUEST LIST REACHED. DEFINE NUMBER OF REQUESTS.
-  350 ISTAT1 = 1
-  360 IQUATE=IQUATE-1
-      IF(IQUATE.LE.0) WRITE(OUTP,640)
+  360 ISTAT1 = 1
+  370 IQUATE=IQUATE-1
+      IF(IQUATE.LE.0) WRITE(OUTP,650)
       RETURN
-  370 FORMAT(' Comparison of Evaluated Data (COMPLOT 2023-1)'/
+  380 FORMAT(' Comparison of Evaluated Data (COMPLOT 2026-1)'/
      1 1X,97('-'))
-  380 FORMAT(
+  390 FORMAT(
      1 ' Description of Plotter and Frame Layout'/1X,97('-')/
      1 ' Plotter X Dimensions----------',F11.4,' to ',F11.4,' Inches'/
      2 ' Plotter Y Dimensions----------',F11.4,' to ',F11.4,' Inches'/
      3 ' Plots per Frame (X by Y)------',I11,' by ',I11)
-  390 FORMAT(' Retrieval Criteria------------',7X,A4/
+  400 FORMAT(' Retrieval Criteria------------',7X,A4/
      1       ' Grid Type---------------------',A16/
      1       ' Border on Plots---------------',7X,A4/
      3       ' Line Thickness----------------',I11)
-  400 FORMAT(' Plot Orientation-------------- X Horizontal/Y Vertical'/
+  410 FORMAT(' Plot Orientation-------------- X Horizontal/Y Vertical'/
      1 1X,97('-'))
-  410 FORMAT(' Plot Orientation-------------- Y Horizontal/X Vertical'/
+  420 FORMAT(' Plot Orientation-------------- Y Horizontal/X Vertical'/
      1 1X,97('-'))
-  420 FORMAT(' Maximum Difference for Plots--',F11.4,' (',F9.4,' %)')
-  430 FORMAT(' Maximum Ratio on Plots--------','   No Limit')
-  440 FORMAT(' Maximum Ratio on Plots--------',F11.4,' (',F9.4,
+  430 FORMAT(' Maximum Difference for Plots--',F11.4,' (',F9.4,' %)')
+  440 FORMAT(' Maximum Ratio on Plots--------','   No Limit')
+  450 FORMAT(' Maximum Ratio on Plots--------',F11.4,' (',F9.4,
      1 ' per-cent)')
-  450 FORMAT(' Maximum Y Range of Plots------',11A1)
-  460 FORMAT(' Character Size Multiplier-----',F11.2)
-  470 FORMAT(' Request Ranges'/1X,97('-')/
+  460 FORMAT(' Maximum Y Range of Plots------',11A1)
+  470 FORMAT(' Character Size Multiplier-----',F11.2)
+  480 FORMAT(' Request Ranges'/1X,97('-')/
      1 '          Mimimum                     Maximum              ',
      2 '  Identify   Interact'/
      3 '     MAT MF  MT    Energy-eV      MAT MF  MT    Energy-eV  ',
      4 '  POINTS'/1X,97('-'))
-  480 FORMAT(' Request Ranges'/1X,97('-')/
+  490 FORMAT(' Request Ranges'/1X,97('-')/
      1 '          Mimimum                     Maximum              ',
      2 '  Identify   Interact'/
      3 '      ZA MF  MT    Energy-eV       ZA MF  MT    Energy-eV  ',
      4 '  POINTS'/1X,97('-'))
-  490 FORMAT(I8,I3,I4,2X,11A1,3X,I6,I3,I4,2X,11A1,5X,A4,6X,A4)
-  500 FORMAT(' Output Mode------------------- Comparison Listing.',
+  500 FORMAT(I8,I3,I4,2X,11A1,3X,I6,I3,I4,2X,11A1,5X,A4,6X,A4)
+  510 FORMAT(' Output Mode------------------- Comparison Listing.',
      1 ' No Plots.')
-  510 FORMAT(' Plot Mode--------------------- Cross Section Over',
-     1 ' Ratio')
   520 FORMAT(' Plot Mode--------------------- Cross Section Over',
+     1 ' Ratio')
+  530 FORMAT(' Plot Mode--------------------- Cross Section Over',
      1 ' Cross Section')
-  530 FORMAT(' Plot Mode--------------------- Cross Section Plus',
+  540 FORMAT(' Plot Mode--------------------- Cross Section Plus',
      1 ' Cross Section')
-  540 FORMAT(' Plot Mode--------------------- Cross Section Over',
+  550 FORMAT(' Plot Mode--------------------- Cross Section Over',
      1 ' Cross Section Over Ratio')
-  550 FORMAT(' Plot Mode--------------------- Cross Section Plus',
+  560 FORMAT(' Plot Mode--------------------- Cross Section Plus',
      1 ' Cross Section Over Ratio')
-  560 FORMAT(' Starting Plot Number----------',I11)
-  570 FORMAT(' On Screen Background Color----','Black'/
+  570 FORMAT(' Starting Plot Number----------',I11)
+  580 FORMAT(' On Screen Background Color----','Black'/
      1 1X,97('-'))
-  580 FORMAT(' On Screen Background Color----','White'/
+  590 FORMAT(' On Screen Background Color----','White'/
      1 1X,97('-'))
-  590 FORMAT(' Over 100 Ranges-----Execution Terminated')
-  600 FORMAT(1X,97('-')/' Data Identifications'/
+  600 FORMAT(' Over 100 Ranges-----Execution Terminated')
+  610 FORMAT(1X,97('-')/' Data Identifications'/
      1 1X,97('-')/' Data1=',40A1/' Data2=',40A1/1X,97('-'))
-  610 FORMAT(1X,97('-')/' Equivalence List'/1X,97('-')/
+  620 FORMAT(1X,97('-')/' Equivalence List'/1X,97('-')/
      1 ' Master  ZA MF  MT   Second  ZA MF  MT  Multiplier'/
      2 1X,97('-'))
-  620 FORMAT(I11,I3,I4,I13,I3,I4,1X,11A1)
-  630 FORMAT(' Over 100 Equivalences-----Execution Terminated')
-  640 FORMAT(1X,97('-')/' No Equivalences')
+  630 FORMAT(I11,I3,I4,I13,I3,I4,1X,11A1)
+  640 FORMAT(' Over 100 Equivalences-----Execution Terminated')
+  650 FORMAT(1X,97('-')/' No Equivalences')
       END
       SUBROUTINE SETMAP
 C=======================================================================
@@ -2458,7 +2440,7 @@ C=======================================================================
      2 NXTERP,NYTERP(5),NXLIMS(2),NYLIMS(2,5),MINSOK
 C-----2017/4/2 - Add IZOOM to control DEFAULT X axis scaling
       COMMON/ZOOMCOM/IZOOM
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/IZA
       INCLUDE 'complot.h'
       DIMENSION IZAMIN(101),IZAMAX(101)
@@ -2569,7 +2551,7 @@ C     OF THE RESOLVED AND UNRESOLVED RESONANCE REGIONS.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/INPAGE/IXYLOW(3),IXYHI(3),KTAPE(3),ISCR(3),IMUSED(3)
       EQUIVALENCE (KTAPE(1),KTAPE1)
@@ -2581,10 +2563,10 @@ C-----INITIALIZE ALL ENERGIES TO ZERO.
 C-----HEAD RECORD ALREADY READ. DEFINE NUMBER OF ISOTOPES.
       NIS=N1H
 C-----SET UP DO LOOP OVER ALL ISOTOPES
-      DO 220 IS=1,NIS
+      DO 280 IS=1,NIS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,LFW,NER,N2H)
 C-----DO LOOP OVER ALL ENERGY RANGES
-      DO 210 JER=1,NER
+      DO 270 JER=1,NER
       CALL CARDIL(KTAPE1,EL,EH,LRU,LRF,N1H,N2H)
 c-----------------------------------------------------------------------
 C
@@ -2609,7 +2591,7 @@ C-----Select resolved or unresolved.
       IF(LRU.gt.1) go to 30    ! Unresolved
 C-----NO RESONANCE PARAMETERS.
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,N1H,N2H)
-      GO TO 210
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     RESOLVED
@@ -2619,9 +2601,14 @@ C-----RESOLVED REGION. SKIP IF NOT IN LEGAL PARAMETER TYPE.
    10 IF(LRF.GE.1.AND.LRF.LE.4) GO TO 20
       IF(LRF.EQ.7) GO TO 20               ! New Reich-Moore
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 230
+      GO TO 290
    20 IF(RES1.LE.0.0d0.OR.(RES1.GT.EL)) RES1=EL
       IF(RES2.LE.0.0d0.OR.(RES2.LT.EH)) RES2=EH
+c-----only 1 isotopre & resolved
+      if(NIS.le.1.and.NER.le.1) THEN
+c-----LIST2 called on return from FILE2
+      RETURN
+      ENDIF
       GO TO 40
 C-----------------------------------------------------------------------
 C
@@ -2629,9 +2616,14 @@ C     UNRESOLVED
 C
 C-----------------------------------------------------------------------
 C-----UNRESOLVED PARAMETERS. SKIP IF NOT LEGAL PARAMETER TYPE.
-   30 IF(LRF.LT.1.OR.LRF.GT.2) GO TO 230
+   30 IF(LRF.LT.1.OR.LRF.GT.2) GO TO 290
       IF(URES1.LE.0.0d0.OR.(URES1.GT.EL)) URES1=EL
       IF(URES2.LE.0.0d0.OR.(URES2.LT.EH)) URES2=EH
+c-----only 1 isotopre
+      if(NIS.le.1) THEN
+c-----LIST2 called on return from FILE2
+      RETURN
+      ENDIF
 C-----------------------------------------------------------------------
 C
 C     LRU= 1 - RESOLVED
@@ -2650,15 +2642,15 @@ C-----------------------------------------------------------------------
       IF(LRF.EQ.1.OR.          ! Single Level Breit-Wigner
      1   LRF.EQ.2.OR.          ! Multi-Level  Breit-Wigner
      2   LRF.EQ.3) GO TO  60   ! Reich-Moore
-      IF(LRF.EQ.4) GO TO 80   ! Adler-Adler
-      IF(LRF.EQ.7) GO TO 110   ! Reich-Moore Generalized
+      IF(LRF.EQ.4) GO TO 90   ! Adler-Adler
+      IF(LRF.EQ.7) GO TO 140   ! Reich-Moore Generalized
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 230
-   50 IF(LRU.NE.2) GO TO 230   ! Unresolved?
-      IF(LRF.EQ.1) GO TO 130   ! Energy Independent Widths
-      IF(LRF.EQ.2) GO TO 190   ! Energy   Dependent Widths
+      GO TO 290
+   50 IF(LRU.NE.2) GO TO 290   ! Unresolved?
+      IF(LRF.EQ.1) GO TO 160   ! Energy Independent Widths
+      IF(LRF.EQ.2) GO TO 230   ! Energy   Dependent Widths
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 230
+      GO TO 290
 C-----------------------------------------------------------------------
 C
 C     BREIT-WIGNER (SINGLE OR MULTI-LEVEL) OR REICH-MOORE FORMALISM
@@ -2667,49 +2659,49 @@ C-----------------------------------------------------------------------
 C-----READ NEXT LINE.
    60 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
 C-----LOOP OVER ALL L STATES
-      DO 75 ILS=1,NLS
+      DO 80 ILS=1,NLS
 C-----READ NEXT LINE.
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,N1H,NRS)
 C-----COPY RESONANCE PARAMETERS.
       DO 70 IRS=1,NRS
       CALL SKIP1L(KTAPE1)
    70 CONTINUE
-   75 CONTINUE
-      GO TO 210
+   80 CONTINUE
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     ADLER-ADLER FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT LINE.
-   80 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
+   90 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
 C-----READ BACKGROUND CORRECTIONS.
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NX6,N2H)
 C-----COPY BACKGROUND CORRECTION CONSTANTS.
-      DO 90 I=1,NX6,6
-      CALL SKIP1L(KTAPE1)
-   90 CONTINUE
-C-----LOOP OVER L STATES
-      DO 108 I=1,NLS
-      CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NJS,N2H)
-C-----LOOP OVER J STATES
-      DO 105 J=1,NJS
-      CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,N1H,NLJ)
-C-----COPY ALL RESONANCE DATA
-      DO 100 K=1,NLJ
-      CALL SKIP1L(KTAPE1)
+      DO 100 I=1,NX6,6
       CALL SKIP1L(KTAPE1)
   100 CONTINUE
-  105 CONTINUE
-  108 CONTINUE
-      GO TO 210
+C-----LOOP OVER L STATES
+      DO 130 I=1,NLS
+      CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NJS,N2H)
+C-----LOOP OVER J STATES
+      DO 120 J=1,NJS
+      CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,N1H,NLJ)
+C-----COPY ALL RESONANCE DATA
+      DO 110 K=1,NLJ
+      CALL SKIP1L(KTAPE1)
+      CALL SKIP1L(KTAPE1)
+  110 CONTINUE
+  120 CONTINUE
+  130 CONTINUE
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     NEW REICH-MOORE FORMALISM
 C
 C-----------------------------------------------------------------------
 C-----DEFINE NUMBER OF J STATES
-  110 CALL CARDIL(KTAPE1,C1,C2,L1,L2,NJS,N2)
+  140 CALL CARDIL(KTAPE1,C1,C2,L1,L2,NJS,N2)
 C-----DEFINE NUMBER OF PARTICLE-PAIRS
       CALL CARDIL(KTAPE1,C1,C2,L1,L2,NPP12,N2)
 C-----SKIP PARTICLE-PAIR DATA
@@ -2717,7 +2709,7 @@ C-----SKIP PARTICLE-PAIR DATA
       CALL SKIP1L(KTAPE1)
       ENDDO
 C-----LOOP OVER J STATES
-      DO 120 IJ=1,NJS
+      DO 150 IJ=1,NJS
 C-----J, PARITY AND NUMBER OF CHANNELS
       CALL CARDIL(KTAPE1,C1,C2,L1,L2,NCH6,N2)
 C-----SKIP CHANNEL DATA
@@ -2730,64 +2722,64 @@ C-----SKIP RESONANCE PARAMETERS
       DO N=1,NRS
       CALL SKIP1L(KTAPE1)
       ENDDO
-  120 CONTINUE
-      GO TO 210  ! continue
+  150 CONTINUE
+      GO TO 270  ! continue
 C-----------------------------------------------------------------------
 C
 C     UNRESOLVED WITH ENERGY INDEPENDENT WIDTHS.
 C
 C-----------------------------------------------------------------------
 C-----TEST IF FISSION WIDTHS GIVEN
-  130 IF(LFW.gt.0) go to 150
+  160 IF(LFW.gt.0) go to 190
 C-----FISSION WIDTHS NOT GIVEN
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
 C-----LOOP OVER ALL L-STATES
-      DO 145 ILS=1,NLS
+      DO 180 ILS=1,NLS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,N1H,NJS)
-      DO 140 N=1,NJS
+      DO 170 N=1,NJS
       CALL SKIP1L(KTAPE1)
-  140 CONTINUE
-  145 CONTINUE
-      GO TO 210
+  170 CONTINUE
+  180 CONTINUE
+      GO TO 270
 C-----FISSION WIDTHS GIVEN (LFW=1)
-  150 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NE,NLS)
+  190 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NE,NLS)
 C-----COPY FISSION WIDTH ENERGY POINTS
-      DO 160 I=1,NE,6
+      DO 200 I=1,NE,6
       CALL SKIP1L(KTAPE1)
-  160 CONTINUE
+  200 CONTINUE
 C-----LOOP OVER L-STATES
-      DO 180 I=1,NLS
+      DO 220 I=1,NLS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NJS,N2H)
 C-----LOOP OVER J STATES
-      DO 170 J=1,NJS
+      DO 210 J=1,NJS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NEP6,N2H)
       DO K=1,NEP6,6
       CALL SKIP1L(KTAPE1)
       ENDDO
-  170 CONTINUE
-  180 CONTINUE
-      GO TO 210
+  210 CONTINUE
+  220 CONTINUE
+      GO TO 270
 C-----------------------------------------------------------------------
 C
 C     UNRESOLVED WITH ENERGY DEPENDENT WIDTHS.
 C
 C-----------------------------------------------------------------------
 C-----READ NEXT LINE.
-  190 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
+  230 CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NLS,N2H)
 C-----DO LOOP OVER L-STATES
-      DO 200 I=1,NLS
+      DO 260 I=1,NLS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NJS,N2H)
-      DO 198 J=1,NJS
+      DO 250 J=1,NJS
       CALL CARDIL(KTAPE1,C1H,C2H,L1H,L2H,NE6P6,N2H)
 C-----COPY NUMBER OF DEGREES OF FREEDOM AND PARAMETERS.
-      DO 195 K=1,NE6P6,6
+      DO 240 K=1,NE6P6,6
       CALL SKIP1L(KTAPE1)
-  195 CONTINUE
-  198 CONTINUE
-  200 CONTINUE
-  210 CONTINUE
-  220 CONTINUE
-  230 RETURN
+  240 CONTINUE
+  250 CONTINUE
+  260 CONTINUE
+  270 CONTINUE
+  280 CONTINUE
+  290 RETURN
       END
       SUBROUTINE FILE3(LCURVE)
 C=======================================================================
@@ -2804,7 +2796,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE,ONSCR
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/PAGLIM/XYLIMS(2,2,10),MTDEX1(10),MTDEX2(10)
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/WHERE1/IZA1,MAT1,MF1,MT1
       COMMON/INPAGE/IXYLOW(3),IXYHI(3),KTAPE(3),ISCR(3),IMUSED(3)
@@ -2972,10 +2964,6 @@ c     NOT MF = 4 = Load all data
 c
 c-----------------------------------------------------------------------
    50 CALL POINTIL(NTAPE,XLOAD,YLOAD,LOOP3)
-c-----Save MAT/MF/MT
-      CALL MAXIE1(MATH,MFH,MTH)
-c-----Save Maximum energy  and value
-      CALL MAXIE2(XLOAD(LOOP3),YLOAD(LOOP3))
 c-----------------------------------------------------------------------
 c
 c     Data is in place
@@ -3043,11 +3031,7 @@ C     VALUES OF LAST PRECEDING POINT.
 C
 c-----------------------------------------------------------------------
 C-----IF 2 OF FEWER POINTS ARE LEFT USE THEM, REGARDLESS OF VALUES.
-      IF(INDEX.GE.(N2-1)) GO TO 180
-C-----SKIP POINTS UNTIL ONE WITH POSITIVE X AND Y IS FOUND.
-      IF(XNOW.LE.0.0d0) GO TO 260
-c-----Allow negative Y to start = need not = 0
-      IF(YNOW.NE.0.0d0) GO TO 180
+      go to 180
 C-----IF NEXT POINT IS POSITIVE, START AT CURRENT POINT TO INCLUDE
 C-----THRESHOLD
       IF(J.GE.LOOP3) GO TO 260
@@ -3314,7 +3298,7 @@ C     IF RESTRICTED ENERGY RANGE IS REQUESTED RE-DEFINE Y LIMITS
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/GPP1/MYPROG,MODPLT,XYPLOT(2,2),XYEDGE(2,2),NSMALX,NSMALY
       COMMON/GPP7/XZOOM(2),YZOOM(2,5),IUSE1(60),IUSE2(60)
       COMMON/GPP8/XMIN,XMAX,DIFMIN,DIFMAX,RLIMIT(2,2)
@@ -3539,7 +3523,7 @@ C
 C     DEFINE BOTH CROSS SECTIONS AT LOWER ENERGY LIMIT.
 C
 c-----------------------------------------------------------------------
-      DO 75 ISET=1,2
+      DO 80 ISET=1,2
       IM1=IUSE1(ISET)
       IM2=IUSE2(ISET)
       CALL XYCURV(XA(ISET),YA(ISET),IM1,ISET)
@@ -3561,7 +3545,7 @@ C-----INTERVAL DEFINED. TRUNCATE TO REQUESTED ENERGY RANGE.
       XA(ISET)=USEMAX
 C-----SAVE INDEX TO FIRST POINT WHICH MUST BE CONSIDERED.
    70 IPTAB(ISET)=II
-   75 CONTINUE
+   80 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     DEFINE RATIO AT FIRST TABULATED POINT (XB).
@@ -3578,41 +3562,41 @@ C     FROM XB TO THE MINIMUM OF XA(1) AND XA(2)).
 C
 c-----------------------------------------------------------------------
 C-----SAVE LAST ENERGY.
-   80 XBB=XB
+   90 XBB=XB
 C-----DEFINE NEXT LOWEST ENERGY WITHIN REQUESTED ENERGY RANGE.
       XB=XA(1)
       IF(XA(2).LT.XB) XB=XA(2)
       IF(USEMAX.LT.XB) XB=USEMAX
 C-----DEFINE CROSS SECTION FOR EACH CROSS SECTION AT NEXT LOWEST ENERGY.
-      DO 120 ISET=1,2
-      IF(XA(ISET).gt.XB) go to 110
+      DO 130 ISET=1,2
+      IF(XA(ISET).gt.XB) go to 120
 C-----NEXT CALCULATION WILL BE AT THE ENERGY POINT XB. DEFINE CROSS
 C-----SECTION AT THIS ENERGY POINT AND SINCE ENERGY INTERVAL HAS BEEN
 C-----COMPLETELY USED, SELECT NEXT INTERVAL. EXTEND CROSS SECTION BEYOND
 C-----ITS TABULATED ENERGY RANGE AS CONSTANT.
-   90 YB(ISET)=YA(ISET)
+  100 YB(ISET)=YA(ISET)
       IPTAB(ISET)=IPTAB(ISET)+1
-      IF(IPTAB(ISET).LE.IUSE2(ISET)) GO TO 100
+      IF(IPTAB(ISET).LE.IUSE2(ISET)) GO TO 110
       XA(ISET)=2.0d+20
-      GO TO 120
-  100 CALL XYCURV(XA(ISET),YA(ISET),IPTAB(ISET),ISET)
+      GO TO 130
+  110 CALL XYCURV(XA(ISET),YA(ISET),IPTAB(ISET),ISET)
 C-----SKIP POINT IF IT IS IDENTICAL TO LAST POINT.
-      IF(XA(ISET).EQ.XB.AND.YA(ISET).EQ.YB(ISET)) GO TO 90
-      GO TO 120
+      IF(XA(ISET).EQ.XB.AND.YA(ISET).EQ.YB(ISET)) GO TO 100
+      GO TO 130
 C-----NEXT CALCULATION WILL ONLY BE OVER A PORTION OF THE ENERGY
 C-----INTERVAL. INTERPOLATE BETWEEN XBB AND XA TO DEFINE VALUE AT XB.
-  110 YB(ISET)=TERPY(XB,XA(ISET),XBB,YA(ISET),YB(ISET),2)
-  120 CONTINUE
+  120 YB(ISET)=TERPY(XB,XA(ISET),XBB,YA(ISET),YB(ISET),2)
+  130 CONTINUE
 C-----DEFINE RATIO AT LAST POINT (XB).
       CALL OVEREZ
 C-----KEEP PROCEEDING TO NEXT POINT UNTIL NO MORE POINTS REMAIN IN ONE
 C-----SET OR MAXIMUM REQUESTED ENERGY RANGE REACHED.
-      IF(IPTAB(1).GT.IUSE2(1)) GO TO 130
-      IF(IPTAB(2).GT.IUSE2(2)) GO TO 130
-      IF(XB.GE.USEMAX) GO TO 130
-      GO TO 80
+      IF(IPTAB(1).GT.IUSE2(1)) GO TO 140
+      IF(IPTAB(2).GT.IUSE2(2)) GO TO 140
+      IF(XB.GE.USEMAX) GO TO 140
+      GO TO 90
 C-----SET UP RATIO TO BE READ.
-  130 CALL SETRAT
+  140 CALL SETRAT
       RETURN
       END
       SUBROUTINE OVEREZ
@@ -4185,68 +4169,68 @@ C
 C     DEFINE TITLES FOR EACH CURVE.
 C
 c-----------------------------------------------------------------------
-      DO 35 I=1,3
+      DO 40 I=1,3
       DO 30 J=1,84
       TITLES(J,I)=EVALID(J,I)
    30 CONTINUE
-   35 CONTINUE
+   40 CONTINUE
 C-----IF NECESSARY ADD THRESHOLD ENERGY TO TITLE.
-      DO 80 I=1,2
-      IF(THRES3(I).LE.0.0d0) GO TO 80
+      DO 90 I=1,2
+      IF(THRES3(I).LE.0.0d0) GO TO 90
 C-----DEFINE LENGTH OF TITLE AND ADD THE WORD THRESHOLD.
       CALL LONGX(EVALID(1,I),IT1,40)
-      DO 40 J=1,11
+      DO 50 J=1,11
       IT1=IT1+1
       TITLES(IT1,I)=THSHOL(J)
-   40 CONTINUE
+   50 CONTINUE
       IT1=IT1+1
 C-----SELECT UNITS OF EV, KEV OR MEV FOR OUTPUT.
       XX=THRES3(I)
       IUNIT=1
-      IF(XX.LT.1000.0d0) GO TO 60
-      IF(XX.GE.1000000.0d0) GO TO 50
+      IF(XX.LT.1000.0d0) GO TO 70
+      IF(XX.GE.1000000.0d0) GO TO 60
       XX=XX/1000.0d0
       IUNIT=2
-      GO TO 60
-   50 XX=XX/1000000.0d0
+      GO TO 70
+   60 XX=XX/1000000.0d0
       IUNIT=3
 C-----ADD NUMBER.
-   60 IXX=4
+   70 IXX=4
       IF(XX.GE.10.0d0) IXX=3
       IF(XX.GE.100.0d0) IXX=2
       CALL NUMBR2(XX,IXX,TITLES(IT1,I),IT2)
       IT1=IT1+5
 C-----ADD UNITS.
-      DO 70 J=1,4
+      DO 80 J=1,4
       IT1=IT1+1
       TITLES(IT1,I)=EUNIT(J,IUNIT)
-   70 CONTINUE
    80 CONTINUE
+   90 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     SELECT LABELS BASED ON MF/MT/LCT/LTT RANGES.
 C
 c-----------------------------------------------------------------------
 C----- 2015-2: Increased from 14 to 15
-      DO 90 I=1,15
+      DO 100 I=1,15
       IF(MF.LT.MFMTAB(1,1,I).OR.MT.  LT.MFMTAB(2,1,I).OR.
-     1  LCT.LT.MFMTAB(3,1,I).OR.LTTX.LT.MFMTAB(4,1,I)) GO TO 90
+     1  LCT.LT.MFMTAB(3,1,I).OR.LTTX.LT.MFMTAB(4,1,I)) GO TO 100
       IF(MF.GT.MFMTAB(1,2,I).OR.MT.  GT.MFMTAB(2,2,I).OR.
-     1  LCT.GT.MFMTAB(3,2,I).OR.LTTX.GT.MFMTAB(4,2,I)) GO TO 90
-      GO TO 110
-   90 CONTINUE
+     1  LCT.GT.MFMTAB(3,2,I).OR.LTTX.GT.MFMTAB(4,2,I)) GO TO 100
+      GO TO 120
+  100 CONTINUE
 C-----NO MATCH. FILL IN ERROR MESSAGE.
-      DO 100 I=1,9
+      DO 110 I=1,9
       XLABEL(I)=ERROR(I)
       YLABEL(I)=ERROR(I)
       TIT2M(I)=ERROR(I)
-  100 CONTINUE
-      GO TO 140
+  110 CONTINUE
+      GO TO 150
 C-----MATCH. FILL IN TITLES AND UNITS.
-  110 INDEX=MFMTZ(I)
+  120 INDEX=MFMTZ(I)
       XLABEL40 = XLAB(INDEX)
 C-----X AXIS UNITS ARE EV OR BLANK.
-      IF(MFMTX(INDEX).EQ.0) GO TO 120
+      IF(MFMTX(INDEX).EQ.0) GO TO 130
       XUNITS(1)=EV(1)
       XUNITS(2)=EV(2)
 c-----------------------------------------------------------------------
@@ -4254,7 +4238,7 @@ C
 C     DATA TYPE IDENTIFICATION IN MIDDLE OF SECOND LINE.
 C
 c-----------------------------------------------------------------------
-  120 YLABEL40 = YLAB(INDEX)
+  130 YLABEL40 = YLAB(INDEX)
       TIT2M80  = YTIT(INDEX)
 c-----2017/3/20 - Define Legendre Coefficient f number
       IF(YLABEL(1).eq.'f'.and.YLABEL(2).eq.'1') then
@@ -4262,18 +4246,18 @@ c-----2017/3/20 - Define Legendre Coefficient f number
       TIT2M (2) = DIGITS(ILEG)
       ENDIF
 C-----Y AXIS UNITS ARE BARNS OR BLANK.
-      IF(MFMTY(INDEX).EQ.0) GO TO 140
-      DO 130 I=1,5
+      IF(MFMTY(INDEX).EQ.0) GO TO 150
+      DO 140 I=1,5
       YUNITS(I)=BARNS(I)
-  130 CONTINUE
+  140 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     MAT NUMBER IN UPPER LEFT HAND CORNER OF PLOT.
 C
 c-----------------------------------------------------------------------
-  140 DO 150 I=1,3
+  150 DO 160 I=1,3
       TIT1L(I)=MATID(I)
-  150 CONTINUE
+  160 CONTINUE
       FMAT=MAT
       CALL NUMBR2(FMAT,-1,TIT1L(5),ITOPL)
 c-----------------------------------------------------------------------
@@ -4283,9 +4267,9 @@ C
 c-----------------------------------------------------------------------
 c-----2020/3/21 - Added LISO isomeric state flag
       CALL ZAHOLM(IZA,LISO,TIT1R)
-      DO 160 I=1,12
+      DO 170 I=1,12
       FOOTR(I)=TIT1R(I)
-  160 CONTINUE
+  170 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     REACTION TYPE IDENTIFICATION IN MIDDLE OF FIRST LINE.
@@ -4298,10 +4282,10 @@ c-----2014/7/22 - For MF=10 add ZAP and LFS to title.
       TIT1M(IT+1) = ':'
       IT = IT + 1
       do kk1=1,IMTBOX
-      IF(MTBOX(kk1).ne.' ') go to 170
+      IF(MTBOX(kk1).ne.' ') go to 180
       enddo
-      go to 180
-  170 do kk=kk1,IMTBOX
+      go to 190
+  180 do kk=kk1,IMTBOX
       IT = IT + 1
       TIT1M(IT) = MTBOX(kk)
       enddo
@@ -4312,7 +4296,7 @@ c     2017/3/23 - Replaced Q MeV by MT=###
 c
 c-----------------------------------------------------------------------
 C-----IF FIRST WORD OF TITLE IS BLANK PLOT MT=###
-  180 IF(TIT1M(1).NE.BLANK) GO TO 190
+  190 IF(TIT1M(1).NE.BLANK) GO TO 200
       CALL MTSET(MT,TIT1M(4))
 c-----shift message 3 left and insure last 3 are blank
       do k=1,77
@@ -4327,11 +4311,11 @@ C     WARNING IF DATA IS NOT LINEAR-LINEAR INTERPOLABLE TO LEFT ON
 C     SECOND LINE.
 C
 C-----------------------------------------------------------------------
-  190 IF(IMLINR.EQ.0) GO TO 210
-      DO 200 I=1,16
+  200 IF(IMLINR.EQ.0) GO TO 220
+      DO 210 I=1,16
       TIT2L(I)=NOLINR(I)
-  200 CONTINUE
-  210 RETURN
+  210 CONTINUE
+  220 RETURN
       END
       SUBROUTINE GOOFIE
 C=======================================================================
@@ -4358,7 +4342,7 @@ C-----LIMIT ERROR TO +/- 9999.0 PER-CENT.
       IF(YMAXPC.LT.-9999.0d0) YMAXPC=-9999.0d0
       IF(YMAXPC.GT. 9999.0d0) YMAXPC= 9999.0d0
 C-----DEFINE NUMBER OF PLACES AFTER DECIMAL POINT.
-      DO 25 LIMIT=1,2
+      DO 30 LIMIT=1,2
       ABSYPC=DABS(YPC(LIMIT))
       DO 10 I=1,7
       IF(ABSYPC.GE.RANGEI(I)) GO TO 20
@@ -4366,7 +4350,7 @@ C-----DEFINE NUMBER OF PLACES AFTER DECIMAL POINT.
       YPC(LIMIT)=0.0d0
       I=7
    20 NRANGE(LIMIT)=IRANGE(I)
-   25 CONTINUE
+   30 CONTINUE
 C-----LOWER LIMIT.
       CALL NUMBR2(YMINPC,NRANGE(1),TIT2R,IT)
 C-----  TO  BETWEEN ERROR LIMITS.
@@ -4718,18 +4702,18 @@ C-----ALL LIMITS ARE REAL.
       NYLIMS(2,I)=NYLIMS(1,I)
    50 CONTINUE
 C-----BLANK ALL TEXT ARRAYS.
-      DO 65 J=1,30
+      DO 70 J=1,30
       DO 60 I=1,84
       TITLES(I,J)=BLANK
    60 CONTINUE
-   65 CONTINUE
-      DO 70 I=1,40
+   70 CONTINUE
+      DO 80 I=1,40
       XLABEL(I)=BLANK
       XUNITS(I)=BLANK
       YLABEL(I)=BLANK
       YUNITS(I)=BLANK
-   70 CONTINUE
-      DO 80 I=1,80
+   80 CONTINUE
+      DO 90 I=1,80
       TIT1L(I)=BLANK
       TIT1M(I)=BLANK
       TIT1R(I)=BLANK
@@ -4739,7 +4723,7 @@ C-----BLANK ALL TEXT ARRAYS.
       FOOTL(I)=BLANK
       FOOTM(I)=BLANK
       FOOTR(I)=BLANK
-   80 CONTINUE
+   90 CONTINUE
       RETURN
       END
       SUBROUTINE GPPLOT(IMACTV,MYPATH)
@@ -5178,11 +5162,11 @@ C-----DEFINE FIVE DIFFERENT LINE TYPES.
 C-----DEFINE RESOLUTION OF PLOTTING SURFACE.
       DXYMIN=0.01d0
 C-----DEFINE FIVE DIFFERENT LINE TYPES.
-      DO 15 I=1,5
+      DO 20 I=1,5
       DO 10 J=1,7
       STEPER(J,I)=STEPX(J,I)
    10 CONTINUE
-   15 CONTINUE
+   20 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     DEFINE DIMENSIONS OF STANDARD PLOT.
@@ -5207,10 +5191,10 @@ C-----DEFINE LINE THICKNESS.
       THICK=0.002d0
       ITHICK=NTHICK
       IMTHIN=0
-      IF(ITHICK.GE.0) GO TO 20
+      IF(ITHICK.GE.0) GO TO 30
       ITHICK=-ITHICK
       IMTHIN=1
-   20 IF(ITHICK.GT.5) ITHICK=5
+   30 IF(ITHICK.GT.5) ITHICK=5
       MTHICK(1)=0
       MTHICK(2)=ITHICK
       MTHICK(3)=2*ITHICK
@@ -5253,10 +5237,10 @@ C-----11        - RATIO MESSAGE
       YL(7)=YL(2)-0.75d0*HT
 C-----IF OPTIONS TO SHOW RESONANCE REGION AND MINIMUM AND MAXIMUM
 C-----RATIOS ARE BOTH OFF DO NOT LEAVE ROOM FOR BOX AT TOP OF PLOT.
-      IF(NREST.NE.0.OR.NRATIO.NE.0) GO TO 30
+      IF(NREST.NE.0.OR.NRATIO.NE.0) GO TO 40
       YL(12)=YL(7)
-      GO TO 40
-   30 YL( 8)=YL(7)-1.5d0*HTX1
+      GO TO 50
+   40 YL( 8)=YL(7)-1.5d0*HTX1
       YL( 9)=YL(8)-0.5d0*HTX1
       YL(10)=YL(9)-1.75d0*HTX1
 C-----IF OPTION IS NOT ON TO SHOW LIMITS OF RESONANCE REGION DO NOT
@@ -5268,7 +5252,7 @@ C-----IF OPTION IS NOT ON TO SHOW MINIMUM AND MAXIMUM RATIO DO NOT
 C-----ALLOW SPACE FOR MESSAGE.
       IF(NRATIO.EQ.0) YL(12)=YL(9)-HTX1
 C-----TOP OF PLOTTING AREA.
-   40 XYGRID(2,2)=YL(12)
+   50 XYGRID(2,2)=YL(12)
 c-----------------------------------------------------------------------
 C
 C     SPACING FROM BOTTOM.
@@ -5323,12 +5307,12 @@ C-----IF REQUESTED TURN OFF ROUNDING.
       IF(NROUND(1,2).GT.0) DELTY1=0.0d0
       IF(NROUND(2,2).GT.0) DELTY2=0.0d0
 C-----DEFINE FOR EACH SUBPLOT.
-      DO 50 L=1,5
+      DO 60 L=1,5
       SPACER(1,1,L)=DELTX1
       SPACER(2,1,L)=DELTX2
       SPACER(1,2,L)=DELTY1
       SPACER(2,2,L)=DELTY2
-   50 CONTINUE
+   60 CONTINUE
       RETURN
       END
       SUBROUTINE SET2
@@ -5445,7 +5429,7 @@ C
 C     SET UP LOOP OVER X AND Y DIRECTIONS.
 C
 c-----------------------------------------------------------------------
-      DO 150 LROT=1,2
+      DO 160 LROT=1,2
 C-----DEFINE SPACING BETWEEN AXIS LABELS.
       DZBASE=DXYBAS(LROT)
 C-----DEFINE THE GRID TICK LENGTH.
@@ -5466,7 +5450,7 @@ C
 C     SET UP LOOP OVER LOWER AND UPPER AXIS.
 C
 c-----------------------------------------------------------------------
-      DO 145 LOOP=1,2
+      DO 150 LOOP=1,2
 C-----SKIP UPPER X AXIS EXCEPT ON FIRST SUBPLOT OF FRAME.
       IF(LROT.EQ.1.AND.LOOP.EQ.2.AND.LFRAME.NE.1) GO TO 140
       ZBASE=XYBASE(LROT)
@@ -5574,9 +5558,9 @@ C-----SET BASE LINE AT UPPER AXIS FOR NEXT PASS.
   130 ZQ(LL)=XYLIM(2,LL)
 C-----END OF AXIS LOOP. REVERSE DIRECTION OF TICK MARKS FOR UPPER AXIS.
   140 TICK1=-TICK1
-  145 CONTINUE
-C-----END OF X/Y LOOP.
   150 CONTINUE
+C-----END OF X/Y LOOP.
+  160 CONTINUE
       RETURN
       END
       SUBROUTINE TICKER(IWAY,KSPACE,ZINCH,LROT)
@@ -7216,7 +7200,7 @@ C
 C     ONLY SHOW LIMITS IF OPTION IS ON.
 C
 c-----------------------------------------------------------------------
-      IF(NREST.LE.0) GO TO 70
+      IF(NREST.LE.0) GO TO 80
 C-----DEFINE COLOR, LINE TYPE AND THICKNESS.
       CALL PEN(2)
       LINTYP=1
@@ -7229,7 +7213,7 @@ C
 C     SET UP LOOP OVER RESOLVED AND UNRESOLVED REGIONS.
 C
 c-----------------------------------------------------------------------
-      DO 65 IREG=1,2
+      DO 70 IREG=1,2
 C-----DEFINE COORDINATES FOR INTERNAL USE.
       XP1=RLIMIT(1,IREG)
       XP2=RLIMIT(2,IREG)
@@ -7281,8 +7265,8 @@ C-----IDENTIFY RESONANCE REGION.
    50 XP=0.5d0*(XP2+XP1-HTX1*FLOAT(NTITLE(I,IREG)))
       CALL SYMBL1(XP,YP2,HTX1,RTITLE(1,IREG),0.0,NTITLE(I,IREG))
    60 XP2A=XP2
-   65 CONTINUE
-   70 RETURN
+   70 CONTINUE
+   80 RETURN
       END
       SUBROUTINE BOXLAB(LTITLE,LTYPE)
 C=======================================================================
@@ -7464,7 +7448,7 @@ C-----(3) VERSES - CHARACTERS FOR I.D.
 C       12345678901234567890123456789032
       DATA VERSE1/
      1 'Program Complot                 ',
-     2 '(Version 2023-1)                ',
+     2 '(Version 2026-1)                ',
      3 'by                              ',
      4 'Dermott E. Cullen               ',
      5 '(Present Contact Information)   ',

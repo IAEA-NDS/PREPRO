@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM RELABEL
@@ -81,6 +72,7 @@ C     VERS. 2019-1 (June  2019)   *Identical to 2018-1
 C     VERS. 2020-1 (Feb.  2020)   *Identical to 2018-1
 C     VERS. 2021-1 (Jan.  2021)   *Update fot FORTRAN 2018
 C     VERS. 2023-1 (Feb.  2023)   *Identical to 2021-1
+C     VERS. 2026-1 (June  2026)   *Identical to 2021-1
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -323,7 +315,7 @@ c-----------------------------------------------------------------------
      3 ' Scratch (Pass 1)---',I8/
      4 ' Scratch (Pass 2)---',I8)
   150 FORMAT(' Over ',I6,' Statement Labels...Execution Terminated')
-  160 FORMAT(' Incremental Statement Labels (RELABEL 2023-1)'/
+  160 FORMAT(' Incremental Statement Labels (RELABEL 2026-1)'/
      1 1X,79('-'))
       END
       SUBROUTINE READIN

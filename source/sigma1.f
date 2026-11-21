@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM SIGMA1
@@ -233,6 +224,8 @@ C                                 *Minimum Cross Section is no longer
 C                                  an input option - set to 1.0d-30.
 C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,200,000
 C                                  to 120,000.
+C     VERS. 2026-1 (June 2026)    *Corrected start/end Unresolved
+C                                 *No sequence # 76-80
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -369,7 +362,7 @@ C     THE FACT THAT THIS PROGRAM HAS OPERATED ON THE DATA IS DOCUMENTED
 C     BY THE ADDITION OF THREE COMMENTS CARDS AT THE END OF EACH
 C     HOLLERITH SECTION IN THE FORM
 C
-C     ***************** PROGRAM SIGMA1 (2023-1) ***************
+C     ***************** PROGRAM SIGMA1 (2026-1) ***************
 C     DATA DOPPLER BROADENED TO 300.0   KELVIN AND
 C     DATA THINNED TO WITHIN AN ACCURACY OF  0.1 PER-CENT
 C
@@ -624,7 +617,7 @@ C-----08/08/2012 DEFINE CODE NAME
      1 HOT3M1,UNRES1,UNRES2,UREVAL,UREACT
       CHARACTER*1 FIELD6
       CHARACTER*4 CARD
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/IWATCH/MONITR,MAKEPLUS,MYUNRES
       COMMON/COPI/MFIELD(3)
       COMMON/COPC/CARD(17)
@@ -643,8 +636,10 @@ C-----08/08/2012 DEFINE CODE NAME
       COMMON/OKERRT/ENER3T(21),ER3T(21),KERR3T,MAXERT
       COMMON/ERRCOT/ERXC3T
       COMMON/FIELDC/FIELD6(11,6)
-C-----08/20/2013 - added high energy cutoff
+C-----2013/08/20 - added high energy cutoff
       COMMON/HIGHESTE/EHIGHEST,EMILLION
+c-----2026/02/28 - MAT of last MF=2 data raad - cannot broaden without
+      COMMON/MATMF2COM/MATMF2
       INCLUDE 'sigma1.h'
 C-----------------------------------------------------------------------
 C
@@ -710,8 +705,8 @@ C     READ ALL INPUT AND CREATE OUTPUT REPORT.
 C
 C-----------------------------------------------------------------------
 C-----LIST TITLE FOR OUTPUT.
-      WRITE(OUTP,180)
-      WRITE(*   ,180)
+      WRITE(OUTP,190)
+      WRITE(*   ,190)
 C-----READ AND CHECK ALL INPUT PARAMETERS.
       CALL READIN
 C-----DEFINE MAXIMUM ALLOWABLE ENERGY SPACING TO APPROXIMATE 1/V.
@@ -728,8 +723,8 @@ C-----------------------------------------------------------------------
 C-----COPY TAPE LABEL TO FROM INPUT TO OUTPUT FILE.
       CALL COPYL
 C-----LIST TAPE LABEL.
-      WRITE(OUTP,190) CARD,MFIELD(1)
-      WRITE(*   ,190) CARD,MFIELD(1)
+      WRITE(OUTP,200) CARD,MFIELD(1)
+      WRITE(*   ,200) CARD,MFIELD(1)
 C-----FIND NEXT REQUESTED MATERIAL.
    10 CALL NXTMAT
       CALL CONTO
@@ -741,11 +736,11 @@ C-----REGION ENERGY LIMITS).
       IF(UREVAL.LE.0) GO TO 20
       CALL OUT9(EULOW ,FIELD6(1,1))
       CALL OUT9(EUHIGH,FIELD6(1,2))
-      WRITE(OUTP,150) ((FIELD6(M,I),M=1,11),I=1,2),MATIN,MATOUT
-      WRITE(*   ,150) ((FIELD6(M,I),M=1,11),I=1,2),MATIN,MATOUT
+      WRITE(OUTP,160) ((FIELD6(M,I),M=1,11),I=1,2),MATIN,MATOUT
+      WRITE(*   ,160) ((FIELD6(M,I),M=1,11),I=1,2),MATIN,MATOUT
       GO TO 30
-   20 WRITE(OUTP,160) MATIN,MATOUT
-      WRITE(*   ,160) MATIN,MATOUT
+   20 WRITE(OUTP,170) MATIN,MATOUT
+      WRITE(*   ,170) MATIN,MATOUT
 C-----PRINT RUNNING TIME
    30 CALL TIMEMAT
 c-----2019/3/9 - MT Consisteny test
@@ -754,7 +749,7 @@ C-----INCREMENT TOTAL POINT COUNTS FOR TAPE.
       N2TAPI=N2TAPI+MATIN
       N2TAPO=N2TAPO+MATOUT
 C-----CHECK FOR END OF RUN.
-   40 IF(MATH.le.0) go to 120
+   40 IF(MATH.le.0) go to 130
 C-----SAVE CURRENT MAT NUMBER AND INITIALIZE COUNT OF THE NUMBER OF
 C-----FILE 3 POINTS READ AND WRITTEN.
       MATNOW=MATH
@@ -787,23 +782,36 @@ C-----FIND FILE 1, SECTION 451 AND ADD COMMENTS TO INDICATE THAT
 C-----THIS MATERIAL HAS BEEN PROCESSED.
    60 IF(MFH.lt.1) go to 50
       IF(MFH.gt.1) go to 70
-      IF(MTH.ne.451) go to 90
+      IF(MTH.ne.451) go to 100
 C-----ADD COMMENTS.
       CALL FILE1
-      GO TO 100
+      GO TO 110
 C-----FIND FILE 2 AND DEFINE THE ENERGY RANGE OF THE UNRESOLVED
 C-----RESONANCE REGION.
-   70 IF(MFH.lt.2) go to 100
+   70 IF(MFH.lt.2) go to 110
       IF(MFH.gt.2) go to 80
+c-----2026/02/28 - Save MAT of last MF=2 data read
+      MATMF2 = MATH
 C-----2016/11/25 - Added to only allow MT=151, resonance parameters
-      IF(MTH.ne.151) go to 90
+      IF(MTH.ne.151) go to 100
 C-----IF REQUESTED, IGNORE UNRESOLVED RESONANCE REGION.
-      IF(MYUNRES.NE.0) GO TO 100
+      IF(MYUNRES.NE.0) GO TO 110
       CALL FILE2
-      GO TO 100
+      GO TO 110
 C-----COPY UP TO FILE 3.
-   80 IF(MFH.lt.3) go to 100
-      IF(MFH.gt.3) go to 110
+   80 IF(MFH.lt.3) go to 110
+      IF(MFH.gt.3) go to 120
+c-----2026/02/28 - Check for MF=2 resomance parameters
+      If(MATMF2.ne.MATH) then
+      write(*,90) MATH,MATMF2
+      write(3,90) MATH,MATMF2
+   90 format(1x,7('WARNING...')/
+     1 ' CANNOT Doppler broaden without MF=2 Resonance Parameters'/
+     2 ' Current MAT = ',i5,' MAT of LAST MF=2 data read=',i5/
+     3 ' EXECUTION TERMINATED - add MF=2 data and execute again.'/
+     4       1x,7('WARNING...'))
+      CALL EXIT
+      endif
 c-----2019/3/1 - Save MAT/MF/MT
       CALL MAXIE1(MATH,MFH,MTH)
 C-----A SECTION OF FILE 3 SECTION FOUND. DOPPLER BROADEN ONE SECTION.
@@ -814,13 +822,13 @@ C     COPY TO END OF SECTION, FILE OR MATERIAL.
 C
 C-----------------------------------------------------------------------
 C-----COPY TO SECTION END (SEND) CARD.
-   90 CALL COPYS
+  100 CALL COPYS
       GO TO 50
 C-----COPY TO NEXT FILE.
-  100 CALL COPYF
+  110 CALL COPYF
       GO TO 50
 C-----COPY REMAINDER OF MATERIAL.
-  110 CALL COPYM
+  120 CALL COPYM
       GO TO 10
 C-----------------------------------------------------------------------
 C
@@ -829,41 +837,41 @@ C
 C-----------------------------------------------------------------------
 C-----PRINT WARNING MESSAGE IF NO DATA WAS FOUND THAT SATISIFED
 C-----REQUESTS.
-  120 IF(MATNOW.GT.0) GO TO 130
-      WRITE(OUTP,210)
-      WRITE(*   ,210)
+  130 IF(MATNOW.GT.0) GO TO 140
+      WRITE(OUTP,220)
+      WRITE(*   ,220)
       CALL ENDERROR
 C-----LIST TOTAL NUMBER OF FILE 3 POINTS READ AND WRITTEN.
-  130 WRITE(OUTP,170) N2TAPI,N2TAPO
-      WRITE(*   ,170) N2TAPI,N2TAPO
+  140 WRITE(OUTP,180) N2TAPI,N2TAPO
+      WRITE(*   ,180) N2TAPI,N2TAPO
 C-----WRITE WARNING MESSAGE IF CROSS SECTION EXTENSION USED.
-      IF(DTMAX.LE.0.0d0) GO TO 140
+      IF(DTMAX.LE.0.0d0) GO TO 150
       CALL OUT9(DTMAX,FIELD6(1,1))
-      WRITE(OUTP,200) (FIELD6(M,1),M=1,11)
-      WRITE(*   ,200) (FIELD6(M,1),M=1,11)
+      WRITE(OUTP,210) (FIELD6(M,1),M=1,11)
+      WRITE(*   ,210) (FIELD6(M,1),M=1,11)
 c-----2019/3/9 - MTs consisntcy WARNING?
-  140 CALL MAXIE4(1)
+  150 CALL MAXIE4(1)
 C-----END ENDF/B FORMAT OUTPUT FILE.
       CALL ENDIT
-      GO TO 140  ! CANNOT GET TO HERE.
-  150 FORMAT(1X,79('-')/' Unresolved ',11A1,' to',11A1,
+      GO TO 150  ! CANNOT GET TO HERE.
+  160 FORMAT(1X,79('-')/' Unresolved ',11A1,' to',11A1,
      1 ' eV',6X,'MAT Totals',2I9/1X,79('-'))
-  160 FORMAT(1X,79('-')/' No Unresolved Region',25X,'MAT Totals',2I9/
+  170 FORMAT(1X,79('-')/' No Unresolved Region',25X,'MAT Totals',2I9/
      1 1X,79('-'))
-  170 FORMAT(1X,79('-')/45X,'Tape Totals',2I9/1X,79('-'))
-  180 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2023-1)'/
+  180 FORMAT(1X,79('-')/45X,'Tape Totals',2I9/1X,79('-'))
+  190 FORMAT(' Doppler Broaden ENDF/B Cross Sections (SIGMA1 2026-1)'/
      1 1X,79('-'))
-  190 FORMAT(1X,79('-')/' ENDF/B Tape Label'/1X,79('-')/1X,16A4,A2,I4/
+  200 FORMAT(1X,79('-')/' ENDF/B Tape Label'/1X,79('-')/1X,16A4,A2,I4/
      1 1X,79('-')/
      2 ' Projectile',4X,'    MAT  MT ENDF/B',5X,'Kelvin',5X,
      3 'Q-Value   Points   Points'/
      3 '       Material',11X,' Format',9X,'In',10X,'eV','       In',
      3 '      Out'/1X,79('-'))
-  200 FORMAT(///' Extension'/1X,9('-')/
+  210 FORMAT(///' Extension'/1X,9('-')/
      1 ' Cross Section Extension Can be Avoided by'/
      2 ' Thinning Data or Doppler Broadening in Steps'/
      3 ' of Less than',11A1,' Kelvin')
-  210 FORMAT(' WARNING - No Data Found that Satisfied Retrieval',
+  220 FORMAT(' WARNING - No Data Found that Satisfied Retrieval',
      1 ' Criteria.'/12X,
      2 ' Therefore No Data was Broadened or Written to Output File.'/
      3 1X,79('-'))
@@ -956,7 +964,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program SIGMA1 (VERSION 2023-1) ***********',
+     1 ' ***************** Program SIGMA1 (VERSION 2026-1) ***********',
      2 ' Data Doppler Broadened to12345678901 Kelvin                  ',
      3 ' for All Data Greater than12345678901 barns in Absolute Value ',
      4 ' Data Linearized to Within an Accuracy of12345678901 per-cent ',
@@ -1107,7 +1115,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL,PROHOL
       INTEGER*4 OUTP,OTAPE,UNRES1,UNRES2,UREVAL,UREACT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/RESOLV/EULOW,EUHIGH,UREVAL,UREACT,UNRES1,UNRES2,IL,IH
@@ -1123,6 +1131,36 @@ C-----DO LOOP OVER ALL ISOTOPES
 C-----DO LOOP OVER ALL ENERGY RANGES
       DO 260 JER=1,NER
       CALL CARDIO(EL,EH,LRU,LRF,N1H,N2H)
+c***** DEBUG
+c-----Allow for already processed
+      IF(LRU.GT.3) LRU=LRU-3
+c***** DEBUG
+      if(LRU.eq.1) then
+c-----RESOLVED
+      ERLOW  = EL
+      ERHIGH = EH
+c-----finished if only 1 isotope and 1 resolved
+      if(NIS.le.1.and.NER.le.1) THEN
+      UREVAL = 0
+      EULOW  = 0.0d0
+      EUHIGH = 0.0d0
+      CALL LIST2(ERLOW,ERHIGH,EULOW,EUHIGH)
+      RETURN
+      ENDIF
+      ENDIF
+c***** DEBUG
+      if(LRU.gt.1) then
+      UREVAL = 1
+      EULOW  = EL
+      EUHIGH = EH
+c-----RESOLVED
+c-----finished if only 1 isotope
+      if(NIS.le.1) THEN
+      CALL LIST2(ERLOW,ERHIGH,EULOW,EUHIGH)
+      RETURN
+      ENDIF
+      ENDIF
+c***** DEBUG
 C-----------------------------------------------------------------------
 C
 C     2017/5/16 - Added energy dependent scattering radius
@@ -1144,7 +1182,9 @@ C
 C     DEFINE LRU FOR INTERNAL USE AS ORIGINAL LRU (BEFORE RECENT).
 C
 C-----------------------------------------------------------------------
-      IF(LRU.GT.3) LRU=LRU-3
+c***** DEBUG
+c     IF(LRU.GT.3) LRU=LRU-3
+c***** DEBUG
 C-----Select resolved or unresolved.
       IF(LRU.eq.1) go to 60    ! Resolved
       IF(LRU.gt.1) go to 10    ! unresolved
@@ -1405,7 +1445,7 @@ C=======================================================================
       COMMON/PAGER/NPAGE,NPT2,NPT3,NP1P1,NP2P1
       COMMON/HOTS/ALPHA,HOTSY1,HOTSY2,TEMPK,TEMPEF,N2TAPI,N2TAPO
       COMMON/LOGLOGE/ELOGLOG
-      COMMON/HEADER/ZA,AWR,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/ZA,AWR,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2,MAT,MF,MT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/FILLER/N2LEFT,TOOHI,ITHRES,LOAD1,LOAD2
@@ -1428,10 +1468,7 @@ C-----(ASSUMING ENERGY WILL BE EXPRESSED IN EV AND THE ATOMIC
 C-----WEIGHT RATIO WILL BE EXPRESSED IN NEUTRON MASS UNITS,
 C-----AS OPPOSED TO ATOMIC MASS UNITS (AMU)).
 C-----UPDATED NOV. 12, 1998 AS PER CSEWG SUBCOMMITEE RECOMMENDATION
-C***** DEVUG
       DATA BOLTZM/8.617385D-05/
-C     DATA BOLTZM/8.6164D-05/
-C***** DEVUG
 C-----INITIALIZE TEMPERATURE READ FROM TOTAL CROSS SECTION (MT=1).
       DATA TEMP1/0.0d0/
 C-----INITIALIZE MAXIMUM ENERGY SPACING FOR LOW ENERGY START.
@@ -1669,7 +1706,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 TOOHI,COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,
      1 UNRES1,UNRES2,UREVAL,UREACT
-      COMMON/HEADER/C1H,AWR,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,AWR,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/HOTS/ALPHA,HOTSY1,HOTSY2,TEMPK,TEMPEF,N2TAPI,N2TAPO
       COMMON/LOGLOGE/ELOGLOG
       COMMON/SLIM/ISTART,NOTHIN,ITHIN1,ITHIN2,ITHIN3,MTEND
@@ -2084,7 +2121,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,
      1 HEATER,HIHEAT,UREVAL,UREACT,UNRES1,UNRES2,HEATM1,HEATM2,HOTEND
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/INDEX/COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,N2IN,
      1 N2TOT,N2SCR
       COMMON/PAGER/NPAGE,NPT2,NPT3,NP1P1,NP2P1
@@ -3331,7 +3368,7 @@ C=======================================================================
       CHARACTER*4 MESSAG,FMTHOL,PROHOL
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/SCR
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,Q,L1,L2,N1,N2,MAT,MF,MT
       COMMON/WHATZA/IZA
       COMMON/INDEX/COLD1,COLD2,COLD1P,COLD2P,HOT1,HOT2,HOT3,HOT3M1,N2IN,
@@ -3803,7 +3840,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL,PROHOL
       COMMON/MATZA/MODGET,NMATZA,MATMIN(101),MATMAX(101)
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/IZA
       COMMON/HOLFMT/FMTHOL,PROHOL
       COMMON/TEMPO/TEMP3,IVERSE
@@ -3842,8 +3879,7 @@ C-----END OF RUN. RETURN NEGATIVE MATH AS INDICATOR.
 C-----THIS MATERIAL REQUESTED. INITIALIZE OUTPUT SEQUENCE NUMBER,
 C-----ENDF/B FORMAT VERSION TO BLANK, ENDF/B FORMAT TO VERSION 5 AND 6
 C-----INITIAL TEMPERATURE TO ZERO.
-   70 NOSEQ=1
-      FMTHOL='6   '
+   70 FMTHOL='6   '
       IVERSE=6
       TEMP3=0.0d0
       RETURN

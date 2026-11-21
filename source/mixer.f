@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM MIXER
@@ -108,6 +99,7 @@ C                                  needed for MIX.
 C     VERS. 2021-1 (Jan. 2021)    *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb. 2023)    *Decreased page size from 1,200,000
 C                                  to 120,000
+C     VERS. 2026-1 (June 2026)    *No Sequence # = columns 76-80 BLANK
 C
 C     Acknowledgement 2019
 C     --------------------
@@ -220,7 +212,7 @@ C     THE FACT THAT THIS PROGRAM HAS COMBINED THE DATA IS DOCUMENTED
 C     IN THE OUTPUT ENDF/B FORMAT IN THE HOLLERITH SECTION BY FIRST
 C     IDENTIFYING THE VERSION OF THIS PROGRAM THAT WAS USED, IN THE FORM
 C
-C     ********************( PROGRAM MIXER 2023-1) **********************
+C     ********************( PROGRAM MIXER 2026-1) **********************
 C
 C     THIS IS FOLLOWED BY THE TWO LINE IDENTIFICATION INPUT BY THE USER.
 C     THIS IS FOLLOWED BY COMPOSITION INPUT BY THE USER.
@@ -580,7 +572,7 @@ c-----------------------------------------------------------------------
       CALL ENDIT
       GO TO 40    ! CANNOT GET TO HERE
    50 FORMAT(' Mix Energy Dependent ENDF/B Cross Sections',
-     1 ' (MIXER 2023-1)'/1X,78('-'))
+     1 ' (MIXER 2026-1)'/1X,78('-'))
       END
       SUBROUTINE READIN
 C=======================================================================
@@ -757,7 +749,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OUTMEI/IZAOUT,MATOUT,MFOUT,MTOUT,MYTYPE
       COMMON/OUTMEF/DENOUT,ATOMBC,AWROUT
@@ -990,7 +982,7 @@ c
   180 FORMAT(1X,78('-')/' ERROR - NO data found to MIX')
   190 FORMAT(I7,9X,   ' ERROR - ENDF Data Does not include ZA=',I7)
   200 FORMAT(I7,I5,4X,' WARNING - ZA=',I7,' Does not include',
-     1 ' MF/MT=',i2'/',i3)
+     1 ' MF/MT=',i2,'/',i3)
   210 FORMAT(I7,I5,I3,I4,11A1,1x,11A,I7,22A1)
   220 FORMAT(1X,78('-')/' Execution Terminated due to ERROR in',
      1 ' Evaluated Data')
@@ -1258,7 +1250,7 @@ C=======================================================================
       CHARACTER*4 TITLE
       CHARACTER*66 TLABEL,PROGDOC
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/OUTMEI/IZAOUT,MATOUT,MFOUT,MTOUT,MYTYPE
       COMMON/OUTMEF/DENOUT,ATOMBC,AWROUT
       COMMON/TELLIT/TITLE(34)
@@ -1293,7 +1285,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program MIXER (VERSION 2023-1) ************',
+     1 ' ***************** Program MIXER (VERSION 2026-1) ************',
      2 ' ----------------------------------------                     ',
      3 ' Composition                                                  ',
      4 ' ----------------------------------------                     ',
@@ -1360,7 +1352,6 @@ c-----------------------------------------------------------------------
       MATH=MATOUT
       MFH=0
       MTH=0
-      NOSEQ=0
       CALL HOLLYO(TLABEL)
 c-----------------------------------------------------------------------
 C
@@ -1372,7 +1363,6 @@ c-----------------------------------------------------------------------
       MATH=MATOUT
       MFH=MF1
       MTH=MT451
-      NOSEQ=1
       NSUB=NSUBN
       IF(MFOUT.EQ.23) NSUB=NSUBP
       CALL CARDO(ZAOUT,ARWMIX,IZERO,IZERO,IZERO,IZERO)

@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM EVALPLOT
@@ -206,6 +197,15 @@ C                                  remaining MF rather thsn just current
 C                                  MT - 2021-2 corrects this.
 C     Vers. 2022-1 (Feb. 2022)    *Corrected to plot MF3/MT=301-450.
 C     Vers. 2023-1 (Feb. 2023)    *Reduced page sizes to 120,00.
+C     Vers. 2023-2 (Aug. 2023)    *Corrected section ERROR.
+C     Vers. 2026-1 (June 2026)    *No Sequence # - columns 76-80 BLANK
+C                                 *Corrected xoom lower limit (MeV/eV)
+C                                 *Added Resonance Region ID to plots.
+C                                 *Changed nu=bar to log-log to see
+C                                  resonsnce region and delayed nu-bsr
+c                                 *Corrected to include CONSTANT lowest
+C                                  curve.
+C                                 *No energy range checks
 C
 C     2022-1 Acknowledgment
 C     =====================
@@ -958,7 +958,7 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*4 LABEL
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,LF,N1,N2,MAT,MF,MT
       COMMON/WHO/IZA,IE,NE,LTT,LABCM
       COMMON/LABELC/ZABCD(12),MFBCD(60),MTBCD(60),XBCD(60),YBCD(60)
@@ -974,6 +974,7 @@ C-----7/14/2011 - added for MF/MT=10/5 to define ZAP and state.
       COMMON/COPC/LABEL(17)
       COMMON/COPI/MFIELD(3)
       COMMON/ZOOMCOM/IZOOM
+      COMMON/RESCOM/RES1,RES2,URES1,URES2
       INCLUDE 'evalplot.h'
       DATA LASTZA/0/
       DATA LSTMAT/0/
@@ -982,6 +983,11 @@ C-----08/08/2012 DEFINE CODE NAME
       CODENAME = 'EVALPLOT'
 C-----INITIALIZE TIMER
       CALL TIMER
+c-----Initialize resonance region limits
+      RES1  = 0.0d0
+      RES2  = 0.0d0
+      URES1 = 0.0d0
+      URES2 = 0.0d0
 c-----------------------------------------------------------------------
 C
 C     DEFINE ALL I/O UNITS AND OPTIONALLY DEFINE FILENAMES.
@@ -1025,28 +1031,22 @@ C     LABEL LINE.
 C
 c-----------------------------------------------------------------------
       CALL COPYL
-      WRITE(OUTP,460) LABEL,MFIELD(1)
+      WRITE(OUTP,470) LABEL,MFIELD(1)
 C-----FIND NEXT SECTION.
    20 CALL CONTI
       IF(MTH.GT.0) GO TO 30
-      IF(MATH.lt.0) go to 370
+      IF(MATH.lt.0) go to 380
       go to 20
    30 IZA=C1H
 C-----CHECK FOR NEW ZA OR MAT.
       IF(LASTZA.EQ.IZA.AND.LSTMAT.EQ.MATH) GO TO 120
-c-----Check MTs for any preceding MAT
-      if(LSTMAT.gt.0) then
-      CALL MAXIE3(0)
-      endif
-c-----Initialize MTs for new MAT
-      CALL MAXIE0
 C-----NEW ZA OR MAT. INITIALIZE TEMPERATURE AND ENDF/B FORMAT VERSION.
       TEMPIN=0.0d0
       TEMP1 =0.0d0
       IVERSE=6
 C-----DETERMINE IF THIS MATERIAL IS REQUESTED.
       IMATZA=IWANT(IZA,MATH,0,0,0.0d0,1)
-      IF(IMATZA.lt.0) go to 370           ! < 0 = TEND = End of Run
+      IF(IMATZA.lt.0) go to 380           ! < 0 = TEND = End of Run
       IF(IMATZA.eq.0) go to 60
       go to 70
 C-----SKIP SECTION (MT).
@@ -1067,7 +1067,7 @@ C-----ONLY OUTPUT REPORT IF ANY SECTIONS READ.
       GO TO 100
 c-----2020/3/21 - Added Target state
    90 CALL ZAHOLM(LASTZA,LISO,ZABCD)
-      WRITE(OUTP,430) ZABCD,LSTMAT,LTABLE,LPLOTS
+      WRITE(OUTP,440) ZABCD,LSTMAT,LTABLE,LPLOTS
 c-----------------------------------------------------------------------
 C
 C     NEW EVALUATION.
@@ -1120,17 +1120,35 @@ C-----IF DELAYED NEUTRONS SKIP PRECEDING LIST RECORD.
       GO TO 40
 c-----------------------------------------------------------------------
 C
+C     USE MF=1, MT=451 TO DEFINE ENDF/B FORMAT VERSION (VI OR EARLIER).
+C     READ TOTAL AND DELAYED NU-BAR. SAVE TO OUTPUT WITH CROSS SECTIONS.
+C
+c-----------------------------------------------------------------------
+  170 IF(MFH.NE.2) GO TO 180
+C-----EDIT MF=2 and LIST Results
+      CALL FILE2(RES1,RES2,URES1,URES2)
+c***** DEBUG
+c-----LEAVE HERE -- Added to test Resonance Region ID
+c     RES1  = 0.0d0
+c     RES2  = 0.0d0
+c     URES1 = 0.0d0
+c     URES2 = 0.0d0
+c***** DEBUG
+      CALL LIST2(RES1,RES2,URES1,URES2)
+      GO TO 50    ! Skip to end of MF=2
+c-----------------------------------------------------------------------
+C
 C     READ ALL CROSS SECTIONS (NEUTRON OR PHOTON) AND FORM FACTORS.
 C
 c-----------------------------------------------------------------------
-  170 IF(MFH.NE.3.AND.MFH.NE.23.AND.MFH.NE.27) GO TO 220
+  180 IF(MFH.NE.3.AND.MFH.NE.23.AND.MFH.NE.27) GO TO 230
 C-----EVEN IF CROSS SECTION PLOTS HAVE NOT BEEN REQUESTED THE FIRST
 C-----LINE OF THE SECTION MUST BE READ TO DEFINE THE Q-VALUE FOR
 C-----ANGULAR AND ENERGY DISTRIBUTIONS. HOWEVER, ONLY COUNT SECTIONS
 C-----OF FILE 3 IF CROSS SECTION PLOTS HAVE BEEN REQUESTED.
-  180 MT3OUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
+  190 MT3OUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
 C-----SKIP UNLESS FILE HAS BEEN REQUESTED OR MF=3 TO GET Q-VALUES.
-      IF(MFH.NE.3.AND.MT3OUT.LE.0) GO TO 190
+      IF(MFH.NE.3.AND.MT3OUT.LE.0) GO TO 200
       IF(MT3OUT.GT.0.AND.MFH.EQ. 3) LTABLE(1)=LTABLE(1)+1
       IF(MT3OUT.GT.0.AND.MFH.EQ.23) LTABLE(6)=LTABLE(6)+1
       IF(MT3OUT.GT.0.AND.MFH.EQ.27) LTABLE(7)=LTABLE(7)+1
@@ -1138,16 +1156,16 @@ C-----SKIP UNLESS FILE HAS BEEN REQUESTED OR MF=3 TO GET Q-VALUES.
 C-----IF SECTION NOT REQUESTED REMOVE IT FROM LIST.
       IF(MT3OUT.LE.0) MTSIZE=MTSIZE-1
 C-----SKIP REMAINDER OF SECTION.
-  190 CALL SKIPS
+  200 CALL SKIPS
 C-----READ HEAD LINE OF NEXT SECTION OR FEND LINE.
-  200 CALL COPY1
+  210 CALL COPY1
       MFT=MFIELD(2)
       MTT=MFIELD(3)
 C-----CONTINUE LOADING SECTION OF DATA UNTIL END OF FILE 3 IS FOUND.
-      IF(MTT.LE.0) GO TO 210
+      IF(MTT.LE.0) GO TO 220
       MTH=MTT
-      GO TO 180
-  210 IF(MFT.GT.0) GO TO 200
+      GO TO 190
+  220 IF(MFT.GT.0) GO TO 210
 c-----------------------------------------------------------------------
 C
 C      PLOT CROSS SECTIONS.
@@ -1161,23 +1179,23 @@ C
 C     IF CURRENT FILE (MF) HAS NOT BEEN REQUESTED, SKIP IT.
 C
 c-----------------------------------------------------------------------
-  220 MFXOUT=IWANT(IZA,MATH,MFH,0,0.0d0,2)
+  230 MFXOUT=IWANT(IZA,MATH,MFH,0,0.0d0,2)
       IF(MFXOUT.LE.0) GO TO 50
 c-----------------------------------------------------------------------
 C
 C     READ ACTIVATION (MF=10) CROSS SECTIONS
 C
 c-----------------------------------------------------------------------
-      IF(MFH.NE.10) GO TO 240
+      IF(MFH.NE.10) GO TO 250
       NS = N1H
       LTABLE(4) = LTABLE(4) + NS
 C-----LOOP OVER SECTIONS
-      DO 230 IS=1,NS
+      DO 240 IS=1,NS
       CALL PAGEIT(0)
 c-----save ZAP and STATE.
       IZAP10(IS) = L1
       LFS10 (IS) = LF
-  230 CONTINUE
+  240 CONTINUE
       CALL PLOTIT
       MTSIZE = 0
       GO TO 40
@@ -1188,19 +1206,19 @@ C     OR COMBINATION = LEGENDRE FOLLOWED TABULATED.
 C
 c-----------------------------------------------------------------------
 c-----2018/4/1 = updated for Electron Large Angle ang. dist.
-  240 if(MFH.EQ.26.and.MTH.eq.525) then ! Electron ang. dist.
+  250 if(MFH.EQ.26.and.MTH.eq.525) then ! Electron ang. dist.
 c-----skip TAB1
       CALL CARDI(C1L,C2L,L1L,L2L,N1L,N2L)
       CALL TERPI(NBT,INT,N1L)
 c-----2019/1/5 - Additional Interpolation Law Tests
       CALL TERPTEST(NBT,INT,N1L,N2L,2)
-      READ(ITAPE,250) (DUM,DUM,kk=1,N2L)
-  250 format(6d11.4)
-      go to 260
+      READ(ITAPE,260) (DUM,DUM,kk=1,N2L)
+  260 format(6d11.4)
+      go to 270
       endif
-      IF(MFH.NE.4) GO TO 330
+      IF(MFH.NE.4) GO TO 340
 C-----IF SECTION HAS NOT BEEN REQUESTED, SKIP IT.
-  260 MTOUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
+  270 MTOUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
       IF(MTOUT.LE.0) GO TO 40
       LVT = L1H
       LTT = L2H
@@ -1218,50 +1236,50 @@ C-----SKIP INTERPOLATION LAW BETWEEN ENERGIES.
       CALL CARDI(C1L,C2L,L1L,L2L,N1H,NE )
       CALL TERPI(NBT,INT,N1H) ! Never Used = TERPTEST not Needed
 C-----DECIDE WHEATHER TABULATED OR LEGENDRE COEFFICIENTS.
-      IF(LTT.EQ.2) GO TO 280
+      IF(LTT.EQ.2) GO TO 290
 C-----LTT = 1 OR 3 = LEGENDRE OR LEGENDRE FOLLOWED BY TABULATED
-      IF(LTT.EQ.3) WRITE(OUTP,270)IZA,MAT,MF,MT
-  270 FORMAT(34x,' ZA/MAT/MF/MT=',I7,I5,I3,I4/
+      IF(LTT.EQ.3) WRITE(OUTP,280)IZA,MAT,MF,MT
+  280 FORMAT(34x,' ZA/MAT/MF/MT=',I7,I5,I3,I4/
      1       34X,' Only Legendre coefficients plotted.'/
      3       34X,' High energy tabulated skipped.')
       LTT = 1
       CALL PAGLEG
-      GO TO 310
+      GO TO 320
 C-----TABULATED. SET UP LOOP TO READ ALL TABULATED ANGULAR DISTRIBUTIONS
 C-----AND LOAD INTO PAGING SYSTEM.
-  280 LTABLE(2)=LTABLE(2)+NE
-      DO 300 IE=1,NE
+  290 LTABLE(2)=LTABLE(2)+NE
+      DO 310 IE=1,NE
       CALL PAGEIT(0)
 C-----SKIP IF NOT IN REQUESTED ENERGY RANGE.
       MTOUT=IWANT(IZA,MATH,MFH,MTH,QEDTAB(MTSIZE),4)
-      IF(MTOUT.GT.0) GO TO 290
+      IF(MTOUT.GT.0) GO TO 300
       MTSIZE=MTSIZE-1
-      GO TO 300
+      GO TO 310
 C-----SKIP ALL CONSTANT DISTRIBUTIONS BUT HIGHEST ENERGY.
-  290 IF(MTSIZE.NE.2) GO TO 300
-      IF(XYEVAL(1,2,2).NE.XYEVAL(2,2,2)) GO TO 300
+  300 IF(MTSIZE.NE.2) GO TO 310
+      IF(XYEVAL(1,2,2).NE.XYEVAL(2,2,2)) GO TO 310
       MTSIZE=1
       QEDTAB(1)=QEDTAB(2)
       MTDEX1(1)=MTDEX1(2)
       MTDEX2(1)=MTDEX2(2)
-  300 CONTINUE
+  310 CONTINUE
 C-----IF ONLY CONSTANT DISTRIBUTIONS...NO PLOTS.
-      IF(MTSIZE.EQ.1.AND.XYEVAL(1,2,1).EQ.XYEVAL(2,2,1)) GO TO 320
-  310 IF(MTSIZE.GT.0) CALL PLOTIT
-  320 MTSIZE=0
+      IF(MTSIZE.EQ.1.AND.XYEVAL(1,2,1).EQ.XYEVAL(2,2,1)) GO TO 330
+  320 IF(MTSIZE.GT.0) CALL PLOTIT
+  330 MTSIZE=0
       GO TO 40
 c-----------------------------------------------------------------------
 C
 C     READ AND PLOT NEUTRON OR PHOTON SPECTRA.
 C
 c-----------------------------------------------------------------------
-  330 IF(MFH.NE.5.AND.MFH.NE.15) GO TO 50
+  340 IF(MFH.NE.5.AND.MFH.NE.15) GO TO 50
 C-----IF SECTION HAS NOT BEEN REQUESTED, SKIP IT.
       MTOUT=IWANT(IZA,MATH,MFH,MTH,0.0d0,3)
 c-----2021/9/9 - Corrected to skip MT instrad of MAT
       IF(MTOUT.LE.0) GO TO 40          ! Skip MT
       NK=N1H
-      DO 360 L=1,NK
+      DO 370 L=1,NK
 C-----CAN ONLY PLOT TABULATED ENERGY DISTRIBUTIONS. SKIP SECTION
 C-----IF DISTRIBUTIONS ARE NOT TABULATED.
       CALL MULTIC(LF)
@@ -1272,60 +1290,56 @@ C-----IF DISTRIBUTIONS ARE NOT TABULATED.
       IF(MFH.EQ.15) LTABLE(5)=LTABLE(5)+NE
 C-----SET UP LOOP OVER ENERGY DISTRIBUTIONS AND LOAD INTO PAGING
 C-----SYSTEM.
-      DO 350 IE=1,NE
+      DO 360 IE=1,NE
       CALL PAGEIT(1)
 C-----SKIP IF NOT IN REQUESTED ENERGY RANGE.
       MTOUT=IWANT(IZA,MATH,MFH,MTH,QEDTAB(MTSIZE),4)
-      IF(MTOUT.GT.0) GO TO 340
+      IF(MTOUT.GT.0) GO TO 350
       MTSIZE=MTSIZE-1
-      GO TO 350
+      GO TO 360
 C-----ELIMINATE SPIKE AT THRESHOLD
-  340 IF(XYEVAL(2,2,MTSIZE).GE.50.0d0) MTSIZE=MTSIZE-1
-  350 CONTINUE
+  350 IF(XYEVAL(2,2,MTSIZE).GE.50.0d0) MTSIZE=MTSIZE-1
+  360 CONTINUE
       IF(MTSIZE.GT.0) CALL PLOTIT
       MTSIZE=0
-  360 CONTINUE
+  370 CONTINUE
       GO TO 40
 C-----------------------------------------------------------------------
 C
 C     END OF RUN. COMPLETE OUTPUT REPORT, FINISH PLOTTED OUTPUT FILE.
 C
 C-----------------------------------------------------------------------
-  370 IF(LASTZA.GT.0) GO TO 380
+  380 IF(LASTZA.GT.0) GO TO 390
 C-----------------------------------------------------------------------
 C
 C     NO PLOT? CONSIDER ERROR
 C
 C-----------------------------------------------------------------------
-      WRITE(OUTP,450)
+      WRITE(OUTP,460)
       CALL ENDERROR
 C-----------------------------------------------------------------------
 C
 C     NORMAL END - OUTPUT SUMMARY REPORT AND STOP
 C
 C-----------------------------------------------------------------------
-  380 DO 390 L=1,7
-      IF(LTABLE(L).GT.0) GO TO 400
-  390 CONTINUE
-      GO TO 410
+  390 DO 400 L=1,7
+      IF(LTABLE(L).GT.0) GO TO 410
+  400 CONTINUE
+      GO TO 420
 c-----2020/3/21 - Added Target state
-  400 CALL ZAHOLM(LASTZA,LISO,ZABCD)
-      WRITE(OUTP,430) ZABCD,LSTMAT,LTABLE,LPLOTS
-  410 DO 420 L=1,6
+  410 CALL ZAHOLM(LASTZA,LISO,ZABCD)
+      WRITE(OUTP,440) ZABCD,LSTMAT,LTABLE,LPLOTS
+  420 DO 430 L=1,6
       MPLOTS(L)=MPLOTS(L)+LPLOTS(L)
       MTABLE(L)=MTABLE(L)+LTABLE(L)
-  420 CONTINUE
-      WRITE(OUTP,440) MTABLE,MPLOTS
-c-----Check MT list for preceding MAT
-      CALL MAXIE3(0)
-c-----Print Final message if ALL data not tabulated to same Max. Energy
-      CALL MAXIE4(0)
+  430 CONTINUE
+      WRITE(OUTP,450) MTABLE,MPLOTS
 c-----End of run - Normal
       CALL ENDIT
-  430 FORMAT(1X,12A1,I5,7I4,'*',7I4)
-  440 FORMAT(1X,72('-')/' Totals',11X,7I4,'*',7I4/1X,72('-'))
-  450 FORMAT(' NO Requested Materials Found. NO Plots Generaret.')
-  460 FORMAT(' Tape Label'/1X,72('-')/1X,16A4,A2,I4/
+  440 FORMAT(1X,12A1,I5,7I4,'*',7I4)
+  450 FORMAT(1X,72('-')/' Totals',11X,7I4,'*',7I4/1X,72('-'))
+  460 FORMAT(' NO Requested Materials Found. NO Plots Generaret.')
+  470 FORMAT(' Tape Label'/1X,72('-')/1X,16A4,A2,I4/
      1 1X,72('-')/' Plot Report'/1X,72('-')/
      2 20X,'Tables by MF',17X,'Plots by MF'/1X,72('-')/
      3 ' Material      MAT','   3   4   5  10  15  23  27','*',
@@ -1338,7 +1352,7 @@ C     READ MF=5 OR 15 YIELD
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/XYMULT/XMULT(1200),YMULT(1200),NBTY(100),INTY(100),NPY,NRY
       COMMON/LASTE/ELAST
       CALL CARDI(C1L,C2L,L1L,LF,NRY,NPY)
@@ -1631,7 +1645,7 @@ C-----TERMINATE IF NO REQUESTS.
       CALL ENDERROR
   190 RETURN
   200 FORMAT(///' Plot Evaluated Data from the ENDF/B Format',
-     1 ' (EVALPLOT 2023-1)'/1X,72('-')/
+     1 ' (EVALPLOT 2026-1)'/1X,72('-')/
      2 ' Description of Plotter and Plots per Frame'/1X,72('-')/
      3 ' X Dimensions (X-Min to X-Max)-----------------',
      4 F11.4,' to ',F11.4,' Inches'/
@@ -1911,7 +1925,7 @@ C     (7) SCATTERING FACTORS    - MF =27
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHO/IZA,IE,NE,LTT,LABCM
       COMMON/PLANE/XYPLAN(2,2,10)
       COMMON/INCHES/XYINCH(2,2,10),XYSIZE(2),DXYP(2,10)
@@ -1925,7 +1939,7 @@ C=======================================================================
       COMMON/FIL10COM/IZAP10(1000),LFS10(1000)
       COMMON/ZOOMCOM/IZOOM
       COMMON/LETMIN/MINUSOK
-      COMMON/BXLIMS/BOXR(2,2)
+      COMMON/BXLIMS/BOXR(2,2),BOXRINCH(2,2)
       COMMON/MAXRAT/RATMIN
       COMMON/LINLOG/IXYWAY(2,10)
       COMMON/FIRSTCOM/XFIRST(2),YFIRST(2)
@@ -1970,13 +1984,13 @@ C
 C     REQUEST LOOP...FOR EACH REQUEST PLOT ALL REQUESTED DATA.
 C
 c-----------------------------------------------------------------------
-      DO 380 IMATZA=1,NMATZA
+      DO 370 IMATZA=1,NMATZA
 c-----------------------------------------------------------------------
 C
 C     SKIP CHAINED REQUESTS.
 C
 c-----------------------------------------------------------------------
-      IF(NTYPE(IMATZA).LT.0) GO TO 380
+      IF(NTYPE(IMATZA).LT.0) GO TO 370
 c-----------------------------------------------------------------------
 C
 C     SELECT ALL DATA REQUESTED BY THIS REQUEST.
@@ -2001,7 +2015,7 @@ C-----2017/4/2 - Allow input parameters to ignore DEFAULT X axis scaling
       IZOOM = MYZOOM(IMATZA)
    40 CONTINUE
 C-----SKIP REQUEST IF NO REQUESTED DATA.
-      IF(LPLOT4.LE.0) GO TO 380
+      IF(LPLOT4.LE.0) GO TO 370
 c-----------------------------------------------------------------------
 C
 C     DEFINE CATAGORIES OF DATA TO PLOT.
@@ -2010,49 +2024,42 @@ c-----------------------------------------------------------------------
       ITYPE=NTYPE(IMATZA)
 c-----2017/4/2 - Allow input to override default X axis scaling
       IZOOM = MYZOOM(IMATZA)
-c
-c     If only 1 ITYPE use it
-c
-      IF(ITYPE.LE.0) GO TO 50
-      LOOP1=ITYPE                            ! Only plot ITYPE input
-      LOOP2=LOOP1
-      GO TO 100
 C
 C     Neutron Cross Sections
 C
-   50 IF(MFH.ne.3) GO TO 60
+      IF(MFH.ne.3) GO TO 50
       LOOP1=1      ! Plot entire range
 c-----2022/2/9 = Corrected 19 to 20
       LOOP2=20     ! Except radioiostopes
-      GO TO 100
+      GO TO 90
 C
 c     7/23/2011 - MF=10 include ALL.
 C
-   60 IF(MFH.NE.10) GO TO 70
+   50 IF(MFH.NE.10) GO TO 60
 c-----2020/2/9 = changed LOOP1 from 20 to 1  = entire range
 c     LOOP1=1      ! Plot entire range
       LOOP1=21     ! Plot entire range
 c-----2020/2/9 = changed LOOP2 from 20 to 21 = entire range
       LOOP2=21
-      GO TO 100
+      GO TO 90
 c
 c     Photon and Electron Interaction Cross Sections
 c
-   70 IF(MFH.NE.23) GO TO 80
+   60 IF(MFH.NE.23) GO TO 70
       LOOP1=15
       LOOP2=17
-      GO TO 100
+      GO TO 90
 c
 C     PHOTON FORM AND SCATTERING FACTORS.
 c
-   80 IF(MFH.NE.27) GO TO 90
+   70 IF(MFH.NE.27) GO TO 80
       LOOP1=18
       LOOP2=19
-      GO TO 100
+      GO TO 90
 c
 C     ALL OTHERS = Only Major
 c
-   90 LOOP1=1
+   80 LOOP1=1
       LOOP2=1
       ITYPE=0
 c-----------------------------------------------------------------------
@@ -2060,30 +2067,30 @@ C
 C     DATA CATAGORY LOOP.
 C
 c-----------------------------------------------------------------------
-  100 DO 370 LOOP=LOOP1,LOOP2
+   90 DO 360 LOOP=LOOP1,LOOP2
       MINUSOK=IMINUS
-      IF(LOOP2.GT.1.OR.ITYPE.GT.0) GO TO 120
+      IF(LOOP2.GT.1.OR.ITYPE.GT.0) GO TO 110
 c-----------------------------------------------------------------------
 C
 C     PLOT ALL REQUESTED DATA.
 C
 c-----------------------------------------------------------------------
-      DO 110 L=1,LPLOT4
+      DO 100 L=1,LPLOT4
       IMNEXT(L)=NEXT(L)
-  110 CONTINUE
+  100 CONTINUE
       LPLOT3=LPLOT4
-      GO TO 130
+      GO TO 120
 c-----------------------------------------------------------------------
 C
 C     DIVIDE DATA INTO CATAGORIES.
 C
 c-----------------------------------------------------------------------
 C-----ALLOW <MU>, ETA AND SCATTERING FACTORS TO HAVE NEGATIVE Y RANGE.
-  120 IF(LOOP.EQ.12.OR.LOOP.EQ.19) MINUSOK=1
+  110 IF(LOOP.EQ.12.OR.LOOP.EQ.19) MINUSOK=1
 C-----SELECT DATA REQUESTED FOR THIS CATAGORY.
       CALL PICKIT(LOOP,LPLOT3,LPLOT4,IMTOT)
 C-----NO PLOT IF LESS THAN MINIMUM NUMBER OF CURVES FOR PLOT.
-      IF(LPLOT3.LE.0) GO TO 370
+      IF(LPLOT3.LE.0) GO TO 360
 C-----DEFINE PLOT LABELS BASED ON DATA CATAGORY.
       CALL TITLE3(LOOP,MFH,MTH)
 c-----------------------------------------------------------------------
@@ -2091,23 +2098,23 @@ C
 C     DIVIDE INTO ROUGHLY EQUAL NUMBER OF CURVES PER PLOT.
 C
 c-----------------------------------------------------------------------
-  130 IF(LPLOT3.GT.11) GO TO 140
+  120 IF(LPLOT3.GT.11) GO TO 130
 C-----ALL ON ONE PLOT.
       LCURVE=LPLOT3
-      GO TO 150
+      GO TO 140
 c-----------------------------------------------------------------------
 C
 C     MULTIPLE PLOTS. DEFINE NUMBER OF CURVES PER PLOT. FOR LEVELS
 C     INCLUDE TOTAL ON EACH PLOT.
 C
 c-----------------------------------------------------------------------
-  140 CALL GROPIT(LPLOT3,LCURVE,IMTOT)
+  130 CALL GROPIT(LPLOT3,LCURVE,IMTOT)
 c-----------------------------------------------------------------------
 C
 C     PLOTS Loop
 C
 c-----------------------------------------------------------------------
-  150 DO 360 LPLOT1=1,LPLOT3,LCURVE
+  140 DO 350 LPLOT1=1,LPLOT3,LCURVE
       IMACTV = 0                          ! Initialize to no interaction
       DO L=1,LPLOT3                       ! Save IMNEXT (for ZOOM)
       IMSAVE(L)=IMNEXT(L)
@@ -2120,7 +2127,7 @@ c-----------------------------------------------------------------------
 c
 c     Same PLOT indices for Original & ZOOM
 c
-  160 LPLOT2=LPLOT1+LCURVE-1
+  150 LPLOT2=LPLOT1+LCURVE-1
       IF(LPLOT2.GT.LPLOT3) LPLOT2=LPLOT3
       LPLOT=LPLOT2-LPLOT1+1
       DO L=1,LPLOT3                       ! Restore IMNEXT (for ZOOM)
@@ -2161,16 +2168,18 @@ c-----------------------------------------------------------------------
       XYPLAN(1,2,1)=XYEVAL(1,2,IT)
       IF(MINUSOK.LE.0) XYPLAN(1,2,1)=YLOTAB(IT)
       XYPLAN(2,2,1)=XYEVAL(2,2,IT)
-      DO 190 L=LPLOT1,LPLOT2
+      DO 180 L=LPLOT1,LPLOT2
       IT=IMNEXT(L)
+c-----X rsange
       IF(XYEVAL(1,1,IT).LT.XYPLAN(1,1,1)) XYPLAN(1,1,1)=XYEVAL(1,1,IT)
       IF(XYEVAL(2,1,IT).GT.XYPLAN(2,1,1)) XYPLAN(2,1,1)=XYEVAL(2,1,IT)
-      IF(MINUSOK.NE.0) GO TO 170
+      IF(MINUSOK.NE.0) GO TO 160
       IF(YLOTAB(IT).LT.XYPLAN(1,2,1)) XYPLAN(1,2,1)=YLOTAB(IT)
-      GO TO 180
-  170 IF(XYEVAL(1,2,IT).LT.XYPLAN(1,2,1)) XYPLAN(1,2,1)=XYEVAL(1,2,IT)
-  180 IF(XYEVAL(2,2,IT).GT.XYPLAN(2,2,1)) XYPLAN(2,2,1)=XYEVAL(2,2,IT)
-  190 CONTINUE
+      GO TO 170
+c-----Y rsange
+  160 IF(XYEVAL(1,2,IT).LT.XYPLAN(1,2,1)) XYPLAN(1,2,1)=XYEVAL(1,2,IT)
+  170 IF(XYEVAL(2,2,IT).GT.XYPLAN(2,2,1)) XYPLAN(2,2,1)=XYEVAL(2,2,IT)
+  180 CONTINUE
 c-----------------------------------------------------------------------
 C
 c     2021/1/5 - Save Initial Max. E range(IMACTV=0 start/no action yet)
@@ -2198,56 +2207,56 @@ C     (DATA HAS ALREADY BEEN RESTRICTED TO REQUESTED INCIDENT ENERGY
 C     RANGE).
 C
 c-----------------------------------------------------------------------
-      IF(MFH.EQ.5.OR.MFH.EQ.15) GO TO 290
-      IF(MFH.EQ. 4.AND.LTT.NE.1) GO TO 290
+      IF(MFH.EQ.5.OR.MFH.EQ.15) GO TO 280
+      IF(MFH.EQ. 4.AND.LTT.NE.1) GO TO 280
 c-----2018/4/1 - Added MF=26 (Electron Large Angle)
-      IF(MFH.EQ.26             ) GO TO 290
+      IF(MFH.EQ.26             ) GO TO 280
 c-----------------------------------------------------------------------
 C
 C     FOR ALL OTHER DATA CONSIDER ZOOM.
 C
 c-----------------------------------------------------------------------
 C-----PLOT ALL DATA IF NO ENERGY LIMITS ON REQUEST.
-      IF(EMIN(IMATZA).LE.0.0d0.AND.EMAX(IMATZA).LE.0.0d0) GO TO 280
+      IF(EMIN(IMATZA).LE.0.0d0.AND.EMAX(IMATZA).LE.0.0d0) GO TO 270
 C-----NO REASON TO ZOOM IF ALL DATA IS WITHIN REQUESTED ENERGY LIMITS.
-      IF(EMIN(IMATZA).GT.XYPLAN(1,1,1)) GO TO 200
-      IF(EMAX(IMATZA).LE.0.0d0) GO TO 280
-      IF(EMAX(IMATZA).GE.XYPLAN(2,1,1)) GO TO 280
-      GO TO 210
+      IF(EMIN(IMATZA).GT.XYPLAN(1,1,1)) GO TO 190
+      IF(EMAX(IMATZA).LE.0.0d0) GO TO 270
+      IF(EMAX(IMATZA).GE.XYPLAN(2,1,1)) GO TO 270
+      GO TO 200
 C-----MUST ZOOM. DEFINE X RANGE.
-  200 XYPLAN(1,1,1)=EMIN(IMATZA)
-      IF(EMAX(IMATZA).LE.0.0d0) GO TO 220
-      IF(EMAX(IMATZA).GE.XYPLAN(2,1,1)) GO TO 220
-  210 XYPLAN(2,1,1)=EMAX(IMATZA)
-  220 LPASO=0
+  190 XYPLAN(1,1,1)=EMIN(IMATZA)
+      IF(EMAX(IMATZA).LE.0.0d0) GO TO 210
+      IF(EMAX(IMATZA).GE.XYPLAN(2,1,1)) GO TO 210
+  200 XYPLAN(2,1,1)=EMAX(IMATZA)
+  210 LPASO=0
 C-----LOOP OVER CURVES TO DEFINE Y RANGE.
-      DO 270 L=LPLOT1,LPLOT2
+      DO 260 L=LPLOT1,LPLOT2
       IT=IMNEXT(L)
 C-----SKIP CURVE IF COMPLETELY BELOW OR ABOVE REQUESTED ENERGY RANGE.
       IF(XYEVAL(2,1,IT).LE.XYPLAN(1,1,1).OR.
-     1   XYEVAL(1,1,IT).GE.XYPLAN(2,1,1)) GO TO 270
+     1   XYEVAL(1,1,IT).GE.XYPLAN(2,1,1)) GO TO 260
 C-----DEFINE ZOOMED LIMITS.
       CALL ZOMLIM(MTDEX1(IT),MTDEX2(IT),XYPLAN(1,1,1),YLOW1)
 C-----IGNORE IF NO DATA IN REQUESTED ENERGY RANGE.
-      IF(XYPLAN(1,2,1).EQ.0.0d0.AND.XYPLAN(2,2,1).EQ.0.0d0) GO TO 270
+      IF(XYPLAN(1,2,1).EQ.0.0d0.AND.XYPLAN(2,2,1).EQ.0.0d0) GO TO 260
 C-----SAVE MAX AND MIN Y LIMITS OF ALL CURVES.
-      IF(LPASO.GT.0) GO TO 230
+      IF(LPASO.GT.0) GO TO 220
       YMIN1=XYPLAN(1,2,1)
       IF(MINUSOK.LE.0) YMIN1=YLOW1
       YMAX1=XYPLAN(2,2,1)
-      GO TO 260
-  230 IF(MINUSOK.NE.0) GO TO 240
-      IF(YLOW1.LT.YMIN1) YMIN1=YLOW1
       GO TO 250
-  240 IF(XYPLAN(1,2,1).LT.YMIN1) YMIN1=XYPLAN(1,2,1)
-  250 IF(XYPLAN(2,2,1).GT.YMAX1) YMAX1=XYPLAN(2,2,1)
+  220 IF(MINUSOK.NE.0) GO TO 230
+      IF(YLOW1.LT.YMIN1) YMIN1=YLOW1
+      GO TO 240
+  230 IF(XYPLAN(1,2,1).LT.YMIN1) YMIN1=XYPLAN(1,2,1)
+  240 IF(XYPLAN(2,2,1).GT.YMAX1) YMAX1=XYPLAN(2,2,1)
 C-----SAVE INDEX TO DATA.
-  260 LL=LPLOT1+LPASO
+  250 LL=LPLOT1+LPASO
       IMNEXT(LL)=IT
       LPASO=LPASO+1
-  270 CONTINUE
+  260 CONTINUE
 C-----NO PLOT IF NO DATA IN REQUESTED ENERGY RANGE.
-      IF(LPASO.LE.0) GO TO 350
+      IF(LPASO.LE.0) GO TO 340
 C-----DEFINE Y LIMITS.
       XYPLAN(1,2,1)=YMIN1
       XYPLAN(2,2,1)=YMAX1
@@ -2256,14 +2265,14 @@ C-----DEFINE NUMBER OF PLOTS AND INDEX.
       LPLOT2=LPLOT1+LPLOT-1
 C-----IF ALL DATA ARE POSITIVE DO NOT ALLOW MORE THAN RATMIN
 C-----VARIATION IN THE Y RANGE.
-  280 IF(XYPLAN(1,2,1).LE.0.0d0) GO TO 310
+  270 IF(XYPLAN(1,2,1).LE.0.0d0) GO TO 300
 c-----------------------------------------------------------------------
 C
 C     FOR ANGULAR AND ENERGY DISTRIBUTIONS DO NOT ALLOW MORE THAN
 C     6 DECADES VARIATION IN THE Y RANGE.
 C
 c-----------------------------------------------------------------------
-  290 IF(XYPLAN(1,2,1).LT.RATMIN*XYPLAN(2,2,1))
+  280 IF(XYPLAN(1,2,1).LT.RATMIN*XYPLAN(2,2,1))
      1   XYPLAN(1,2,1) =  RATMIN*XYPLAN(2,2,1)
 c-----------------------------------------------------------------------
 C
@@ -2272,12 +2281,13 @@ C     Y RANGE OF THE PLOT.
 C
 c-----------------------------------------------------------------------
       LL=0
-      DO 300 L=LPLOT1,LPLOT2
+      DO 290 L=LPLOT1,LPLOT2
       IT=IMNEXT(L)
-      IF(XYEVAL(2,2,IT).LE.XYPLAN(1,2,1)) GO TO 300
+c-----2026 corrected .LE. to .LE. in include  consant lowest curve
+      IF(XYEVAL(2,2,IT).LT.XYPLAN(1,2,1)) GO TO 290
       LL=LL+1
       IMNEXT(LL)=IMNEXT(L)
-  300 CONTINUE
+  290 CONTINUE
       LPLOT=LL
       LPLOT2=LPLOT1+LPLOT-1
 c-----------------------------------------------------------------------
@@ -2285,19 +2295,19 @@ C
 C     DEFINE LONGEST I.D. - ONLY THE NUMBER OF PRINTED CHARACTERS.
 C
 c-----------------------------------------------------------------------
-  310 NREACT=0
-      DO 320 L=LPLOT1,LPLOT2
+  300 NREACT=0
+      DO 310 L=LPLOT1,LPLOT2
       IT=IMNEXT(L)
       CALL SPECAL(MTBOX(1,IT),IMTX,IMTC,IMTBOX(IT))
       IF(IMTC.GT.NREACT) NREACT=IMTC
-  320 CONTINUE
+  310 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     SKIP IF NO Y RANGE OF PLOT, E.G., ALL LEGENDRE COEFFICIENTS ARE
 C     ZERO OR CONSTANT ANGULAR DISTRIBUTIONS.
 C
 c-----------------------------------------------------------------------
-      IF(XYPLAN(1,2,1).EQ.XYPLAN(2,2,1)) GO TO 350
+      IF(XYPLAN(1,2,1).EQ.XYPLAN(2,2,1)) GO TO 340
 c-----------------------------------------------------------------------
 C
 C     INSURE X AND Y RANGE DO NOT CONFLICT WITH GRID TICK MARKS.
@@ -2311,7 +2321,10 @@ C     AND ALL LABELS.
 C
 c-----------------------------------------------------------------------
       CALL BOXER
-      CALL GRID
+c-----------------------------------------------------------------------
+c     2026/4/2 - Grid depends on MF=3 to define Resonance Region
+c-----------------------------------------------------------------------
+      CALL GRID(MFH)
       CALL LABELIT
 c-----------------------------------------------------------------------
 C
@@ -2319,7 +2332,7 @@ C     PLOT DISTRIBUTIONS IN ASCENDING ENERGY ORDER.
 C
 c-----------------------------------------------------------------------
       KPLOT=0
-      DO 330 L=LPLOT1,LPLOT2
+      DO 320 L=LPLOT1,LPLOT2
       KKPLOT=IMNEXT(L)
       KPLOT=KPLOT+1
       LINTYP=MOD(KPLOT,5)
@@ -2344,15 +2357,15 @@ c-----------------------------------------------------------------------
       CALL SYMBL1(TIPS(3),YYS,HT,MTBOX(1,KKPLOT),0.0,IMTBOX(KKPLOT))
 C-----PLOT REACTION
       CALL INSIDE(MTDEX1(KKPLOT),MTDEX2(KKPLOT))
-  330 CONTINUE
+  320 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     Allow MF=3 (Neutron) and MF=23 (Photon) Cross Sections
 C
 c-----------------------------------------------------------------------
-      if(MFH.ne.3.and.MFH.ne.23) go to 340
+      if(MFH.ne.3.and.MFH.ne.23) go to 330
       CALL ACTION(IMACTV,XZOOM1,XZOOM2)
-      if(IMACTV.le.0) go to 350            ! ZOOM?
+      if(IMACTV.le.0) go to 340            ! ZOOM?
 c-----------------------------------------------------------------------
 c
 c     2021/1/30 - MOUSE ZOOM - reset limits to MOUSE ZOOM input
@@ -2368,34 +2381,34 @@ c-----Reset Limits
       IXYWAY(1,1)   = 2
       IXYWAY(2,1)   = 2
 c-----Continue to ZOOM PLOT
-      go to 160
+      go to 150
 c-----------------------------------------------------------------------
 C
 C     ADVANCE TO NEXT FRAME
 C
 c-----------------------------------------------------------------------
-  340 CALL FRAME1
+  330 CALL FRAME1
 c-----------------------------------------------------------------------
 C
 C     END OF PLOT LOOP.
 C
 c-----------------------------------------------------------------------
 c-----Insure Energy limits are reset
-  350 EMIN(IMATZA) = EMINNOW
+  340 EMIN(IMATZA) = EMINNOW
       EMAX(IMATZA) = EMAXNOW
-  360 CONTINUE
+  350 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     END OF DATA CATAGORY LOOP.
 C
 c-----------------------------------------------------------------------
-  370 CONTINUE
+  360 CONTINUE
 c-----------------------------------------------------------------------
 C
 C     END OF REQUEST LOOP.
 C
 c-----------------------------------------------------------------------
-  380 CONTINUE
+  370 CONTINUE
       RETURN
       END
       SUBROUTINE PICKIT(LOOP  ,LPLOT3,LPLOT4,IMTOT)
@@ -2436,11 +2449,9 @@ c
 C-----01/18/07 - ADDED   MT=5
 C-----01/08/20 - ADDED   MT=3                     no (n,cp)
 C-----01/18/07 - Removed MT=5
-c***** DEBUG
 c    1   1,  2,       3,  4,      16, 18,   102,102, ! Major
 C-----01/18/07 - ADDED   MT=5
      1   1,  2,       3,  5,      16, 18,   102,102, ! Major
-c***** DEBUG
 C-----01/08/20 - ADDED MT=10-15 (12-15 not used),  38-45, 101, 152-218
 c-----2020/1/12- Added MT=18, and 102-117 (ENDF-102 Definition ???)
      2  10, 21,      22, 45,     101,117,   152,218, ! N Absorption
@@ -2462,7 +2473,8 @@ C-----06/14/21 - ADED    MT=254-255 = ratios for J-C
      3 251,253,     254,255,       0,  0,     0,  0, ! Neutron mu/eta/
 C-----01/08/20 - ADDED MT=456
 c      total    delayed, prompt
-     4 452,452,     455,456,       0,  0,     0,  0, ! Neutrons nu
+c-----Added FIXUP products 460, 470
+     4 452,452,     455,456,     460,470,     0,  0, ! Neutrons nu
 c
 c     Photon + Electron Data
 c
@@ -3174,7 +3186,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 ZABCD,XBCD,MFBCD,YBCD,MTBCD,MATID
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LABELC/ZABCD(12),MFBCD(60),MTBCD(60),XBCD(60),YBCD(60)
       COMMON/LABELI/IMFBCD,IMTBCD,IXBCD,IYBCD
       COMMON/EDGE/XYEDGE(2,2),XYMAJR(2,2),RASTER(2)
@@ -3279,7 +3291,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/LEADER/C1,C2,L1,LF,N1,N2,MAT,MF,MT
       COMMON/INPAGE/IXYLOW,IXYHI,ISCR,NPSIZE,NPSM2,IMUSED
@@ -3359,8 +3371,6 @@ C-----HISTOGRAM MUST FIT INTO ONE PAGE.
       MTTAB(MTSIZE)=MT
 C-----SAVE Q VALUE (FILE 3) OR INCIDENT ENERGY (FILE 4-5-26) (IN MEV)
       QEDTAB(MTSIZE)=DABS(EV2MEV*C2)
-c-----Save MAT/MF/MT
-      CALL MAXIE1(MATH,MFH,MTH)
 c-----------------------------------------------------------------------
 C
 C     IF THIS IS CROSS SECTION (FILE 3) AND NO CROSS SECTION PLOTS
@@ -3433,8 +3443,6 @@ C-----READ POINTS 3 AT A TIME = 1 LINE.
       IF(LLP2.GT.JTOTAL) LLP2=JTOTAL
       JPOINT=(LLP2-LL)+1
       CALL POINTI(XTAB6,YTAB6,JPOINT)
-c-----Save Maximum energy and value
-      CALL MAXIE2(XTAB6(JPOINT),YTAB6(JPOINT))
 C-----COPY THEM TO FINAL LOCATION
       DO 130 KK=1,JPOINT
       XTAB(J)=XTAB6(KK)
@@ -3477,8 +3485,6 @@ c-----------------------------------------------------------------------
   170 JPOINT=(JP2-JP1)+1
       ELAST=-1.0d0
       CALL POINTI(XTAB(JP1),YTAB(JP1),JPOINT)
-c-----Save Maximum energy and value
-      CALL MAXIE2(XTAB(JP2),YTAB(JP2))
 C-----FOR MF=5 AND 15 MULTIPLY BY YIELD.
       IF(MULTY.LE.0) GO TO 190
       DO 180 J=JP1,JP2
@@ -3925,7 +3931,7 @@ C=======================================================================
       COMMON/REALLY/XYREAL(2,2,10)
       COMMON/INCHES/XYINCH(2,2,10),XYSIZE(2),DXYP(2,10)
       COMMON/PLANE/XYPLAN(2,2,10)
-      COMMON/BXLIMS/BOXR(2,2)
+      COMMON/BXLIMS/BOXR(2,2),BOXRINCH(2,2)
       COMMON/THICKY/THICK,ITHICK,NTHICK(3),IMTHIN
       INCLUDE 'evalplot.h'
       DIMENSION RANGER(2),XYFILL(2,2,60),NRSIDE(2),BIXMM(2,2)
@@ -3941,7 +3947,9 @@ C-----PLANE OF THE DATA (LINEAR OR LOG SCALING).
      1 ((ZDIM-XYINCH(1,LDIM,LFRAME))*XYPLAN(2,LDIM,LFRAME)+
      2 (XYINCH(2,LDIM,LFRAME)-ZDIM)*XYPLAN(1,LDIM,LFRAME))
      3 /(XYINCH(2,LDIM,LFRAME)-XYINCH(1,LDIM,LFRAME))
-C-----DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+c-----------------------------------------------------------------------
+C     DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+c-----------------------------------------------------------------------
       PTINCH(ZDIM,LDIM)=
      1 ((ZDIM-XYPLAN(1,LDIM,LFRAME))*XYINCH(2,LDIM,LFRAME)+
      2 (XYPLAN(2,LDIM,LFRAME)-ZDIM)*XYINCH(1,LDIM,LFRAME))
@@ -4267,7 +4275,7 @@ C-----DEFINE X INCH LIMITS OF ALL PLOTS.
    30 CONTINUE
       RETURN
       END
-      SUBROUTINE GRID
+      SUBROUTINE GRID(MFH)
 C=======================================================================
 C
 C     DRAW GRID ALONG ALL FOUR AXIS OF A PLOT. GRID IN X OR Y DIRECTION
@@ -4293,7 +4301,18 @@ C=======================================================================
       COMMON/PLTLIM/XLIM1,XLIM2,YLIM1,YLIM2
       DIMENSION Q(2),P(3,2),DIGIT(8)
       DATA DIGIT/'2','3','4','5','6','7','8','9'/
-C-----SELECT GRID COLOR.
+C-----DEFINE LIMITS OF PLOT FOR INTERNAL USE.
+      XLIM1=XYINCH(1,1,LFRAME)
+      XLIM2=XYINCH(2,1,LFRAME)
+      YLIM1=XYINCH(1,2,LFRAME)
+      YLIM2=XYINCH(2,2,LFRAME)
+c-----------------------------------------------------------------------
+c     Move Top down for MF=3 - Resonance region definitions
+c-----------------------------------------------------------------------
+      if(MFH.eq.3) CALL RESLINER
+c-----------------------------------------------------------------------
+C     SELECT GRID COLOR.
+c-----------------------------------------------------------------------
       CALL PEN(2)
 C-----IF REQUESTED DRAW OUTLINE OF ENTIRE PLOT.
       IF(NBORD.NE.1) GO TO 10
@@ -4304,11 +4323,6 @@ C-----IF REQUESTED DRAW OUTLINE OF ENTIRE PLOT.
       CALL PLOT1(XYEDGE(2,1),XYEDGE(1,2),2)
       CALL PLOT1(XYEDGE(1,1),XYEDGE(1,2),2)
    10 ITHICK=NTHICK(2)
-C-----DEFINE LIMITS OF PLOT FOR INTERNAL USE.
-      XLIM1=XYINCH(1,1,LFRAME)
-      XLIM2=XYINCH(2,1,LFRAME)
-      YLIM1=XYINCH(1,2,LFRAME)
-      YLIM2=XYINCH(2,2,LFRAME)
 C-----DRAW OUTLINE FOR PLOTTING AREA.
       CALL PLOT1(XLIM1,YLIM1,3)
       CALL PLOT1(XLIM1,YLIM2,2)
@@ -4582,7 +4596,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*1 ZABCD,XBCD,MFBCD,XWAY,YBCD,MTBCD,PARENL,PARENR
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LABELC/ZABCD(12),MFBCD(60),MTBCD(60),XBCD(60),YBCD(60)
       COMMON/LABELI/IMFBCD,IMTBCD,IXBCD,IYBCD
       COMMON/GRIDLN/IDEC(2),ISCALE(2),VIRTIN(2,2),XYBASE(2),DXYBAS(2),
@@ -4608,11 +4622,14 @@ C-----DEFINE MAJOR SUB-DIVISIONS IN NORMAL FORM.
 C-----DEFINE NUMBER OF DECIMAL DIGITS NECESSARY TO ADEQUATELY
 C-----REPRESENT MULTIPLES OF THE ABOVE MAJOR SUB-DIVISIONS.
       DATA IDUG/0,0,1,1,1,2,2,2,3,3,3/
-C-----DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+C-----------------------------------------------------------------------
+C     DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+C-----------------------------------------------------------------------
       PTINCH(ZDIM,LDIM)=
      1 ((ZDIM-XYPLAN(1,LDIM,LFRAME))*XYINCH(2,LDIM,LFRAME)+
      2 (XYPLAN(2,LDIM,LFRAME)-ZDIM)*XYINCH(1,LDIM,LFRAME))
      3 /DXYP(LDIM,LFRAME)
+C-----------------------------------------------------------------------
 C-----SET UP LOOP OVER X AND Y AXIS.
       DO 140 NROT=1,2
       KUNIT=4
@@ -5035,7 +5052,7 @@ C     THE INITIALIZE COORDINATES OF THE CURVE.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/BXLIMS/BOXR(2,2)
+      COMMON/BXLIMS/BOXR(2,2),BOXRINCH(2,2)
       EQUIVALENCE (BOXR(1,1),BOXMIN),(BOXR(2,1),BOXMAX),
      1 (BOXR(1,2),BOYMIN),(BOXR(2,2),BOYMAX)
 C-----INITIALIZE COORDINATES OF LAST POINT TO ORIGIN.
@@ -5252,11 +5269,14 @@ C=======================================================================
       DATA YINCH1/0.0d0/
       DATA X1    /0.0d0/
       DATA Y1    /0.0d0/
-C-----DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+c-----------------------------------------------------------------------
+C     DEFINE FUNCTION FOR TRANSFORMATION INTO COORDINATES OF PLOT (INCH)
+c-----------------------------------------------------------------------
       PTINCH(ZDIM,LDIM)=
      1 ((ZDIM-XYPLAN(1,LDIM,LFRAME))*XYINCH(2,LDIM,LFRAME)+
      2 (XYPLAN(2,LDIM,LFRAME)-ZDIM)*XYINCH(1,LDIM,LFRAME))
      3 /DXYP(LDIM,LFRAME)
+c-----------------------------------------------------------------------
 C-----DEFINE COORDINATES FOR INTERNAL USE.
       XP=X2
       YP=Y2
@@ -5352,7 +5372,7 @@ C     CONFLICT WITH HARWELL GHOST SUBROUTINE WINDOW (10/14/81)
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/REALLY/XYREAL(2,2,10)
       COMMON/PLANE/XYPLAN(2,2,10)
       COMMON/SIZES/XL(3),YL(6),XYMID(2),HT,HTX1,HTX2
@@ -5367,8 +5387,11 @@ C-----SET UP LOOP OVER ALL PLOTS ON FRAME
 c-----2017/4/2 - Allow input parameters to override MF= 1 and 4 scaling
       if(IZOOM.le.0) then
 C-----MF=1 is bunched with MF=3 as LOOP=13 - always X lin vs. Y log
-      if(LOOP.EQ.14) IXYWAY(1,NF) = 1         ! Nu-bar
-      if(LOOP.EQ.14) IXYWAY(2,NF) = 2         ! can't see delayed linear
+c-----------------------------------------------------------------------
+c     2026/5/1 - changed Nu-bar to log-log to see Resolvedd and Delayed
+c-----------------------------------------------------------------------
+      if(LOOP.EQ.14) IXYWAY(1,NF) = 2         ! Nu-bar - see resolved
+      if(LOOP.EQ.14) IXYWAY(2,NF) = 2         ! See delayed linear
 C-----MF=4 X Linear - Allow Y to be either.
       IF(MFH.EQ. 4) IXYWAY(1,NF) = 1           ! Legendre coefficients
       IF(MFH.EQ.26) IXYWAY(1,NF) = 1           ! Electron Large ang.
@@ -5396,7 +5419,9 @@ C-----IF NEGATIVE LIMIT OR SMALL RANGE USE LINEAR SCALING.
 c-----2017/4/2 - Allow input parameters to override MF= 4 scalking
       if(IZOOM.le.0) then
 C-----MF=1 is bunched with MF=3 as LOOP=13 - always X lin vs. Y log
-      if(LOOP.EQ.14) IXYWAY(1,NF) = 1         ! Nu-bar
+c-----2026 - E log to see Resomance regions
+      if(LOOP.EQ.14) IXYWAY(1,NF) = 2         ! Nu-bar
+c-----2026 - XC log to see small delayed
       if(LOOP.EQ.14) IXYWAY(2,NF) = 2         ! can't see delayed linear
 C-----MF=4 X Linear - Allow Y to be either.
       IF(MFH.EQ. 4) IXYWAY(1,NF) = 1           ! Legendre coefficients
@@ -5887,7 +5912,7 @@ C-----(3) VERSES - CHARACTERS FOR I.D.
 C       12345678901234567890123456789012
       DATA VERSE1/
      1 'Program EVALPLOT                ',
-     2 '(Version 2023-1)                ',
+     2 '(Version 2026-1)                ',
      3 'by                              ',
      4 'Dermott E. Cullen               ',
      5 '(Present Contact Information)   ',
@@ -6059,7 +6084,7 @@ c
       XM81 = XMOUSE1                 ! REAL*4 to REAL*8
       YM81 = YMOUSE1                 ! REAL*4 to REAL*8
       CALL VIEWXY(XM81,YM81)         ! Translate to real screen units
-c-----Above top = SHOW ALL
+c-----Above TOP = SHOW ALL
       if(YM81.gt.YLIM2) go to 30
 c-----Outside PLOT area = return with NO ZOOM
       if(XM81.lt.XLIM1.or.XM81.gt.XLIM2) go to 40
@@ -6103,7 +6128,10 @@ c-----Transform from inches to data units
       XZOOM1 = TEN**XZOOM1
       XZOOM2 = TEN**XZOOM2
 c-----Do not go below 1.0d-5 eV
-   20 if(XZOOM1.lt.1.0d-5) XZOOM1 = 1.0d-5
+   20 if(XZOOM1.lt.1.0d-11) then
+      IMACTV = 0
+      go to 40
+      endif
       go to 40
 c-----------------------------------------------------------------------
 c
@@ -6865,5 +6893,212 @@ c-----by here LFS = 1 to 98 = 1 or 2 digits
       ENDIF
       IMTBOX = IMTBOX + 1
       MTBOX(IMTBOX) = DIGITS(I2) ! second digit, always
+      RETURN
+      END
+      SUBROUTINE RESLINER
+C=======================================================================
+C
+C     Identify Resonanve regions: Resolved and Unresolved
+C     vertical lines t res2 & ures2
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+c-----2015-2: Corrected XMOUSE1 and YMOUSE1 to REAL*4
+      REAL*4 XMOUSE1,YMOUSE1
+      COMMON/EDGE/XYEDGE(2,2),XYMAJR(2,2),RASTER(2)
+      COMMON/XYOFF/XOFF,YOFF,XSCALE,YSCALE,XSIZE,YSIZE
+      COMMON/VANCED/ISMALX,ISMALY,NSMALX,NSMALY
+      COMMON/REALLY/XYREAL(2,2,10)
+      COMMON/PLANE/XYPLAN(2,2,10)
+      COMMON/INCHES/XYINCH(2,2,10),XYSIZE(2),DXYP(2,10)
+      COMMON/LINLOG/IXYWAY(2,10)
+      COMMON/SUBPLT/LFRAME,NFRAME
+      COMMON/PLTLIM/XLIM1,XLIM2,YLIM1,YLIM2
+      COMMON/SIZES/XL(3),YL(6),XYMID(2),HT,HTX1,HTX2
+      COMMON/BXLIMS/BOXR(2,2),BOXRINCH(2,2)
+c-----Resolved + Unresolved limits - in eV
+      COMMON/RESCOM/RES1,RES2,URES1,URES2
+      DATA TEN/10.0d0/
+      DATA EV2MEV/1.0d-6/
+c-----------------------------------------------------------------------
+c     Characters for Resonance region description
+      CHARACTER*10  RESOLV     ,UNSOLV
+      CHARACTER*1   RESOLV1(10),UNSOLV1(10)
+      EQUIVALENCE  (RESOLV,RESOLV1(1)),(UNSOLV,UNSOLV1(1))
+      DATA RESOLV/'Resolved  '/
+      DATA UNSOLV/'Unresolved'/
+c                  1234567890
+C-----------------------------------------------------------------------
+C     DEFINE FUNCTION FOR TRANSFORMATION E to Inches.
+c-----------------------------------------------------------------------
+c                   = xinch1+ dinch*(x      - xreal1)/
+c                                   (xreal2 - xreal1)
+c-----------------------------------------------------------------------
+      PTINCHX(ZDIM) = XLIM1 + (XLIM2-XLIM1)*
+     1                (ZDIM              - XYPLAN(1,1,LFRAME))/
+     1                (XYPLAN(2,1,LFRAME)- XYPLAN(1,1,LFRAME))
+c=======================================================================
+c
+c     nothing to do if no resonance region ===> RETURN
+c
+c=======================================================================
+      if(RES2.le.0.0d0.and.URES2.le.0.0d0) return
+c-----------------------------------------------------------------------
+c     Convert Resonance renges eV to MeV
+c-----------------------------------------------------------------------
+      RES1MEV   =  RES1*EV2MEV
+      RES2MEV   =  RES2*EV2MEV
+      URES1MEV  = URES1*EV2MEV
+      URES2MEV  = URES2*EV2MEV
+      RES1IN    = RES1MEV
+      RES2IN    = RES2MEV
+      URES1IN   = URES1MEV
+      URES2IN   = URES2MEV
+c=======================================================================
+c
+c     Draw top unless Resonance Region
+c
+c=======================================================================
+C-----Draw Upper limit line
+      CALL YLINED(YLIM2)
+C-----Move down
+      XYINCH(2,2,LFRAME) = XYINCH(2,2,LFRAME) - 2.0*HT
+      YLIM2=XYINCH(2,2,LFRAME)
+      YYY = YLIM2 + 0.5*HT     ! Y positiom of text
+c-----------------------------------------------------------------------
+c     Convert Resonance ranges to plane = MeV or Log
+c-----------------------------------------------------------------------
+c     Resolved
+c-----------------------------------------------------------------------
+      if(RES2.le.0.d0) go to 10    ! No resolvd
+c-----------------------------------------------------------------------
+c-----top
+      if(RES2IN .gt.0.0d0) then
+      if(IXYWAY(1,LFRAME).eq.2) RES2IN  = DLOG10(RES2IN)
+c-----Convert Resonance ranges to plane = MeV or Log
+      RES2IN  = PTINCHX(RES2IN)
+      if(RES2IN.gt.XLIM1.and.RES2IN.lt.XLIM2) CALL XLINED(RES2IN)
+      endif
+c-----bottom
+      if(RES1IN .gt.0.0d0) then
+      if(IXYWAY(1,LFRAME).eq.2) RES1IN  = DLOG10(RES1IN)
+c-----Convert Resonance ranges to plane = MeV or Log
+      RES1IN  = PTINCHX(RES1IN)
+      if(RES1IN.gt.XLIM1.and.RES1IN.lt.XLIM2) CALL XLINED(RES1IN)
+      endif
+c-----------------------------------------------------------------------
+c     Unresolved
+c-----------------------------------------------------------------------
+   10 if(URES2.le.0.d0) go to 20   ! No unresolved
+c-----------------------------------------------------------------------
+c-----top
+      if(URES2IN .gt.0.0d0) then
+      if(IXYWAY(1,LFRAME).eq.2) URES2IN  = DLOG10(URES2IN)
+c-----Convert Resonance ranges to plane = MeV or Log
+      URES2IN  = PTINCHX(URES2IN)
+      if(URES2IN.gt.XLIM1.and.URES2IN.lt.XLIM2) CALL XLINED(URES2IN)
+      endif
+c-----bottom
+      if(URES1IN .gt.0.0d0) then
+      if(IXYWAY(1,LFRAME).eq.2) URES1IN  = DLOG10(URES1IN)
+c-----Convert Resonance ranges to plane = MeV or Log
+      URES1IN  = PTINCHX(URES1IN)
+      if(URES1IN.gt.XLIM1.and.URES1IN.lt.XLIM2) CALL XLINED(URES1IN)
+      endif
+c=======================================================================
+C     Resonance Region Identity by Name
+c=======================================================================
+c-----------------------------------------------------------------------
+c     Resolved
+c-----------------------------------------------------------------------
+c-----no Resolved - skip
+   20 if(RES2.le.0.0d0) go to 40
+c-----Both below or above screen = Skip Resolved
+      if(RES2IN.le.XLIM1) go to 40   ! Resolved completely below plot
+      if(RES1IN.ge.XLIM2) go to 40   ! Resolved completely above plot
+      if(RES1IN.le.XLIM1.and.RES2IN.ge.XLIM2) then
+c-----opposite sides - center on screen
+      XXX = 0.5*(XLIM1+XLIM2) - 4.0*HT
+      go to 30
+      endif
+      if(RES2IN.ge.XLIM1.and.RES2IN.le.XLIM2) then
+c-----upper side on screen
+      XXX = RES2IN - 9.0*HT
+      go to 30
+      endif
+      if(RES1IN.ge.XLIM1.and.RES1IN.le.XLIM2) then
+c-----lower side on screen
+      XXX = RES2IN + 1.0*HT
+      go to 30
+      endif
+c-----skip
+      go to 40
+c-----draw
+   30 CALL SYMBL1(XXX,YYY,HT,RESOLV,0.0,8)
+c-----------------------------------------------------------------------
+c     Unresolved
+c-----------------------------------------------------------------------
+c-----no Unresolved - skip
+   40 if(URES2.le.0.0d0) go to 60
+c-----Both below or above screen = Skip Resolved
+      if(URES2IN.le.XLIM1) go to 60  ! Resolved completely below plot
+      if(URES1IN.ge.XLIM2) go to 60  ! Resolved completely above plot
+      if(URES1IN.le.XLIM1.and.URES2IN.ge.XLIM2) then
+c-----opposite sides - center on screen
+      XXX = 0.5*(XLIM1+XLIM2) - 4.0*HT
+      go to 50
+      endif
+      if(URES1IN.ge.XLIM1.and.URES1IN.le.XLIM2) then
+c-----lower side on screen
+      XXX = URES1IN + 1.0*HT
+      go to 50
+      endif
+      if(URES2IN.ge.XLIM1.and.URES2IN.le.XLIM2) then
+c-----upper side on screen
+      XXX = URES2IN - 11.0*HT
+      go to 50
+      endif
+c-----skip
+      go to 60
+c-----draw
+   50 CALL SYMBL1(XXX,YYY,HT,UNSOLV,0.0,10)
+c-----fimished
+   60 RETURN
+      END
+      SUBROUTINE XLINED(XD)
+c=======================================================================
+c
+c     PLOT constant XD from YLIM1 to YLIM2 + 2 HT for Resonance ID
+c     XD = REAL*8 call
+c
+c=======================================================================
+      INCLUDE 'implicit.h'
+      COMMON/PLTLIM/XLIM1,XLIM2,YLIM1,YLIM2
+      COMMON/SIZES/XL(3),YL(6),XYMID(2),HT,HTX1,HTX2
+      YLIM2 = YLIM2 + 2.0*HT
+      CALL PLOTZ(XD,1,1)
+      YLIM2 = YLIM2 - 2.0*HT
+      return
+      ENTRY      YLINED(YD)
+c=======================================================================
+c
+c     PLOT constant YD from XLIM1 to XLIM2
+c     YD = REAL*8 call
+c
+c=======================================================================
+      CALL PLOTZ(YD,2,1)
+      return
+      end
+      SUBROUTINE PLOTD2S(XIN,YIN,IPEN)
+C=======================================================================
+C
+C     Translate REAL*8 to READL*4 and plott.
+C
+C=======================================================================
+      INCLUDE 'implicit.h'
+      REAL*4 XP,YP
+      XP = XIN
+      YP = YIN
+      CALL PLOT(XP,YP,IPEN)
       RETURN
       END

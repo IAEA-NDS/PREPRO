@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM MERGER
@@ -73,6 +64,7 @@ C     VERS. 2021-1 (Apr.  2021)   *Updated for FORTRAN 2018
 C                                 *Updated SEND/FEND/MEND/TEND Sequence
 C                                  number definition.
 C     VERS. 2023-1 (Feb.  2023)   *Idehntical to 2021-1.
+C     VERS. 2026-1 (June  2026)   *No Sequence # = columns 76-80 BLANK
 C
 C     OWNED, MAINTAINED AND DISTRIBUTED BY
 C     ------------------------------------
@@ -806,7 +798,7 @@ C-----LIST DATA RETRIEVED FOR EACH REQUEST.
       GO TO 420 ! CANNOT GET TO HERE.
   450 FORMAT(68X,'-1 0  0    0')
   460 FORMAT(66X,I4,I2,I3,I5)
-  470 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2023-1)'/
+  470 FORMAT('  Merge ENDF/B Data into MAT/MF/MT Order (MERGER 2026-1)'/
      1 1X,72('*'))
   480 FORMAT(' Interpretation of Input Parameters'/1X,72('*'))
   490 FORMAT(' Retrieval Criteria-----------',7X,A4)

@@ -1,12 +1,3 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-
 C=======================================================================
 C
 C     PROGRAM FIXUP
@@ -187,6 +178,7 @@ C                                  arrays merely make the code run
 C                                  longer I/O instead of calculations.
 C                                 *Removed last multiple DO loop to same
 C                                  CONTINUE to end.
+C     VERS. 2026-1 (June  2026)   *No Sequence # - colunsz 76-80 BLANK
 C
 C     2019-2 Acknowledgment
 C     =====================
@@ -921,7 +913,7 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*1 ZABCD,FIELD6
       CHARACTER*4 FMTHOL
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LAST1/MATLST,MFLST,MTLST,IZALST,AWRLST,MATIN,MFIN,MTIN,
      1 MATOUT,MFOUT,MTOUT
       COMMON/OPS/IMOPS(14)
@@ -970,7 +962,6 @@ C-----INITIALIZE SECTION VALUES.
       MATOUT=0
       MFOUT=0
       MTOUT=0
-      NOSEQ=1
       MT451=0
       MFCORE=0
       MTCORE=0
@@ -1058,7 +1049,6 @@ C-----CHECK FOR ASCENDING MAT ORDER.
   100 MATLST=MATH
       MFLST=MFH
       MTLST=MTH
-      IF(MT451.LE.0) NOSEQ=1
       IERR=0
 C-----IF ZA AND AWRE ARE NOT POSITIVE WRITE ERROR MESSAGE AND COPY
 C-----ENTIRE MAT.
@@ -1245,7 +1235,8 @@ C-----DEFINE DEFAULT VALUES
       IMOPS( 8) = 1   ! eliminate duplicate data points
       IMOPS( 9) = 1   ! insure sections in ascending mat/mf/mt order
       IMOPS(10) = 1   ! check all mf/mt are legal
-      IMOPS(11) = 0   ! allow mt creation
+c-----2026/5/9 0 to 1
+      IMOPS(11) = 1   ! allow mt creation = products & ratios
       IMOPS(12) = 0   ! allow energy point insertion
       IMOPS(13) = 0   ! uniform energy grid for all mt
       IMOPS(14) = 1   ! delete section if = 0 at all energies
@@ -1469,7 +1460,10 @@ C-----SAVE AND PRINT PARAMETERS.
       MTADD(1,J,MAKEP1)=MTREAD(1,J)
       MTADD(2,J,MAKEP1)=MTREAD(2,J)
       MTADD(3,J,MAKEP1)=0
+c-----2026/5/9 + to X or /
       MSIGN(J)=PLUS
+      if(ITYPE.eq.3) MSIGN(J)='X'
+      if(ITYPE.eq.4) MSIGN(J)='/'
       IF(MTREAD(1,J).LT.0) MSIGN(J)=MINUS
       MTREAD(1,J)=IABS(MTREAD(1,J))
       MTREAD(2,J)=IABS(MTREAD(2,J))
@@ -1807,26 +1801,26 @@ c-----------------------------------------------------------------------
       WRITE(*   ,1060)
       RETURN
   870 FORMAT(' Test and Correct Data in the ENDF FORMAT',
-     1 ' (FIXUP 2023-1)'/1X,78('-')/
+     1 ' (FIXUP 2026-1)'/1X,78('-')/
      1 ' Interpretation of Input Test/Correction Options'/1X,78('-'))
   880 FORMAT(1X,78('-')/' Input Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
   890 FORMAT(1X,78('-')/' Built-in Summation/Deletion/Threshold',
      1 ' Exclusion Rules')
   900 FORMAT(
-     1 1X,78('-')/'  MT = MT Ranges and Messages'/1X,78('-'))
-  910 FORMAT(6X,1X,'(',I3,',',I3,')',' Delete')
+     1 1X,78('-')/'    MT = MT Ranges and Messages'/1X,78('-'))
+  910 FORMAT(8X,1X,'(',I3,',',I3,')',' WARNING - Defining Deletion')
   920 FORMAT(1X,78('-')/' Neutrons - ENDF-5 and Earlier Versions of',
      1 ' ENDF'/1X,78('-'))
   930 FORMAT(1X,78('-')/' Neutrons - ENDF-6'/1X,78('-'))
   940 FORMAT(1X,78('-')/' Photons, Electrons and Positrons - ENDF-6'/
      1 1X,78('-'))
   950 FORMAT(12X,'ERROR---Over 20 Deletion Requests.')
-  960 FORMAT(I4,' =',(6(A1,'(',I3,',',I3,')'))/
+  960 FORMAT(I6,' =',(6(A1,'(',I3,',',I3,')'))/
      1           (6X, 6(A1,'(',I3,',',I3,')'))/
      2           (6X, 6(A1,'(',I3,',',I3,')')))
-  970 FORMAT(I4,' = (',I3,'/',I3,') WARNING - Defining a Ratio')
-  980 FORMAT(I4,' = (',I3,'*',I3,') WARNING - Defining a Product')
+  970 FORMAT(I6,' = (',I3,'/',I3,') WARNING - Defining a Ratio')
+  980 FORMAT(I6,' = (',I3,'*',I3,') WARNING - Defining a Product')
   990 FORMAT(12X,' 2 Different MT Numbers Required for Ratio or',
      1 ' Product')
  1000 FORMAT(12X,'ERROR---Input Deletions Not Allowed.')
@@ -1922,7 +1916,7 @@ C               1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program FIXUP (Version 2023-1) ************',
+     1 ' ***************** Program FIXUP (Version 2026-1) ************',
      1 ' Corrected ZA/AWR in All Sections-----------------------------',
      2 ' Corrected Thresholds-----------------------------------------',
      3 ' Extended Cross Sections to 20 MeV----------------------------',
@@ -2087,7 +2081,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/CORTAB/MFCORE,MTCORE,N2CORE
       COMMON/LASTE/ELAST
@@ -2149,7 +2143,7 @@ C     PROCESS ALL OF FILE 3 OR 23.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/MAKERN/MAKE ,MTMAKE(20),MTRANG(20), MTADD(3,15,20)
       COMMON/MAKERP/MAKEP,MTMAKP(10),MTRANP(10),MTADDP(3,15,10)
       COMMON/INMFH/MFHIN
@@ -2226,7 +2220,7 @@ C=======================================================================
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCRA,ISCRB,ISCRC,ISCRD,ISCRE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/OPS/IMOPS(14)
       COMMON/TABA/I2A,N2A,IPA1,IPA2
@@ -2580,7 +2574,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCRA,ISCRB,ISCRC,ISCRD,ISCRE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/MTOLD/MTC,MTCX,N2TABC(1000),MTTABC(1000)
       COMMON/TABA/I2A,N2A,IPA1,IPA2
@@ -3140,7 +3134,7 @@ C-----IT ON ISCRE.
   250 FORMAT(1X,78('-')/' MT=',I4,' No Reconstruction of Ratio',
      1 ' - Required MT Missing'/1X,78('-'))
   260 FORMAT(1X,78('-')/' MT=',I4,' No Reconstruction of Product',
-     1 ' - Required MT Misiing'/1X,78('-'))
+     1 ' - Required MT Missing'/1X,78('-'))
   270 FORMAT(I3,I4,2I9)
   280 FORMAT(I3,I4,2I9,' Reconstructed')
   290 FORMAT(1X,78('-')/I3,I4,9X,I9,' Summation'/1X,78('-'))
@@ -3164,7 +3158,7 @@ C=======================================================================
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/UNITS/ISCRA,ISCRB,ISCRC,ISCRD,ISCRE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/MTOLD/MTC,MTCX,N2TABC(1000),MTTABC(1000)
       COMMON/MTNEW/MTD,MTDX,N2TABD(20),MTTABD(20)
@@ -3378,7 +3372,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       COMMON/UNITS/ISCRA,ISCRB,ISCRC,ISCRD,ISCRE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/MTOLD/MTC,MTCX,N2TABC(1000),MTTABC(1000)
       COMMON/PAGER/NPAGE,NPAGEM1
@@ -3674,7 +3668,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELD6
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/TABA/I2A,N2A,IPA1,IPA2
       COMMON/ENDSA/XANOW,XALAST,YANOW,YALAST
       COMMON/OPS/IMOPS(14)
@@ -4375,7 +4369,7 @@ C     READ ENDF HEADER RECORD.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/OPS/IMOPS(14)
 C-----READ LINE.
       CALL CONTI
@@ -4393,7 +4387,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 DOIT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/OPS/IMOPS(14)
 C-----IF SEND, FEND OR MEND OUTPUT IN STANDARD FORM.
       IF(MTH.GT.0) GO TO 10
@@ -4427,7 +4421,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 DOIT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       IF(MTH.GT.0) GO TO 10
       CALL OUTSF
@@ -4447,7 +4441,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 DOIT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----COPY UNTIL SEND LINE IS FOUND.
    10 CALL LINEIN
 C-----CHECK MAT/MF/MT.
@@ -4460,7 +4454,6 @@ C-----CHECK OUTPUT MAT/MF/MT.
       IF(DOIT.LE.0) GO TO 30
 C-----SEND LINE READ. OUTPUT SEND LINE. SET SEQUENCE NUMBER TO ZERO ON
 C-----MEND AND TEND LINES.
-      IF(MATH.LE.0) NOSEQ=0
       CALL OUTS(MATH,MFH)
    30 RETURN
       END
@@ -4472,14 +4465,13 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 DOIT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----SET AT LEAST MT=0
       MTH=0
 C-----CHECK OUTPUT MAT/MF/MT.
       CALL SAMOUT(DOIT)
       IF(DOIT.LE.0) GO TO 10
 C-----SET SEQUENCE NUMBER EQUAL TO ZERO ON MEND AND TEND LINES.
-      IF(MATH.LE.0) NOSEQ=0
       IF(MATH.LE.0) MFH=0
       CALL OUTS(MATH,MFH)
    10 RETURN
@@ -4494,7 +4486,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LAST1/MATLST,MFLST,MTLST,IZALST,AWRLST,MATIN,MFIN,MTIN,
      1 MATOUT,MFOUT,MTOUT
 c-----------------------------------------------------------------------
@@ -4615,7 +4607,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE,DOIT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LAST1/MATLST,MFLST,MTLST,IZALST,AWRLST,MATIN,MFIN,MTIN,
      1 MATOUT,MFOUT,MTOUT
 C-----INITIALIZE FLAG TO OUTPUT NEXT RECORD.
@@ -5213,7 +5205,8 @@ C=======================================================================
 c-----2023/1/25 - increased MTREAD(2,10) to MTREAD(2,15)
       DIMENSION LINEIN(72),DIGITS(10),TYPEIT(5),MTREAD(2,15)
       DATA DIGITS/'0','1','2','3','4','5','6','7','8','9'/
-      DATA TYPEIT/'S','D','T','R','*'/
+c-----2026/5/25 - changed * to P
+      DATA TYPEIT/'S','D','T','R','P'/
       DATA MINUS/'-'/
 c-----------------------------------------------------------------------
 C
@@ -5479,117 +5472,117 @@ c     IMOPS(4) = Check DELETIONS
 c
 c-----------------------------------------------------------------------
 c-----2021-2 = Only check if using built-in tables
-      if(IMOPS(4).ne.2) go to 20
-      if(IDEL.le.0) go to 20
-      do 12 i=1,IDEL
+      if(IMOPS(4).ne.2) go to 40
+      if(IDEL.le.0) go to 40
+      do 30 i=1,IDEL
       jj1 = MTDEL(1,i)
       jj2 = MTDEL(2,i)
-      do 11 j=jj1,jj2
-      if(MTTABB(1,j).gt.0) go to 11
+      do 20 j=jj1,jj2
+      if(MTTABB(1,j).gt.0) go to 20
       write(*,10) j
       write(3,10) j
    10 format(' WARNING...MT=',i5,' Not Defined for DELETION')
-   11 continue
-   12 continue
+   20 continue
+   30 continue
 c-----------------------------------------------------------------------
 c
 c     IMOPS(5) = Check NEUTRON SUMS
 c
 c-----------------------------------------------------------------------
 c-----2021-2 = Only check if using built-in tables
-   20 if(IMOPS(5).ne.2) go to 100
-      if(MAKE.le.0) go to 40
-      do 35 i=1,MAKE
+   40 if(IMOPS(5).ne.2) go to 230
+      if(MAKE.le.0) go to 110
+      do 100 i=1,MAKE
 c-----Sum
       MTUSE = MTMAKE(i)
       MTTABB(2,MTUSE) = MTTABB(2,MTUSE) + 1      ! Used AS SUM
-      if(MTTABB(1,MTUSE).gt.0) go to 31
-      write(*,30) MTUSE
-      write(3,30) MTUSE
-   30 format(' WARING...MT=',i5,' Not Defined for Neutron SUMMATION')
+      if(MTTABB(1,MTUSE).gt.0) go to 60
+      write(*,50) MTUSE
+      write(3,50) MTUSE
+   50 format(' WARING...MT=',i5,' Not Defined for Neutron SUMMATION')
 c-----Parts
-   31 do 34 k=1,15
+   60 do 90 k=1,15
       jj1 = IABS(MTADD(1,k,i))     ! Allow for subtraction
       jj2 = IABS(MTADD(2,k,i))
-      if(jj1.le.0) go to 35
-      do 33 j=jj1,jj2
-      if(MTTABB(4,j).gt.0) go to 33              ! NOT exempt
+      if(jj1.le.0) go to 100
+      do 80 j=jj1,jj2
+      if(MTTABB(4,j).gt.0) go to 80              ! NOT exempt
       MTUSE = j
       MTTABB(3,MTUSE) = MTTABB(3,MTUSE) + 1      ! Used IN SUM
       if(MTTABB(3,MTUSE).gt.1) then
-      write(*,7774) k,j,MTTABB(3,MTUSE)
- 7774 format(' k/j/#=',3i5,' #1 neutrons')
+      write(*,70) k,j,MTTABB(3,MTUSE)
+   70 format(' k/j/#=',3i5,' #1 neutrons')
       endif
-      if(MTTABB(1,MTUSE).gt.0) go to 33
-      write(*,30) MTUSE
-      write(3,30) MTUSE
-   33 continue
-   34 continue
-   35 continue
+      if(MTTABB(1,MTUSE).gt.0) go to 80
+      write(*,50) MTUSE
+      write(3,50) MTUSE
+   80 continue
+   90 continue
+  100 continue
 c-----------------------------------------------------------------------
 c
 c     Check PHOTON SUMS
 c
 c-----------------------------------------------------------------------
-   40 if(MAKEP.le.0) go to 60
-      do 55 i=1,MAKEP
+  110 if(MAKEP.le.0) go to 180
+      do 170 i=1,MAKEP
 c-----Sum
       MTUSE = MTMAKP(i)
       MTTABB(2,MTUSE) = MTTABB(2,MTUSE) + 1      ! Used AS SUM
-      if(MTTABB(1,MTUSE).gt.0) go to 51
-      write(*,50) MTUSE
-      write(3,50) MTUSE
-   50 format(' WARNING...MT=',i5,' Not Defined for Photon SUMMATION')
+      if(MTTABB(1,MTUSE).gt.0) go to 130
+      write(*,120) MTUSE
+      write(3,120) MTUSE
+  120 format(' WARNING...MT=',i5,' Not Defined for Photon SUMMATION')
 c-----Parts
-   51 do 54 k=1,10
+  130 do 160 k=1,10
       jj1 = IABS(MTADDP(1,k,i))   ! Allow for subtraction
       jj2 = IABS(MTADDP(2,k,i))
-      if(jj1.le.0) go to 55
-      do 53 j=jj1,jj2
-      if(MTTABB(4,j).gt.0) go to 53              ! NOT exempt
+      if(jj1.le.0) go to 170
+      do 150 j=jj1,jj2
+      if(MTTABB(4,j).gt.0) go to 150              ! NOT exempt
       MTUSE = j
       MTTABB(3,MTUSE) = MTTABB(3,MTUSE) + 1      ! Used IN SUM
       if(MTTABB(3,MTUSE).gt.1) then
-      write(*,7773) k,j,MTTABB(3,MTUSE)
- 7773 format(' k/j/#=',3i5,' #2 photons')
+      write(*,140) k,j,MTTABB(3,MTUSE)
+  140 format(' k/j/#=',3i5,' #2 photons')
       endif
-      if(MTTABB(1,MTUSE).gt.0) go to 53
-      write(*,50) MTUSE
-      write(3,50) MTUSE
-   53 continue
-   54 continue
-   55 continue
+      if(MTTABB(1,MTUSE).gt.0) go to 150
+      write(*,120) MTUSE
+      write(3,120) MTUSE
+  150 continue
+  160 continue
+  170 continue
 c-----------------------------------------------------------------------
 C
 C     Check for Unused MT
 c
 c-----------------------------------------------------------------------
-   60 do 65 i=1,1000
-      if(MTTABB(4,i).gt.0) go to 65              ! NOT exempt
-      if(MTTABB(1,i).le.0) go to 65
+  180 do 200 i=1,1000
+      if(MTTABB(4,i).gt.0) go to 200              ! NOT exempt
+      if(MTTABB(1,i).le.0) go to 200
       if(MTTABB(3,i).le.0) then
-      write(3,62) i,MTTABA(i)
-      write(*,62) i,MTTABA(i)
-   62 format(' WARNING...MT=',i5,1x,a40,' Not Used in SUMMATION')
+      write(3,190) i,MTTABA(i)
+      write(*,190) i,MTTABA(i)
+  190 format(' WARNING...MT=',i5,1x,a40,' Not Used in SUMMATION')
       endif
-   65 continue
+  200 continue
 c-----------------------------------------------------------------------
 C
 C     Check for Used MT more than once
 c
 c-----------------------------------------------------------------------
-      do 75 i=1,1000
-      if(MTTABB(1,i).le.0) go to 75
+      do 220 i=1,1000
+      if(MTTABB(1,i).le.0) go to 220
       if(MTTABB(3,i).gt.1) then
-      write(3,72) i,MTTABA(i),MTTABB(3,i)
-      write(*,72) i,MTTABA(i),MTTABB(3,i)
-   72 format(' WARNING..MT=',i5,1x,a40,' Used',i2,' Times in SUMMATION')
+      write(3,210) i,MTTABA(i),MTTABB(3,i)
+      write(*,210) i,MTTABA(i),MTTABB(3,i)
+  210 format(' WARNING..MT=',i5,1x,a40,' Used',i2,' Times in SUMMATION')
       endif
-   75 continue
+  220 continue
 c-----------------------------------------------------------------------
 C
 C     Finished
 c
 c-----------------------------------------------------------------------
-  100 return
+  230 return
       end

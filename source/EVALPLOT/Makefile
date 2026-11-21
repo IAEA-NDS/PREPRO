@@ -22,7 +22,7 @@ FFLAGS = -O0 -w -static-libgfortran
 CC     = gcc
 FC     = gfortran
 
-FSUB1= evalplot.f endfio.f scratchb.f screen.f
+FSUB1= evalplot.f endfio.f plot2.f scratchb.f screen.f
 
 CSUBS= dash.c
 
@@ -36,11 +36,11 @@ all: evalplot evalhard evalhard1
 evalplot: $(OBJ)
 	$(FC) -o evalplot $(FFLAGS) $(OBJ) $(LIBDIR) $(LIBS)
 
-evalhard: evalplot.o endfio.o scratchb.o saveps.o
-	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o scratchb.o saveps.o
+evalhard: evalplot.o endfio.o plot2.o scratchb.o saveps.o
+	$(FC) -o evalhard $(FFLAGS) evalplot.o endfio.o plot2.o scratchb.o saveps.o
 
-evalhard1: evalplot.o endfio.o scratchb.o saveps1.o
-	$(FC) -o evalhard1 $(FFLAGS) evalplot.o endfio.o scratchb.o saveps1.o
+evalhard1: evalplot.o endfio.o plot2.o scratchb.o saveps1.o
+	$(FC) -o evalhard1 $(FFLAGS) evalplot.o endfio.o plot2.o scratchb.o saveps1.o
 
 .PHONY: install
 install: evalplot evalhard evalhard1
@@ -50,6 +50,6 @@ install: evalplot evalhard evalhard1
 .PHONY: clean
 clean:
 	rm -f evalplot evalhard evalhard1
-	rm -f evalplot.o endfio.o scratchb.o screen.o \
+	rm -f evalplot.o endfio.o plot2.o scratchb.o screen.o \
 	      dash.o saveps.o saveps1.o 
 

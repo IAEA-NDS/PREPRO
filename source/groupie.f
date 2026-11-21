@@ -1,12 +1,4 @@
-C This file is part of PREPRO.
-C
-C    Author: Dermott (Red) Cullen
-C Copyright: (C) International Atomic Energy Agency
-C
-C PREPRO is free software; you can redistribute it and/or modify it
-C under the terms of the MIT License; see LICENSE file for more details.
-
-C=======================================================================
+c====================================================================
 C
 C     PROGRAM GROUPIE
 C     ===============
@@ -268,6 +260,13 @@ C                                *Correct MULTBAND.LST output format.
 C     VERS. 2021-1 (Jan. 2021)   *Updated for FORTRAN 2018
 C     VERS. 2023-1 (Feb. 2023)   *Decreased size page from 3,000,000
 C                                 to 120,000
+C     VERS. 2026-1 (Jume 2026)   *No Sequence # = columns 76-80 BLANK
+C     VERS. 2026-2 (Nov. 2026)   *Correctrd TAPE to OTAPE near 1349
+C                                 (original 2026-1 line number.
+C     2026-2 Acknowledgment
+C     =====================
+C     I thank Chuck Whitmer (TerraPower,WA) for reporting the ERROR near
+C     1349 (original 2026-1 line number) OTAPE was misspelled TAPE.
 C
 C     2020-1 Acknowledgment
 C     =====================
@@ -278,7 +277,7 @@ C     or not Unresolved Resonance Region (URR) fit was performed.
 C
 C     2015-2 Acknowledgment
 C     =====================
-C     I thank Chuck Whitmer (TerraPower,WA) and Andrej Trkov (NDS,IAEA)
+C     I thank Chuck Whitmer (TerraPower, WA) and Andrej Trkov (NDS,IAEA)
 C     for reporting the errors that led to the 2015-2 Improvements in
 C     this code.
 C
@@ -379,7 +378,7 @@ C     BY THE ADDITION OF THREE COMMENT CARDS AT THE END OF EACH
 C     HOLLERITH SECTION TO DESCRIBE THE GROUP STRUCTURE AND WEIGHTING
 C     SPECTRUM, E.G.
 C
-C     ********************** PROGRAM GROUPIE (2023-1) ***************
+C     ********************** PROGRAM GROUPIE (2026-2) ***************
 C     UNSHIELDED GROUP AVERAGES USING   69 GROUPS (WIMS)
 C     MAXWELLIAN, 1/E, FISSION TO CONSTANT WEIGHTING SPECTRUM
 C
@@ -1172,9 +1171,9 @@ C-----08/08/2012 DEFINE CODE NAME
       CHARACTER*1 ZABCD,FIELDX
       CHARACTER*4 FMTHOL,TUNITS,TMPHOL,CARD
       INTEGER*4 OUTP,OTAPE,OTAPE2
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/FILLER/ISECT
       COMMON/COPC/CARD(17)
@@ -1266,15 +1265,15 @@ C-----READ ENDF/B TAPE LABEL AND IF THERE IS MULTI-GROUP OUTPUT IN THE
 C-----ENDF/B FORMAT WRITE LABEL TO MULTI-GROUP OUTPUT FILE.
       CALL COPYL
 C-----LIST TAPE LABEL.
-      WRITE(OUTP,580) CARD,MFIELD(1)
-      WRITE(*   ,580) CARD,MFIELD(1)
+      WRITE(OUTP,550) CARD,MFIELD(1)
+      WRITE(*   ,550) CARD,MFIELD(1)
 c-----------------------------------------------------------------------
 C
 C     SEARCH FOR NEXT REQUESTED MATERIAL. TEST FOR END OF DATA.
 C
 c-----------------------------------------------------------------------
    20 CALL NXTMAT
-      IF(MATH.LE.0) GO TO 380
+      IF(MATH.LE.0) GO TO 350
 c-----------------------------------------------------------------------
 C
 C     SECTION HEAD CARD FOUND. LOCATE FILE 1, SECTION 451 OR FILE 3.
@@ -1350,7 +1349,10 @@ C-----THIS IS NOT TOTAL, ELASTIC, CAPTURE OR FISSION. SET POINT
 C-----COUNT INDEX.
       NTYPE=1
 C-----IF UNSHIELDING OUTPUT PERFORM CALCULATION. OTHERWISE SKIP SECTION.
-      IF(OTAPE.GT.0.OR.LIST3.GT.0) GO TO 140
+c**** DEBUG
+c**** 2026/11/07 - corrected TAPE to OTAPE
+      IF(OTAPE.GT.0.OR.LIST4.GT.0) GO TO 140
+c**** 2026/11/07 - corrected TAPE to OTAPE
 c-----------------------------------------------------------------------
 C
 C     REACTION LOOP
@@ -1427,7 +1429,7 @@ c-----------------------------------------------------------------------
 C-----UNSHIELDED TOTAL AVERAGES ARE ALWAYS PERFORMED. IF ENDF/B OR LIST
 C-----FORMATTED OUTPUT IS REQUESTED UNSHIELDED AVERAGES WILL ALSO BE
 C-----PERFORMED FOR ALL OTHER REACTIONS.
-      IF(MTH.NE.1.AND.OTAPE.LE.0.AND.LIST3.LE.0) GO TO 190
+      IF(MTH.NE.1.AND.OTAPE.LE.0.AND.LIST4.LE.0) GO TO 190
 C-----CALCULATE UNSHIELDED GROUP AVERAGES.
       CALL GROUPU
 C-----IF NOT TOTAL, ELASTIC, CAPTURE OR FISSION RESET SAVED POINT
@@ -1470,42 +1472,22 @@ C
 c-----------------------------------------------------------------------
 c-----Only for MF=3 data (no MF=10, etc. data)
       IF(MFHOUT.eq.3) then
-c-----Resolved region
-      if(RES2.gt.0.0d0) then
-      CALL OUT9G( RES1,FIELDX(1,1))
-      CALL OUT9G( RES2,FIELDX(1,2))
-      WRITE(3,230) ZABCD,((FIELDX(k,kk),k=1,11),kk=1,2)
-      WRITE(*,230) ZABCD,((FIELDX(k,kk),k=1,11),kk=1,2)
-  230 format(1x,78('-')/' Resonance Region for ',12A1/
-     1 ' Resolved Resonance Region.....',11A1,' to ',11A1, ' eV')
-      else
-      WRITE(3,240) ZABCD
-      WRITE(*,240) ZABCD
-  240 format(1x,78('-')/' Resonance Region for ',12A1/
-     1 ' Resolved Resonance Region..... NONE')
-      endif
-c-----Unresolved
+c-----Unresolved - still active below
       if(URES2.gt.0.0d0) then
-      CALL OUT9G(URES1,FIELDX(1,5))
-      CALL OUT9G(URES2,FIELDX(1,6))
-      WRITE(3,250) ((FIELDX(k,kk),k=1,11),kk=5,6)
-      WRITE(*,250) ((FIELDX(k,kk),k=1,11),kk=5,6)
-  250 format(
-     1 ' Unresolved Resonance Region...',11A1,' to ',11A1, ' eV')
 c-----WARN wheather or not Unresolved self-shielding will be performed.
 c-----2019/6/08 - Only allow for TART 616 groups
 c-----2019/6/23 - Only allow for standaard Sigma0 definition
       if(NGR.eq.616.and.MYSIGMA0.eq.0) then
-      write(3,260)
-      write(*,260)
-  260 format(
+      write(3,230)
+      write(*,230)
+  230 format(
      1 ' WARNING - Unresolved Self-Shielding ENDF data is included.'/
      2 '           ENDF Format MF=2/152 and 2/153 Unresolved Region'/
      3 '           Output is ALWAYS Cross sections - not F-Factors')
       else
-      write(3,270)
-      write(*,270)
-  270 format(
+      write(3,240)
+      write(*,240)
+  240 format(
      1 ' WARNING - Unresolved Self-Shielding ENDF data NOT included.'/
      2 '           This would require that you use as your input'/
      3 '           1) TART 616 groups'/
@@ -1514,17 +1496,17 @@ c-----2019/6/23 - Only allow for standaard Sigma0 definition
       endif
       else
 c-----There is no defined Unresolved Resonance Region.
-      WRITE(3,280)
-      WRITE(*,280)
-  280 format(
+      WRITE(3,250)
+      WRITE(*,250)
+  250 format(
      1 ' Unresolved Resonance Region... NONE'/
      1 ' WARNING - NO Unresolved Self-Shielding'/
      2       1x,78('-'))
       endif
       endif
-      write(3,290)
-      write(*,290)
-  290 format(1x,78('-'))
+      write(3,260)
+      write(*,260)
+  260 format(1x,78('-'))
 c-----------------------------------------------------------------------
 C
 C     END OF MAT. PRINT SUMMARY OF MATERIAL AND ERROR MESSAGES.
@@ -1532,44 +1514,44 @@ C
 c-----------------------------------------------------------------------
 C-----SUMMARY OF MATERIAL.
       CALL OUT9G(TEMP1,FIELDX(1,1))
-      WRITE(OUTP,570) ZABCD,MATNOW,MFHOUT,FMTHOL,(FIELDX(M,1),M=1,11),
+      WRITE(OUTP,540) ZABCD,MATNOW,MFHOUT,FMTHOL,(FIELDX(M,1),M=1,11),
      1 (NPTUSE(I),I=2,5),NPTUSE(1)
-      WRITE(*   ,570) ZABCD,MATNOW,MFHOUT,FMTHOL,(FIELDX(M,1),M=1,11),
+      WRITE(*   ,540) ZABCD,MATNOW,MFHOUT,FMTHOL,(FIELDX(M,1),M=1,11),
      1 (NPTUSE(I),I=2,5),NPTUSE(1)
 C-----PRINT WARNING MESSAGE IF SELF-SHIELDING CALCULATION WAS REQUESTED
 C-----AND THE TOTAL CROSS SECTION IS NOT PRESENT.
-      IF(MFHOUT.NE.3.OR.NPTUSE(2).GT.0.OR.NOSELF.NE.0) GO TO 300
-      WRITE(OUTP,550)
-      WRITE(*   ,550)
+      IF(MFHOUT.NE.3.OR.NPTUSE(2).GT.0.OR.NOSELF.NE.0) GO TO 270
+      WRITE(OUTP,520)
+      WRITE(*   ,520)
 C-----PRINT WARNING IF MINIMUM IS LESS THAN ALLOWABLE VALUE FOR ANY
 C-----CROSS SECTION.
-  300 DO 360 I=1,NSECT
-      IF(REDMIN(I).GE.OKMIN(I)) GO TO 360
+  270 DO 330 I=1,NSECT
+      IF(REDMIN(I).GE.OKMIN(I)) GO TO 330
       CALL OUT9G(REDMIN(I),FIELDX(1,1))
-      IF(I.lt.2) go to 310
-      IF(I.eq.2) go to 320
-      IF(I.lt.4) go to 330
-      IF(I.eq.4) go to 340
-      go to 350
+      IF(I.lt.2) go to 280
+      IF(I.eq.2) go to 290
+      IF(I.lt.4) go to 300
+      IF(I.eq.4) go to 310
+      go to 320
 C-----OTHER.
-  310 WRITE(OUTP,500) (FIELDX(M,1),M=1,11)
-      GO TO 360
+  280 WRITE(OUTP,470) (FIELDX(M,1),M=1,11)
+      GO TO 330
 C-----TOTAL.
-  320 WRITE(OUTP,510) (FIELDX(M,1),M=1,11)
-      GO TO 360
+  290 WRITE(OUTP,480) (FIELDX(M,1),M=1,11)
+      GO TO 330
 C-----ELASTIC.
-  330 WRITE(OUTP,520) (FIELDX(M,1),M=1,11)
-      GO TO 360
+  300 WRITE(OUTP,490) (FIELDX(M,1),M=1,11)
+      GO TO 330
 C-----CAPTURE.
-  340 WRITE(OUTP,530) (FIELDX(M,1),M=1,11)
-      GO TO 360
+  310 WRITE(OUTP,500) (FIELDX(M,1),M=1,11)
+      GO TO 330
 C-----FISSION.
-  350 WRITE(OUTP,540) (FIELDX(M,1),M=1,11)
-  360 CONTINUE
+  320 WRITE(OUTP,510) (FIELDX(M,1),M=1,11)
+  330 CONTINUE
 C-----INCREMENT POINT COUNTS FOR ENTIRE FILE.
-      DO 370 I=1,5
+      DO 340 I=1,5
       NPTTOT(I)=NPTTOT(I)+NPTUSE(I)
-  370 CONTINUE
+  340 CONTINUE
 C-----BRANCH BACK TO START NEXT MATERIAL.
       GO TO 20
 c-----------------------------------------------------------------------
@@ -1584,39 +1566,39 @@ C     OF (SIGMAO,N).
 C
 c-----------------------------------------------------------------------
 C-----PRINT WARNING MESSAGE IF NO DATA SATISFIED REQUESTS.
-  380 IF(LASTZA.GT.0) GO TO 390
-      WRITE(OUTP,680)
-      WRITE(*   ,680)
-      GO TO 490
+  350 IF(LASTZA.GT.0) GO TO 360
+      WRITE(OUTP,650)
+      WRITE(*   ,650)
+      GO TO 460
 C-----OUTPUT TOTAL POINT COUNTS.
-  390 WRITE(OUTP,590) (NPTTOT(I),I=2,5),NPTTOT(1)
-      WRITE(*   ,590) (NPTTOT(I),I=2,5),NPTTOT(1)
+  360 WRITE(OUTP,560) (NPTTOT(I),I=2,5),NPTTOT(1)
+      WRITE(*   ,560) (NPTTOT(I),I=2,5),NPTTOT(1)
 C-----NO MULTIBAND LIBRARY SUMMARY IF MULTIBAND PARAMETERS WERE
 C-----NOT GENERATED.
-      IF(LZA.LE.0) GO TO 490
+      IF(LZA.LE.0) GO TO 460
 C-----FOR EACH EVALUATION LIST ERROR VS. BANDS TABLE.
-      WRITE(OUTP,620)
-      DO 450 LLZA=1,LZA
+      WRITE(OUTP,590)
+      DO 420 LLZA=1,LZA
       NBNEED=NBNTAB(LLZA)
-      GO TO (400,410,420,430,440),NBNEED
-  400 WRITE(OUTP,670) IZATAB(LLZA),ERBTAB(1,LLZA)
-      GO TO 450
+      GO TO (370,380,390,400,410),NBNEED
+  370 WRITE(OUTP,640) IZATAB(LLZA),ERBTAB(1,LLZA)
+      GO TO 420
+  380 WRITE(OUTP,600) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
+      GO TO 420
+  390 WRITE(OUTP,610) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
+      GO TO 420
+  400 WRITE(OUTP,620) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
+      GO TO 420
   410 WRITE(OUTP,630) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
-      GO TO 450
-  420 WRITE(OUTP,640) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
-      GO TO 450
-  430 WRITE(OUTP,650) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
-      GO TO 450
-  440 WRITE(OUTP,660) IZATAB(LLZA),(ERBTAB(I,LLZA),I=1,NBNEED)
-  450 CONTINUE
+  420 CONTINUE
 C-----LIST MAXIMUM ERROR VS. SIGMA0 FOR THE ENTIRE FILE.
-      WRITE(OUTP,600)
-      DO 470 I=1,25
-      DO 460 NB=1,NBMAX
+      WRITE(OUTP,570)
+      DO 440 I=1,25
+      DO 430 NB=1,NBMAX
       ERLIB(I,NB)=100.0d0*ERLIB(I,NB)
-  460 CONTINUE
-      WRITE(OUTP,610) I,(ERLIB(I,J),J=1,NBMAX)
-  470 CONTINUE
+  430 CONTINUE
+      WRITE(OUTP,580) I,(ERLIB(I,J),J=1,NBMAX)
+  440 CONTINUE
 C-----------------------------------------------------------------------
 C
 C     PRINT SUMMARY OF TYPES OF CONVERGENCE FOR MULTI-BAND PARAMETERS
@@ -1626,9 +1608,9 @@ C-----------------------------------------------------------------------
       do k=1,8
       MYLOGSUM = MYLOGSUM + MYLOG(k)
       enddo
-      WRITE(*,480) MYLOG,MYLOGSUM,LZA*NGR
-      WRITE(3,480) MYLOG,MYLOGSUM,LZA*NGR
-  480 FORMAT(1X,78('-')/' Summary of Multi-Band Results'/1X,78('-')/
+      WRITE(*,450) MYLOG,MYLOGSUM,LZA*NGR
+      WRITE(3,450) MYLOG,MYLOGSUM,LZA*NGR
+  450 FORMAT(1X,78('-')/' Summary of Multi-Band Results'/1X,78('-')/
      1 ' No Self-Shielding (Conserve 1 Moment)..........',I11/
      2 ' Little Self-Shielding (Conserve 2 Moments).....',I11/
      3 ' General Self-Shielding (Conserve 3 Moments)....',I11/
@@ -1641,61 +1623,60 @@ C-----------------------------------------------------------------------
      9 ' Check (Evaluations x Groups)...................',I11)
 C-----IF ENDF/B FORMAT OUTPUT, OUTPUT FEND. MEND AND TEND LINES, AS
 C-----REQUIRED.
-  490 MATH=-1
+  460 MATH=-1
       MFH=0
       MTH=0
-      NOSEQ=0
       CALL CONTOG
 C-----END ENDF/B FORMATTED FILE AND LISTING FILES.
-      WRITE(OUTP,560)
-      WRITE(*   ,560)
-      OTAPE = 11        ! FORCE ON-LINE RUNING TIME REPORT.
+      WRITE(OUTP,530)
+      WRITE(*   ,530)
+      OTAPE = 11        ! FORCE ON-LINE RUNNING TIME REPORT.
 c-----2019/3/9 - Final WARNING if inconsitent maximum tabulated energy
       CALL MAXIE4(1)
       CALL ENDIT
-      GO TO 380    ! cannot get to here.
-  500 FORMAT(' WARNING....Minimum Other   in Above',
+      GO TO 350    ! cannot get to here.
+  470 FORMAT(' WARNING....Minimum Other   in Above',
      1 ' Material is',
      2 1X,11A1,' barns.')
-  510 FORMAT(' WARNING....Minimum Total   in Above',
+  480 FORMAT(' WARNING....Minimum Total   in Above',
      1 ' Material is',
      2 1X,11A1,' barns.')
-  520 FORMAT(' WARNING....Minimum Elastic in Above',
+  490 FORMAT(' WARNING....Minimum Elastic in Above',
      1 ' Material is',
      2 1X,11A1,' barns.')
-  530 FORMAT(' WARNING....Minimum Capture in Above',
+  500 FORMAT(' WARNING....Minimum Capture in Above',
      1 ' Material is',
      2 1X,11A1,' barns.')
-  540 FORMAT(' WARNING....Minimum Fission in Above',
+  510 FORMAT(' WARNING....Minimum Fission in Above',
      1 ' Material is',
      2 1X,11A1,' barns.')
-  550 FORMAT(' WARNING...Total Cross Section is Not Given for Above',
+  520 FORMAT(' WARNING...Total Cross Section is Not Given for Above',
      1 ' Material.'/
      2 ' Self-Shielding and Multiband Calculation Skipped',
      3 ' (i.e. Impossible)')
-  560 FORMAT(1X,78('-')/' Other Points = Points Other Than Total,',
+  530 FORMAT(1X,78('-')/' Other Points = Points Other Than Total,',
      1 ' Elastic, Capture or Fission.'/
      3 ' This Will Always be Zero Unless Unshielded Output is',
      4 ' Requested.'/1X,78('-'))
-  570 FORMAT(12A1,I5,I3,2X,A1,11A1,5I8)
-  580 FORMAT(1X,78('-')/' ENDF/B Tape Label'/1X,78('-')/1X,16A4,A2,I4/
+  540 FORMAT(12A1,I5,I3,2X,A1,11A1,5I8)
+  550 FORMAT(1X,78('-')/' ENDF/B Tape Label'/1X,78('-')/1X,16A4,A2,I4/
      1 1X,78('-')/' Isotope      MAT MF Fmt Kelvin   ',
      2 '   Total Elastic Capture Fission   Other'/15X,'     ',14X,
      3 '  Points  Points  Points  Points  Points'/1X,78('-'))
-  590 FORMAT(1X,78('-')/27X,'Totals ',5I8)
-  600 FORMAT(///8X,'Maximum per-cent Error vs. Sigma-0 for Entire',
+  560 FORMAT(1X,78('-')/27X,'Totals ',5I8)
+  570 FORMAT(///8X,'Maximum per-cent Error vs. Sigma-0 for Entire',
      1 ' FILE'/1X,78('-')/' Index *    1 Band  *  2 Bands  ',
      2 '*  3 Bands  *  4 Bands  *  5 Bands'/1X,78('-'))
-  610 FORMAT(I6,1X,'*',F10.2,2X,4('*',F9.2,2X))
-  620 FORMAT(///8X,'Maximum per-cent Error During Sigma-0',
+  580 FORMAT(I6,1X,'*',F10.2,2X,4('*',F9.2,2X))
+  590 FORMAT(///8X,'Maximum per-cent Error During Sigma-0',
      1 ' INTERPOLATION'/1X,78('-')/'    ZA *    1 Band  *  2 Bands  ',
      2 '*  3 Bands  *  4 Bands  *  5 Bands'/1X,78('-'))
-  630 FORMAT(I6,1X,'*',F10.2,2X,'*',F9.2,2X,3('*',11X))
-  640 FORMAT(I6,1X,'*',F10.2,2X,2('*',F9.2,2X),2('*',11X))
-  650 FORMAT(I6,1X,'*',F10.2,2X,3('*',F9.2,2X),'*')
-  660 FORMAT(I6,1X,'*',F10.2,2X,4('*',F9.2,2X))
-  670 FORMAT(I6,1X,'*',F10.2,2X,4('*',11X))
-  680 FORMAT(/' WARNING....No Data Found That Satisfied Retrieval',
+  600 FORMAT(I6,1X,'*',F10.2,2X,'*',F9.2,2X,3('*',11X))
+  610 FORMAT(I6,1X,'*',F10.2,2X,2('*',F9.2,2X),2('*',11X))
+  620 FORMAT(I6,1X,'*',F10.2,2X,3('*',F9.2,2X),'*')
+  630 FORMAT(I6,1X,'*',F10.2,2X,4('*',F9.2,2X))
+  640 FORMAT(I6,1X,'*',F10.2,2X,4('*',11X))
+  650 FORMAT(/' WARNING....No Data Found That Satisfied Retrieval',
      1 ' Criteria.'/11X,
      2 ' Therefore No Data was Group Averaged or Written to Output',
      3 'FILE.'/1X,78('-'))
@@ -1723,7 +1704,7 @@ C=======================================================================
       CHARACTER*66 PROGDOC
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/TEMP,Q,L1,L2,N1,N2,MAT,MF,MT
       COMMON/HOLFMT/FMTHOL
       COMMON/SPIM/IMSP
@@ -1745,7 +1726,7 @@ C                1         2         3         4         5         6
 C       12345678901234567890123456789012345678901234567890123456789012
 C       3456
       DATA PROGDOC/
-     1 ' ***************** Program GROUPIE (VERSION 2023-1)***********',
+     1 ' ***************** Program GROUPIE (VERSION 2026-2)***********',
      2 ' Unshielded Group Averages Using 12345 Groups                 ',
      3 ' Weighting Spectrum: Maxwellian,1/E,Fission,Constant Spectrum ',
      4 ' Weighting Spectrum: 1/E Spectrum                             ',
@@ -1845,7 +1826,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL
       INTEGER*4 OUTP,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LEADER/C1,C2,L1,L2,N1,N2,MAT,MF,MT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
@@ -1867,6 +1848,8 @@ C-----DO LOOP OVER ALL ISOTOPES
 C-----DO LOOP OVER ALL ENERGY RANGES
       DO 260 JER=1,NER
       CALL CARDIO(EL,EH,LRU,LRF,N1H,N2H)
+C-----DEFINE LRU FOR INTERNAL USE AS ORIGINAL LRU (BEFORE RECENT).
+      IF(LRU.GT.3) LRU=LRU-3
 c-----------------------------------------------------------------------
 c
 c     2017/5/16 - added NRO - Energy dependent scattering radius
@@ -1883,8 +1866,6 @@ c-----Energy dependent scattering radius = copy TAB1 record
       CALL COPY1G
       enddo
       endif
-C-----DEFINE LRU FOR INTERNAL USE AS ORIGINAL LRU (BEFORE RECENT).
-      IF(LRU.GT.3) LRU=LRU-3
 C-----Select resolved or unresolved or NONE.
       IF(LRU.eq.1) go to 10    ! Resolved
       IF(LRU.gt.1) go to 20    ! unresolved
@@ -1905,6 +1886,12 @@ C-----DEFINE UNITED ENERGY RANGE.
    10 IF(RES2.le.0.0d0) then
       RES1 = EL
       RES2 = EH
+c-----only 1 isotope and 1 resonance region
+      if(NIS.le.1.and.NER.le.1) then
+c-----Always list on-screen
+      call LIST2G(RES1,RES2,URES1,URES2)
+      go to 280
+      endif
       else
       IF(EL.lt.RES1) RES1 = EL
       IF(EH.gt.RES2) RES2 = EH
@@ -1919,6 +1906,12 @@ C-----DEFINE UNITED ENERGY RANGE.
    20 IF(URES2.le.0.0d0) then
       URES1 = EL
       URES2 = EH
+c-----only 1 isotope
+      if(NIS.le.1) then
+c-----Always list on-screen
+      call LIST2G(RES1,RES2,URES1,URES2)
+      go to 280
+      endif
       else
       IF(EL.lt.URES1) URES1 = EL
       IF(EH.gt.URES2) URES2 = EH
@@ -1945,12 +1938,12 @@ C-----------------------------------------------------------------------
       IF(LRF.EQ.4) GO TO 80    ! Adler-Adler
       IF(LRF.EQ.7) GO TO 130   ! New Reich-Moore
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 280
-   40 IF(LRU.NE.2) GO TO 280   ! Unresolved?
+      GO TO 290
+   40 IF(LRU.NE.2) GO TO 290   ! Unresolved?
       IF(LRF.EQ.1) GO TO 150   ! Energy Independent Widths
       IF(LRF.EQ.2) GO TO 220   ! Energy   Dependent Widths
 C-----ILLEGAL - IGNORE REMAINDER OF FILE 2
-      GO TO 280
+      GO TO 290
 C-----------------------------------------------------------------------
 C
 C     BREIT-WIGNER (SINGLE OR MULTI-LEVEL) OR REICH-MOORE FORMALISM
@@ -2099,16 +2092,16 @@ C     FINISHED O.K.
 C
 C-----------------------------------------------------------------------
 C-----COPY TO END OF FILE (MF=0)
-      CALL COPYFG
+  280 CALL COPYFG
       RETURN
 C-----------------------------------------------------------------------
 C
 C     ERROR.
 C
 C-----------------------------------------------------------------------
-  280 WRITE(3,290)
-      WRITE(*,290)
-  290 FORMAT(1x,78('=')/
+  290 WRITE(3,300)
+      WRITE(*,300)
+  300 FORMAT(1x,78('=')/
      1 ' ERROR - Reading MF/MT=2/151 Resonance Parameters.'/
      1 '         Execution Terminated.'/1x,78('='))
       CALL ENDERROR
@@ -2152,7 +2145,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE
       CHARACTER*1 FIELDX
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/PAGER/NPAGE,NPAGM1
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/LASTE/ELAST
@@ -2325,13 +2318,13 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE,OTAPE2
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/COMXTEND/MYXTEND
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/FILLER/ISECT
       COMMON/MINOK/OKMIN(5),REDMIN(5)
       COMMON/TYPER/NTYPE
@@ -2543,7 +2536,7 @@ c-----------------------------------------------------------------------
 C-----OUTPUT IN ENDF/B FORMAT (IF REQUESTED)
   190 IF(OTAPE.GT.0) CALL TAB1(EGROUP,AVN,IGRLOW)
 C-----OUTPUT IN LISTING FORMAT (IF REQUESTED)
-      IF(LIST3.GT.0) CALL LISTAV(EGROUP,AVN,IGRLOW)
+      IF(LIST4.GT.0) CALL LISTAV(EGROUP,AVN,IGRLOW)
       RETURN
       END
       SUBROUTINE GROUPS
@@ -2586,7 +2579,7 @@ C=======================================================================
       INTEGER*4 OTAPE2,OPS
       CHARACTER*1 ZABCD,FIELDX
       CHARACTER*4 TUNITS,TMPHOL
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/OPUS/OPS(5)
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
@@ -3163,7 +3156,7 @@ C     Multi-Band Output - After URRFIT
 C
 c-----------------------------------------------------------------------
 c-----Listing
-      IF(LIST2.GT.0) CALL BANLST
+      IF(LIST3.GT.0) CALL BANLST
 c-----Compact
       IF(OTAPE2.GT.0) CALL BANOUT
 c-----------------------------------------------------------------------
@@ -3340,7 +3333,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INCLUDE 'groupie.h'
       INTEGER*4 OTAPE2
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       common/fitcom/xcmom(3,5,MAXGROUP),AE2(5),AE3(5)
       common/newmom/xcnew(3,5,MAXGROUP)
       COMMON/ERANGES/e1,e2,e3
@@ -3435,7 +3428,7 @@ c=======================================================================
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/ELPASZ/ZABCD(12)
       COMMON/FIELDC/FIELDX(11,22)
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       INCLUDE 'groupie.h'
       common/fitcom/xcmom(3,5,MAXGROUP),AE2(5),AE3(5)
       common/newmom/xcnew(3,5,MAXGROUP)
@@ -3801,7 +3794,7 @@ C=======================================================================
       CHARACTER*24 xc1file
       CHARACTER*4 TUNITS,TMPHOL
       CHARACTER*8 SIGHL1,SIGHL2
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/OPUS/OPS(5)
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
@@ -3897,7 +3890,7 @@ C=======================================================================
       CHARACTER*1 ZABCD,FIELDX
       CHARACTER*4 TUNITS,TMPHOL
       CHARACTER*8 SIGHL1,SIGHL2,RICHAR
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/OPUS/OPS(5)
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
@@ -4128,8 +4121,8 @@ C=======================================================================
       CHARACTER*1 ZABCD,FIELD1,FIELD2,xc2
       CHARACTER*24 xc2file
       CHARACTER*4 QBLANK
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/ELPASZ/ZABCD(12)
       COMMON/OPUS/OPS(5)
@@ -4150,11 +4143,11 @@ c     Define UNSHIELD.LST Filename = ZAzzzaaa.UNSHIELD.LST
 c
 c-----------------------------------------------------------------------
       if(IZA.ne.LASTZA) then
-      if(LASTZA.gt.0) CLOSE(LIST3) ! Close current file
+      if(LASTZA.gt.0) CLOSE(LIST4) ! Close current file
       LASTZA = IZA
       IPASS  = 0                   ! Initialize for each new ZA
       call ZANAME(IZA,xc2(1))
-      OPEN(LIST3,FILE=xc2file,STATUS='UNKNOWN')
+      OPEN(LIST4,FILE=xc2file,STATUS='UNKNOWN')
       endif
 C-----DEFINE PARAMETERS FOR PAGE LAYOUT AT FIRST CALL.
       IF(IPASS.GT.0) GO TO 10
@@ -4174,9 +4167,9 @@ C-----SELECT CROSS SECTION OR RESONANCE INTEGRAL.
       IF(OPS(5).EQ.2) AVUSE=DLOG(E(2)/E(1))*AVUSE
       CALL OUT9G(AVUSE,FIELD2(1,1))
       IF(MATNOW.NE.LSTMAT)
-     1 WRITE(LIST3,130) ZABCD,MATNOW,MTH,(FIELD2(M,1),M=1,11)
+     1 WRITE(LIST4,130) ZABCD,MATNOW,MTH,(FIELD2(M,1),M=1,11)
       IF(MATNOW.EQ.LSTMAT)
-     1 WRITE(LIST3,140) MTH,(FIELD2(M,1),M=1,11)
+     1 WRITE(LIST4,140) MTH,(FIELD2(M,1),M=1,11)
       LSTMAT=MATH
    20 RETURN
 c-----------------------------------------------------------------------
@@ -4223,19 +4216,19 @@ C-----SELECT CROSS SECTION OR RESONANCE INTEGRAL.
    60 K=K-1
 C-----FOR UPPER ENERGY OF LAST GROUP DO NOT PRINT AVERAGE VALUE.
       IF(KEY(K).GE.NGRP1) GO TO 70
-      WRITE(LIST3,110) (KEY(L),(FIELD1(M,L),M=1,11),
+      WRITE(LIST4,110) (KEY(L),(FIELD1(M,L),M=1,11),
      1 (FIELD2(M,L),M=1,11),L=1,K)
       GO TO 90
    70 IF(K.LE.1) GO TO 80
       KM1=K-1
-      WRITE(LIST3,110) (KEY(L),(FIELD1(M,L),M=1,11),
+      WRITE(LIST4,110) (KEY(L),(FIELD1(M,L),M=1,11),
      1 (FIELD2(M,L),M=1,11),L=1,KM1),
      2 KEY(K),(FIELD1(M,K),M=1,11)
       GO TO 90
-   80 WRITE(LIST3,110) NGRP1,(FIELD1(M,1),M=1,11)
+   80 WRITE(LIST4,110) NGRP1,(FIELD1(M,1),M=1,11)
    90 CONTINUE
 C-----SPACE TO THE BOTTOM OF THE PAGE.
-      WRITE(LIST3,120) QBLANK
+      WRITE(LIST4,120) QBLANK
   100 CONTINUE
       RETURN
   110 FORMAT(I6,22A1,3(I7,22A1))
@@ -4253,8 +4246,8 @@ C=======================================================================
       INTEGER*4 OTAPE2,OPS
       CHARACTER*1 ZABCD,FIELD1
       CHARACTER*4 TUNITS,TMPHOL
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/ELPASD/TUNITS(2,4),TMPHOL(3)
       COMMON/ELPASZ/ZABCD(12)
@@ -4274,7 +4267,7 @@ C
 C     NOTHING TO DO IF NO UNSHIELDED OUTPUT LISTING.
 C
 c-----------------------------------------------------------------------
-      IF(LIST3.LE.0) RETURN
+      IF(LIST4.LE.0) RETURN
 c-----------------------------------------------------------------------
 C
 C     ON FIRST CALL SELECT EITHER SPECIAL, COMPACT FORMAT IF ONLY
@@ -4293,9 +4286,9 @@ c-----------------------------------------------------------------------
       CALL OUT9G(EGROUP(1),FIELD1(1,2))
       CALL OUT9G(EGROUP(2),FIELD1(1,3))
 C-----IDENTIFY EITHER CROSS SECTIONS OR RESONANCE INTEGRALS.
-      IF(OPS(5).EQ.1) WRITE(LIST3,40) (FIELD1(M,1),M=1,11),
+      IF(OPS(5).EQ.1) WRITE(LIST4,40) (FIELD1(M,1),M=1,11),
      1 TMPHOL(2),TMPHOL(3),((FIELD1(M,J),M=1,11),J=2,3)
-      IF(OPS(5).EQ.2) WRITE(LIST3,50) (FIELD1(M,1),M=1,11),
+      IF(OPS(5).EQ.2) WRITE(LIST4,50) (FIELD1(M,1),M=1,11),
      1 TMPHOL(2),TMPHOL(3),((FIELD1(M,J),M=1,11),J=2,3)
       RETURN
 c-----------------------------------------------------------------------
@@ -4307,9 +4300,9 @@ c-----------------------------------------------------------------------
 C-----LIST TITLE FOR PAGE.
       CALL OUT9G(TMPK     ,FIELD1(1,1))
 C-----IDENTIFY EITHER CROSS SECTIONS OR RESONANCE INTEGRALS.
-      IF(OPS(5).EQ.1) WRITE(LIST3,20) MTH,MATNOW,(FIELD1(M,1),M=1,11),
+      IF(OPS(5).EQ.1) WRITE(LIST4,20) MTH,MATNOW,(FIELD1(M,1),M=1,11),
      1 TMPHOL(2),TMPHOL(3),ZABCD
-      IF(OPS(5).EQ.2) WRITE(LIST3,30) MTH,MATNOW,(FIELD1(M,1),M=1,11),
+      IF(OPS(5).EQ.2) WRITE(LIST4,30) MTH,MATNOW,(FIELD1(M,1),M=1,11),
      1 TMPHOL(2),TMPHOL(3),ZABCD
       RETURN
    20 FORMAT(53X,'MT=',I3/' MAT',I5,
@@ -4401,7 +4394,7 @@ C=======================================================================
       CHARACTER*1 FIELDX,ZABCD
       CHARACTER*4 BUMMER
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
@@ -5923,7 +5916,7 @@ C=======================================================================
       CHARACTER*24 ban1file
       CHARACTER*4 TUNITS,TMPHOL
       CHARACTER*72 LIBID
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
@@ -5948,7 +5941,7 @@ c     Define MULTBAND.LST Filename = ZAzzzaaa.MULTBAND.LST
 c
 c-----------------------------------------------------------------------
       call ZANAME(IZA,ban1(1))
-      OPEN(LIST2,FILE=ban1file,STATUS='UNKNOWN')
+      OPEN(LIST3,FILE=ban1file,STATUS='UNKNOWN')
 C-----------------------------------------------------------------------
 c
 C     START LIST OF MULTI-BAND PARAMETERS.
@@ -5957,12 +5950,12 @@ C-----------------------------------------------------------------------
 C-----CONVERT KELVIN TEMPERATURE TO OUTPUT FORM.
       CALL OUT9G(TMPK,FIELDX(1,4))
       IF(NSECT.LT.5) GO TO 10
-      WRITE(LIST2,210) MATNOW,(FIELDX(M,4),M=1,11),TMPHOL(2),
+      WRITE(LIST3,210) MATNOW,(FIELDX(M,4),M=1,11),TMPHOL(2),
      1 TMPHOL(3),ZABCD,
      2 (REACT2(1,I),REACT2(2,I),I=2,5)
      3,(REACT2(1,I),REACT2(2,I),I=2,6)
       GO TO 20
-   10 WRITE(LIST2,220) MATNOW,(FIELDX(M,4),M=1,11),TMPHOL(2),
+   10 WRITE(LIST3,220) MATNOW,(FIELDX(M,4),M=1,11),TMPHOL(2),
      1 TMPHOL(3),ZABCD,
      2 (REACT2(1,I),REACT2(2,I),I=2,4),
      3 (REACT2(1,I),REACT2(2,I),I=2,4),REACT2(1,6),REACT2(2,6)
@@ -6020,11 +6013,11 @@ C-----UNUSED = BLANK
 C-----LIST PARAMETERS FOR FIRST BAND AND UNSHIELDED GROUP
 C-----AVERAGES.
   130 IF(NSECT.LT.5) GO TO 140
-      WRITE(LIST2,230) IGR,(FIELDX(M,1),M=1,11),NB,
+      WRITE(LIST3,230) IGR,(FIELDX(M,1),M=1,11),NB,
      1 WTBAND(NB,IGR),
      2 ((FIELDX(M,I),M=1,11),I=2,10)
       GO TO 170
-  140 WRITE(LIST2,250) IGR,(FIELDX(M,1),M=1,11),NB,
+  140 WRITE(LIST3,250) IGR,(FIELDX(M,1),M=1,11),NB,
      1 WTBAND(NB,IGR),
      2 ((FIELDX(M,I),M=1,11),I=2,4),
      3 ((FIELDX(M,I),M=1,11),I=6,8),
@@ -6032,10 +6025,10 @@ C-----AVERAGES.
       GO TO 170
 C-----LIST PARAMETERS FOR SECOND TO N-TH BANDS.
   150 IF(NSECT.LT.5) GO TO 160
-      WRITE(LIST2,240) NB,WTBAND(NB,IGR),
+      WRITE(LIST3,240) NB,WTBAND(NB,IGR),
      1 ((FIELDX(M,I),M=1,11),I=2,5),STAR
       GO TO 170
-  160 WRITE(LIST2,260) NB,WTBAND(NB,IGR),
+  160 WRITE(LIST3,260) NB,WTBAND(NB,IGR),
      1 ((FIELDX(M,I),M=1,11),I=2,4),STAR
   170 CONTINUE
   180 continue
@@ -6047,10 +6040,10 @@ C-----------------------------------------------------------------------
 c-----Define Upper Energy limit of last group
       CALL OUT9G(EGROUP(NGRP1),FIELDX(1,1))
       IF(NSECT.LT.5) GO TO 190
-      WRITE(LIST2,270) NGRP1,(FIELDX(M,1),M=1,11),STAR
+      WRITE(LIST3,270) NGRP1,(FIELDX(M,1),M=1,11),STAR
       GO TO 200
-  190 WRITE(LIST2,280) NGRP1,(FIELDX(M,1),M=1,11),STAR
-  200 CLOSE(LIST2)
+  190 WRITE(LIST3,280) NGRP1,(FIELDX(M,1),M=1,11),STAR
+  200 CLOSE(LIST3)
       RETURN
   210 FORMAT(' MAT',I5,11X,11A1,1X,
      1 A4,A3,' Multi-Band Parameters',13X,'*',
@@ -6083,7 +6076,7 @@ C=======================================================================
       CHARACTER*1 ZABCD,FIELDX,ban2
       CHARACTER*24 ban2file
       CHARACTER*72 LIBID
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/TRASH/ERROK,ER10PC,MGROUP,METHODB,NBAND,NBMAX,
      1 NBNEED,MYSIGMA0
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
@@ -6376,10 +6369,10 @@ C=======================================================================
       CHARACTER*8 SIGHL1,SIGHL2
       CHARACTER*72 NAMEIN,NAMEOUT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/REALLY/XE,XA(5),YA(5),YB(5),YC(5),NPTAB(5),IPTAB(5),NSECT
-      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/ZA,AWRIN,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/LAWYER/MYLAWO
       COMMON/TEMPO/TMPTAB(3),TEMP1,NTEMP
       COMMON/TEMPC/TINOUT(4)
@@ -6652,13 +6645,13 @@ C-----AND DEFINE ALL UNUSED LOGICAL NUMBERS TO BE ZERO.
 C-----INITIALIZE TO NO PLOTTED OUTPUT (SHIELDED/UNSHIELDED)
       IPLOT=0
       GO TO 270
-  220 LIST2=0
+  220 LIST3=0
       GO TO 270
   230 OTAPE2=0
       GO TO 270
   240 OTAPE=0
       GO TO 270
-  250 LIST3=0
+  250 LIST4=0
       GO TO 270
   260 OPSC(I)=YES
       IPICK=1
@@ -6683,7 +6676,7 @@ C     THESE CALCULATIONS (I.E. ONLY DO UNSHIELDED MULTI-GROUP
 C     CALCULATIONS).
 C
 c-----------------------------------------------------------------------
-      IF(OTAPE2.NE.0.OR.LIST1.NE.0.OR.LIST2.NE.0) GO TO 290
+      IF(OTAPE2.NE.0.OR.LIST1.NE.0.OR.LIST3.NE.0) GO TO 290
 C-----NO SELF-SHIELDING CALCULATION. UP TO 20,000 GROUPS ALLOWED.
 C-----CHECK FOR LEGAL NUMBER OF GROUPS.
       NOSELF=1
@@ -7030,7 +7023,7 @@ c-----Added on-line output
       WRITE(*   ,760)
       GO TO 550
   570 FORMAT(' Multi-Group and Multi-Band Parameters from',
-     1 ' ENDF/B Data (GROUPIE 2023-1)'/1X,78('-'))
+     1 ' ENDF/B Data (GROUPIE 2026-2)'/1X,78('-'))
   580 FORMAT(' Retrieval Criteria------------',7X,A4/
      1       ' Number of Energy Groups-------',I11,1X,A16/
      2       ' Maximum Number of Bands/Group-',I11,1X,A28/
@@ -7091,7 +7084,7 @@ C
 C=======================================================================
       INCLUDE 'implicit.h'
       CHARACTER*4 FMTHOL
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/HOLFMT/FMTHOL
       COMMON/VERSES/TEMP3,IVERSE
@@ -7121,7 +7114,6 @@ C-----THIS MATERIAL REQUESTED. IF A NEW MAT INITIALIZE PARAMETERS.
    40 IF(MATH.EQ.MATNOW) GO TO 50
 c-----Consistency check for preceding MAT, if any
       if(MATNOW.gt.0) CALL MAXIE3(1)
-      NOSEQ=1
       IVERSE=6
       FMTHOL=' '
       MATNOW=MATH
@@ -7205,7 +7197,7 @@ C     READ ONE ENDF/B CONTROL CARD.
 C
 C=======================================================================
       INCLUDE 'implicit.h'
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
 C-----READ CARD.
    10 CALL CONTI
       IF(MTH .gt.0) go to 20     ! MTH > 0 = Start of SECTION
@@ -7240,7 +7232,7 @@ C=======================================================================
       INCLUDE 'implicit.h'
       INTEGER*4 OUTP,OTAPE
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       CHARACTER*4 CARDX(17)
       DIMENSION MFIELD(3)
       IF(OTAPE.LE.0) RETURN
@@ -7252,7 +7244,6 @@ C-----ADD FEND LINE IF NEW MAT OR MF.
 C-----ADD MEND LINE IF NEW MAT.
       IF(MATH.EQ.LSTMAT) GO TO 10
       CALL OUTM
-      NOSEQ=1
    10 CALL CONTO
 C-----SAVE LAST MAT/MF OUTPUT.
       LSTMAT = MATH
@@ -7272,8 +7263,7 @@ C=======================================================================
       CALL OUTS(MFIELD(1),MFIELD(2))
       GO TO 20
       ENDIF
-      WRITE(OTAPE,30) CARDX,MFIELD,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,30) CARDX,MFIELD
 C-----SAVE LAST MAT/MF OUTPUT.
       LSTMAT = MFIELD(1)
       LSTMF  = MFIELD(2)
@@ -7289,8 +7279,7 @@ C=======================================================================
    50 READ(ITAPE,30) CARDX,MFIELD
       IF(OTAPE.LE.0) GO TO 60
       IF(MFIELD(3).gt.0) then
-      WRITE(OTAPE,30) CARDX,MFIELD,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,30) CARDX,MFIELD
       else
       CALL OUTS(MFIELD(1),MFIELD(2))
       ENDIF
@@ -7308,8 +7297,7 @@ C=======================================================================
       READ(ITAPE,30) CARDX,MFIELD
       IF(OTAPE.LE.0) RETURN
       IF(MFIELD(3).gt.0) then
-      WRITE(OTAPE,30) CARDX,MFIELD,NOSEQ
-      NOSEQ = NXTSEQ(NOSEQ)
+      WRITE(OTAPE,30) CARDX,MFIELD
       else
       CALL OUTS(MFIELD(1),MFIELD(2))
       ENDIF
@@ -7460,7 +7448,7 @@ C=======================================================================
       INTEGER*4 OUTP,OTAPE,OTAPE2
       CHARACTER*72 NAMEIN,NAMEOUT
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
       COMMON/IOSTATUS/ISTAT1,ISTAT2
       COMMON/NAMEX/NAMEIN,NAMEOUT
       COMMON/INPAGE/IXYLOW(5),IXYHI(5),ISCR(5)
@@ -7475,8 +7463,8 @@ C     ------------------------------------------------------------------
 C     OTAPE2  = MULTIBAND PARAMETERS FILE (OPTIONAL)
 C     NTAPE   = ENDF Formatted URR data for NJOY/MCNP
 C     LIST1   = SELF-SHIELDED CROSS SECTION LISTING (OPTIONAL)
-C     LIST2   = MULTIBAND PARAMETERS LISTING (OPTIONAL)
-C     LIST3   = UNSHIELDED CROSS SECTION LISTING (OPTIONAL)
+C     LIST3   = MULTIBAND PARAMETERS LISTING (OPTIONAL)
+C     LIST4   = UNSHIELDED CROSS SECTION LISTING (OPTIONAL)
 C     IPLOT   = PLOTTAB OUTPUT
 C     ------------------------------------------------------------------
 C     ISCR(1) = SCRATCH FILE FOR SPECTRUM
@@ -7494,8 +7482,8 @@ c     ------------------------
       OTAPE2=31
       NTAPE =32
       LIST1 =33
-      LIST2 =34
-      LIST3 =35
+      LIST3 =34
+      LIST4 =35
       IPLOT =16
 c     ------------------------
       ISCR(1)=8
@@ -7592,8 +7580,8 @@ c=======================================================================
       COMMON/WHATZA/ATWT,IZA,MATNOW,MFNOW
       COMMON/ELPASZ/ZABCD(12)
       COMMON/ENDFIO/INP,OUTP,ITAPE,OTAPE
-      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST2,LIST3,IPLOT
-      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH,NOSEQ
+      COMMON/UNITS/OTAPE2,NTAPE,LIST1,LIST3,LIST4,IPLOT
+      COMMON/HEADER/C1H,C2H,L1H,L2H,N1H,N2H,MATH,MFH,MTH
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/TEMPO/TMPTAB(3),TEMP1,NTEMP
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
@@ -7613,11 +7601,10 @@ c-----------------------------------------------------------------------
 c-----Re-Define standard ENDF Output unit and output ENDF TPID
       MYUNIT = OTAPE
       OTAPE  = NTAPE
-      NOSEQ  = 0
       OPEN(OTAPE,file=urr1file)
       write(OTAPE,10) ZABCD
    10 format(12a1,' Unresolved Region 2-Band Data',
-     1 '  PREPRO/GROUPIE(2023-1)8000 0  0    0')
+     1 '  PREPRO/GROUPIE(2026-2)8000 0  0    0')
 c            12    345678901234567890123456789012
 c               1         2         3         4
 c       345678901234567890123456
@@ -7682,7 +7669,7 @@ c                 never f-factors - it sets LSSF = 0 for output.
 c
 c=======================================================================
       include 'implicit.h'
-      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth,noseq
+      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
@@ -7749,7 +7736,7 @@ c                 never f-factors - it sets LSSF = 0 for output.
 c
 c=======================================================================
       include 'implicit.h'
-      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth,noseq
+      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
@@ -7827,7 +7814,7 @@ c                 never f-factors - it sets LSSF = 0 for output.
 c
 c=======================================================================
       include 'implicit.h'
-      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth,noseq
+      common/header/c1h,c2h,l1h,l2h,n1h,n2h,math,mfh,mth
       common/leader/c1, c2, l1, l2, n1, n2, matx, mfx, mtx
       COMMON/RESCOM/RES1,RES2,URES1,URES2,LSSF,ICOMP,INTUNR,INPART
       INCLUDE 'groupie.h'
