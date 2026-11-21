@@ -3,7 +3,7 @@ From: alpine:3.11
 
 
 %files
-    . /PREPRO2019
+    . /PREPRO2026
 
 %post
     apk add libx11-dev
@@ -11,11 +11,11 @@ From: alpine:3.11
     apk add g++
     apk add gfortran
 
-    cd /PREPRO2019/source
+    cd /PREPRO2026/source
     make graphics=yes
-    make install graphics=yes PREFIX=/PREPRO2019
+    make install graphics=yes PREFIX=/PREPRO2026
     make clean
-    cp -s /PREPRO2019/bin/* /usr/local/bin
+    cp -s /PREPRO2026/bin/* /usr/local/bin
 
 %runscript
 
@@ -41,7 +41,7 @@ From: alpine:3.11
     if [ "$1" = "test" ];
     then
         if [ ! -d "test" ]; then
-            cp -r /PREPRO2019/test .
+            cp -r /PREPRO2026/test .
             cd test
             exec ./verify.sh
         else
@@ -50,5 +50,5 @@ From: alpine:3.11
     else
         prepro_cmd="$1"
         shift
-        exec /PREPRO2019/bin/$prepro_cmd $@
+        exec /PREPRO2026/bin/$prepro_cmd $@
     fi
