@@ -37,11 +37,11 @@ and contains the source files of the PREPRO 2026 codes.
 The sources come from `SOURCES.OTHERS.tar.gz` in the 2026 release bundle;
 the additional `UTILITY` platform build files come from `SOURCES.IBMPC.tar.gz`.
 The GNU Makefiles are adapted from the previous repository layout.
-If you do not want to compile the codes yourself or are unsuccessful using the
-instructions provided below, you find executables
-for Linux, MacOS and Windows [here][PREPRO-codes]. Additional
-makefiles are also provided there which may be more pertinent for your
-system.
+If you do not want to compile the codes yourself, the IAEA distribution
+provides download packages for [Linux][PREPRO-linux], [macOS][PREPRO-macos],
+and [Windows][PREPRO-windows]. A separate [source package for other
+systems][PREPRO-others] is also available. Additional platform-specific
+build files are included in the distribution.
 
 ### Installation
 
@@ -116,17 +116,43 @@ For instance, `<PREPRO-CODE>` could be `endf2c` or `fixup`.
 
 ### Supplementary material
 
-The PREPRO 2026 codes can also be found [here][PREPRO-website]
-on the IAEA-NDS website. In particular, these resources are provided:
-- [Download of codes for various operating systems][PREPRO-codes]
-- [Best input parameters][PREPRO-best-parameters]
-- [Documentation][PREPRO-documentation]
+The official [IAEA PREPRO 2026 release page][PREPRO-website] hosts the
+**PREPRO 2026-1** distribution, including platform-specific packages, source
+code, recommended input parameters, and documentation. These links point to
+the 2026 distribution rather than the archived PREPRO 2023 pages.
 
-[PREPRO-website]: https://www-nds.iaea.org/public/endf/prepro/
-[PREPRO-codes]: https://www-nds.iaea.org/public/endf/prepro/ask4code.html
-[PREPRO-best-parameters]: https://www-nds.iaea.org/public/endf/prepro/BEST/ask4best.html
-[PREPRO-documentation]: https://www-nds.iaea.org/public/endf/prepro/DOCUMENT/ask4docs.html
+#### Code and executable packages
 
+| Platform | Download |
+| --- | --- |
+| Windows | [WindowsCodesDownload.zip][PREPRO-windows] |
+| Linux | [LINUXcodeDownload.zip][PREPRO-linux] |
+| macOS | [MACcodeDownload.zip][PREPRO-macos] |
+| Other systems / sources | [OTHERScodeDownload.zip][PREPRO-others] |
+
+#### Recommended input parameters
+
+- [BEST input parameters for Unix, Linux, and macOS][PREPRO-best-unix]
+- [BEST input parameters for Windows][PREPRO-best-windows]
+
+#### Documentation
+
+- [PREPRO code documentation (ZIP archive)][PREPRO-documentation]
+- [PREPRO 2026 technical report, IAEA-NDS-0261][PREPRO-report]
+
+The IAEA release page notes that some individual-code history documentation
+covers changes through 2023; consult the source-code comments for the latest
+details.
+
+[PREPRO-website]: https://nds.iaea.org/records/nzbnz-4f488
+[PREPRO-windows]: https://nds.iaea.org/records/nzbnz-4f488/files/WindowsCodesDownload.zip
+[PREPRO-linux]: https://nds.iaea.org/records/nzbnz-4f488/files/LINUXcodeDownload.zip
+[PREPRO-macos]: https://nds.iaea.org/records/nzbnz-4f488/files/MACcodeDownload.zip
+[PREPRO-others]: https://nds.iaea.org/records/nzbnz-4f488/files/OTHERScodeDownload.zip
+[PREPRO-best-unix]: https://nds.iaea.org/records/nzbnz-4f488/files/BestParametersUNIX.zip
+[PREPRO-best-windows]: https://nds.iaea.org/records/nzbnz-4f488/files/BestParametersWindows.zip
+[PREPRO-documentation]: https://nds.iaea.org/records/nzbnz-4f488/files/Documentation.zip
+[PREPRO-report]: https://doi.org/10.61092/iaea.2qcz-xqh5
 
 ### Legal note
 
